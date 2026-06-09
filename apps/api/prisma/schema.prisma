@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String?   @unique
+  name          String?
+  avatar        String?
+  bio           String?
+  location      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  groupMembers  GroupMember[]
+  planMembers   PlanMember[]
+  messages      Message[]
+  expenses      Expense[]
+  photos        Photo[]
+  reminders     Reminder[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Group {
+  id          String    @id @default(cuid())
+  name        String
+  photo       String?
+  description String?
+  inviteCode  String    @unique @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  members     GroupMember[]
+  plans       Plan[]
+  messages    Message[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  role     String   @default("member") // admin | member
+  joinedAt DateTime @default(now())
+
+  userId  String
+  groupId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model Plan {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    @default("full") // full | quick
+  status      String    @default("upcoming") // upcoming | active | completed
+  startDate   DateTime?
+  endDate     DateTime?
+  location    String?
+  inviteCode  String    @unique @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  groupId     String
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  members     PlanMember[]
+  messages    Message[]
+  activities  Activity[]
+  checkItems  CheckItem[]
+  expenses    Expense[]
+  photos      Photo[]
+  reminders   Reminder[]
+  votes       Vote[]
+}
+
+model PlanMember {
+  id       String   @id @default(cuid())
+  rsvp     String   @default("pending") // yes | no | maybe | pending
+  joinedAt DateTime @default(now())
+
+  userId String
+  planId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, planId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId  String?
+  plan    Plan?   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  title     String
+  notes     String?
+  time      DateTime?
+  order     Int      @default(0)
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model CheckItem {
+  id          String   @id @default(cuid())
+  title       String
+  category    String?
+  checked     Boolean  @default(false)
+  assignedTo  String?
+  createdAt   DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  amount      Float
+  category    String?
+  splitMethod String   @default("equal") // equal | custom
+  createdAt   DateTime @default(now())
+
+  planId  String
+  plan    Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  paidBy  String
+  payer   User   @relation(fields: [paidBy], references: [id])
+
+  splits  ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id        String  @id @default(cuid())
+  userId    String
+  amount    Float
+  settled   Boolean @default(false)
+
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  title     String
+  fireAt    DateTime
+  sent      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  question  String
+  options   Json
+  results   Json     @default("{}")
+  closesAt  DateTime?
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
