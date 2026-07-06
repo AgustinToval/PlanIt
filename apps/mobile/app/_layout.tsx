@@ -12,15 +12,17 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
-        {token ? (
+        <Stack.Protected guard={!!token}>
           <Stack.Screen name="(tabs)" />
-        ) : (
-          <Stack.Screen name="(auth)" />
-        )}
-        <Stack.Screen name="group/[id]" />
-        <Stack.Screen name="plan/[id]" />
+          <Stack.Screen name="group/[id]" />
+          <Stack.Screen name="plan/[id]" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={!token}>
+          <Stack.Screen name="(auth)/sign-in" />
+        </Stack.Protected>
       </Stack>
     </>
   );
