@@ -15,11 +15,13 @@ type Expense = {
   category: string | null;
   createdAt: string;
   payer: { id: string; name: string | null };
-  splits: { userId: string; amount: number }[];
+  splits: { userId: string; amount: number; settled: boolean }[];
 };
 
 type Summary = {
+  mode: string;
   total: number;
+  perPerson: number | null;
   balances: { userId: string; name: string; net: number }[];
   transactions: { fromId: string; toId: string; from: string; to: string; amount: number }[];
 };
@@ -36,17 +38,19 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
   const [sharers, setSharers] = useState<Set<string>>(new Set(members.map((m) => m.user.id)));
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [mode, setMode] = useState<"expense" | "equal">("expense");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const [planRes, sumRes] = await Promise.all([
         api.get(`/plans/${planId}`),
-        api.get(`/expenses/plan/${planId}/summary`),
+        api.get(`/expenses/plan/${planId}/summary?mode=${mode}`),
       ]);
       setExpenses(planRes.data.expenses ?? []);
       setSummary(sumRes.data);
     } catch { /* noop */ }
-  }, [planId]);
+  }, [planId, mode]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -108,6 +112,20 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
     ]);
   };
 
+  const toggleSettled = async (exp: Expense, splitUserId: string, current: boolean) => {
+    const canToggle = splitUserId === user?.id || exp.payer.id === user?.id || myRole === "admin";
+    if (!canToggle) return;
+    try {
+      await api.patch(`/expenses/${exp.id}/splits/${splitUserId}`, { settled: !current });
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not update");
+    }
+  };
+
+  const memberName = (id: string) =>
+    id === user?.id ? "You" : members.find((m) => m.user.id === id)?.user.name ?? "?";
+
   const myNet = summary?.balances.find((b) => b.userId === user?.id)?.net ?? 0;
 
   return (
@@ -120,11 +138,32 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Total spent</Text>
           <Text style={styles.balanceTotal}>${(summary?.total ?? 0).toFixed(2)}</Text>
+          {mode === "equal" && summary?.perPerson != null && (
+            <Text style={styles.perPerson}>
+              ${summary.perPerson.toFixed(2)} each ({members.length} people)
+            </Text>
+          )}
           <Text style={[styles.balanceNet, { color: myNet >= 0 ? "#22c55e" : "#f87171" }]}>
             {myNet > 0 ? `You are owed $${myNet.toFixed(2)}` :
              myNet < 0 ? `You owe $${Math.abs(myNet).toFixed(2)}` :
              "You're all settled ✓"}
           </Text>
+
+          {/* Split mode toggle */}
+          <View style={styles.modeRow}>
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === "expense" && styles.modeBtnActive]}
+              onPress={() => setMode("expense")}
+            >
+              <Text style={[styles.modeText, mode === "expense" && styles.modeTextActive]}>By expense</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === "equal" && styles.modeBtnActive]}
+              onPress={() => setMode("equal")}
+            >
+              <Text style={[styles.modeText, mode === "equal" && styles.modeTextActive]}>Everything ÷ everyone</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Settlement plan */}
@@ -154,21 +193,59 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
           {expenses.length === 0 ? (
             <Text style={styles.empty}>No expenses yet — add the first one</Text>
           ) : (
-            expenses.map((exp) => (
-              <TouchableOpacity
-                key={exp.id}
-                style={styles.expRow}
-                onLongPress={() => deleteExpense(exp)}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.expTitle}>{exp.title}</Text>
-                  <Text style={styles.expMeta}>
-                    {exp.payer.id === user?.id ? "You" : exp.payer.name ?? "?"} paid · split {exp.splits.length} ways
-                  </Text>
+            expenses.map((exp) => {
+              const isOpen = expanded === exp.id;
+              const settledCount = exp.splits.filter((s) => s.settled).length;
+              return (
+                <View key={exp.id}>
+                  <TouchableOpacity
+                    style={[styles.expRow, isOpen && styles.expRowOpen]}
+                    onPress={() => setExpanded(isOpen ? null : exp.id)}
+                    onLongPress={() => deleteExpense(exp)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.expTitle}>{exp.title}</Text>
+                      <Text style={styles.expMeta}>
+                        {exp.payer.id === user?.id ? "You" : exp.payer.name ?? "?"} paid · {settledCount}/{exp.splits.length} paid up
+                      </Text>
+                    </View>
+                    <Text style={styles.expAmount}>${exp.amount.toFixed(2)}</Text>
+                    <Text style={styles.expChevron}>{isOpen ? "▾" : "▸"}</Text>
+                  </TouchableOpacity>
+
+                  {isOpen && (
+                    <View style={styles.splitsBox}>
+                      {exp.splits.map((s) => {
+                        const isPayerShare = s.userId === exp.payer.id;
+                        const canToggle = s.userId === user?.id || exp.payer.id === user?.id || myRole === "admin";
+                        return (
+                          <TouchableOpacity
+                            key={s.userId}
+                            style={styles.splitRow}
+                            onPress={() => !isPayerShare && toggleSettled(exp, s.userId, s.settled)}
+                            disabled={isPayerShare || !canToggle}
+                          >
+                            <Text style={styles.splitCheck}>
+                              {s.settled ? "✅" : "⬜"}
+                            </Text>
+                            <Text style={[styles.splitName, s.settled && styles.splitSettled]}>
+                              {memberName(s.userId)}
+                              {isPayerShare ? " (paid the bill)" : ""}
+                            </Text>
+                            <Text style={[styles.splitAmount, s.settled && styles.splitSettled]}>
+                              ${s.amount.toFixed(2)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      <Text style={styles.splitsHint}>
+                        Tap your row when you've paid your share
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <Text style={styles.expAmount}>${exp.amount.toFixed(2)}</Text>
-              </TouchableOpacity>
-            ))
+              );
+            })
           )}
         </View>
         <View style={{ height: 90 }} />
@@ -275,9 +352,24 @@ const styles = StyleSheet.create({
   txAmount: { color: "#ffffff", fontSize: 14, fontWeight: "700" },
   empty: { color: "#475569", fontSize: 14, textAlign: "center", marginTop: 12 },
   expRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 12, padding: 14, marginBottom: 6 },
+  expRowOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 },
   expTitle: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
   expMeta: { color: "#64748b", fontSize: 12, marginTop: 2 },
   expAmount: { color: "#ffffff", fontSize: 16, fontWeight: "800" },
+  expChevron: { color: "#64748b", fontSize: 14, marginLeft: 10 },
+  splitsBox: { backgroundColor: "#172033", borderBottomLeftRadius: 12, borderBottomRightRadius: 12, padding: 12, marginBottom: 6 },
+  splitRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
+  splitCheck: { fontSize: 16, marginRight: 10 },
+  splitName: { flex: 1, color: "#e2e8f0", fontSize: 14 },
+  splitAmount: { color: "#e2e8f0", fontSize: 14, fontWeight: "700" },
+  splitSettled: { color: "#475569", textDecorationLine: "line-through" },
+  splitsHint: { color: "#475569", fontSize: 11, textAlign: "center", marginTop: 6 },
+  perPerson: { color: "#818cf8", fontSize: 14, fontWeight: "600", marginBottom: 4 },
+  modeRow: { flexDirection: "row", gap: 8, marginTop: 14 },
+  modeBtn: { flex: 1, backgroundColor: "#0f172a", borderRadius: 10, paddingVertical: 8, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
+  modeBtnActive: { borderColor: "#6366f1" },
+  modeText: { color: "#64748b", fontSize: 12, fontWeight: "700" },
+  modeTextActive: { color: "#ffffff" },
   fab: { position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center" },
   fabText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },

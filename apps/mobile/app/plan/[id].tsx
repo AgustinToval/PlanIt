@@ -8,6 +8,8 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import ExpensesModule from "../../components/plan/ExpensesModule";
+import ChecklistModule from "../../components/plan/ChecklistModule";
+import ActivitiesModule from "../../components/plan/ActivitiesModule";
 
 type Message = {
   id: string;
@@ -50,6 +52,8 @@ export default function PlanScreen() {
   const [activeTab, setActiveTab] = useState<string>("chat");
   const [showAddModule, setShowAddModule] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [friends, setFriends] = useState<{ id: string; name: string | null }[]>([]);
   const listRef = useRef<FlatList>(null);
 
   const myMembership = plan?.members.find((m) => m.user.id === user?.id);
@@ -64,6 +68,53 @@ export default function PlanScreen() {
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not change role");
     }
+  };
+
+  const loadFriends = async () => {
+    try {
+      const res = await api.get("/friends");
+      setFriends(res.data);
+    } catch { /* noop */ }
+  };
+
+  const inviteFriend = async (friendId: string) => {
+    try {
+      await api.post(`/plans/${id}/invite`, { memberIds: [friendId] });
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not invite");
+    }
+  };
+
+  const saveTemplate = async () => {
+    try {
+      const res = await api.post(`/plans/${id}/save-template`, {});
+      setShowSettings(false);
+      Alert.alert("✅ Template saved", `"${res.data.name}" — you'll see it when creating a new plan.`);
+    } catch {
+      Alert.alert("Error", "Could not save the template");
+    }
+  };
+
+  const deletePlan = () => {
+    Alert.alert(
+      "Delete plan?",
+      `"${plan?.title}" and everything in it (chat, expenses, lists) will be deleted for everyone. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete", style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete(`/plans/${id}`);
+              router.back();
+            } catch (e: any) {
+              Alert.alert("Error", e?.response?.data?.error ?? "Could not delete the plan");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const load = async () => {
@@ -155,9 +206,14 @@ export default function PlanScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowMembers(true)}>
-            <Text style={styles.backText}>👥 {plan?.members.length ?? 0}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 20 }}>
+            <TouchableOpacity onPress={() => { loadFriends(); setShowMembers(true); }}>
+              <Text style={styles.backText}>👥 {plan?.members.length ?? 0}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowSettings(true)}>
+              <Text style={styles.backText}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.title} numberOfLines={1}>{plan?.title ?? "..."}</Text>
         <Text style={styles.meta}>
@@ -256,6 +312,10 @@ export default function PlanScreen() {
         </>
       ) : activeTab === "expenses" && plan ? (
         <ExpensesModule planId={plan.id} members={plan.members} myRole={myRole} />
+      ) : activeTab === "checklist" && plan ? (
+        <ChecklistModule planId={plan.id} members={plan.members} myRole={myRole} />
+      ) : activeTab === "activities" && plan ? (
+        <ActivitiesModule planId={plan.id} myRole={myRole} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <Text style={styles.modulePlaceholderEmoji}>
@@ -317,7 +377,65 @@ export default function PlanScreen() {
                   </View>
                 );
               })}
+
+              {/* Invite friends who aren't in the plan yet */}
+              {(() => {
+                const notInPlan = friends.filter(
+                  (f) => !plan?.members.some((m) => m.user.id === f.id)
+                );
+                if (notInPlan.length === 0) return null;
+                return (
+                  <>
+                    <Text style={styles.inviteSectionTitle}>Invite friends</Text>
+                    {notInPlan.map((f) => (
+                      <View key={f.id} style={styles.memberRow}>
+                        <Text style={styles.memberRsvp}>🤝</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.memberName}>{f.name ?? "?"}</Text>
+                        </View>
+                        <TouchableOpacity style={styles.roleBtn} onPress={() => inviteFriend(f.id)}>
+                          <Text style={styles.roleBtnText}>Invite</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </>
+                );
+              })()}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Plan settings modal */}
+      <Modal visible={showSettings} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Plan settings</Text>
+              <TouchableOpacity onPress={() => setShowSettings(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.settingRow} onPress={saveTemplate}>
+              <Text style={styles.settingIcon}>📑</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingText}>Save as template</Text>
+                <Text style={styles.settingDesc}>
+                  Reuse this plan's modules, checklist and activities next time
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {isAdmin && (
+              <TouchableOpacity style={styles.settingRow} onPress={() => { setShowSettings(false); deletePlan(); }}>
+                <Text style={styles.settingIcon}>🗑️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingText, { color: "#ef4444" }]}>Delete plan</Text>
+                  <Text style={styles.settingDesc}>Deletes everything for everyone — cannot be undone</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -408,4 +526,9 @@ const styles = StyleSheet.create({
   roleBtnText: { color: "#c7d2fe", fontSize: 12, fontWeight: "700" },
   shareBtn: { backgroundColor: "#312e81", borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 12 },
   shareBtnText: { color: "#c7d2fe", fontSize: 15, fontWeight: "700" },
+  inviteSectionTitle: { color: "#94a3b8", fontSize: 14, fontWeight: "700", marginTop: 16, marginBottom: 8 },
+  settingRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 16, padding: 16, marginBottom: 10 },
+  settingIcon: { fontSize: 24, marginRight: 14 },
+  settingText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  settingDesc: { color: "#64748b", fontSize: 13, marginTop: 2 },
 });

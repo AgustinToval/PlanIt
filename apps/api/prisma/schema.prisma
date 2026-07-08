@@ -30,6 +30,19 @@ model User {
   sessions      Session[]
   friendsAdded  Friendship[] @relation("FriendshipsInitiated")
   friendsOf     Friendship[] @relation("FriendshipsReceived")
+  templates     PlanTemplate[]
+}
+
+model PlanTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  // Snapshot of the plan structure: { title, description, location, type,
+  //   modules: string[], checkItems: [{title, category}], activities: [{title, notes}] }
+  data      Json
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Friendship {

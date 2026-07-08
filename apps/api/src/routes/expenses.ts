@@ -80,8 +80,10 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
 });
 
 // GET /api/expenses/plan/:planId/summary — balances + minimal settlement plan
+// ?mode=equal → ignore per-expense splits and divide the grand total between ALL members
 router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Response) => {
   const planId = String(req.params["planId"]);
+  const mode = req.query["mode"] === "equal" ? "equal" : "expense";
   try {
     if (!(await assertPlanMember(req.userId!, planId))) {
       return res.status(403).json({ error: "Not a member of this plan" });
@@ -100,11 +102,30 @@ router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Re
     const net = new Map<string, number>();
     members.forEach((m) => net.set(m.userId, 0));
 
-    for (const exp of expenses) {
-      const cents = Math.round(exp.amount * 100);
-      net.set(exp.paidBy, (net.get(exp.paidBy) ?? 0) + cents);
-      for (const split of exp.splits) {
-        net.set(split.userId, (net.get(split.userId) ?? 0) - Math.round(split.amount * 100));
+    if (mode === "equal") {
+      // Everything split evenly between every plan member, regardless of
+      // per-expense splits. Settled marks are ignored in this view.
+      const totalCents = expenses.reduce((sum, e) => sum + Math.round(e.amount * 100), 0);
+      const n = members.length || 1;
+      const base = Math.floor(totalCents / n);
+      const remainder = totalCents - base * n;
+      members.forEach((m, i) => {
+        const share = base + (i < remainder ? 1 : 0);
+        net.set(m.userId, (net.get(m.userId) ?? 0) - share);
+      });
+      for (const exp of expenses) {
+        const cents = Math.round(exp.amount * 100);
+        net.set(exp.paidBy, (net.get(exp.paidBy) ?? 0) + cents);
+      }
+    } else {
+      // Per-expense mode: only unsettled shares count as open debt
+      for (const exp of expenses) {
+        for (const split of exp.splits) {
+          if (split.settled) continue;
+          const cents = Math.round(split.amount * 100);
+          net.set(exp.paidBy, (net.get(exp.paidBy) ?? 0) + cents);
+          net.set(split.userId, (net.get(split.userId) ?? 0) - cents);
+        }
       }
     }
 
@@ -131,7 +152,9 @@ router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Re
     const names = Object.fromEntries(members.map((m) => [m.userId, m.user.name ?? "?"]));
 
     res.json({
+      mode,
       total,
+      perPerson: mode === "equal" && members.length > 0 ? total / members.length : null,
       balances: [...net.entries()].map(([userId, cents]) => ({
         userId,
         name: names[userId] ?? "?",
@@ -147,6 +170,45 @@ router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Re
     });
   } catch (e) {
     res.status(500).json({ error: "Failed to compute summary" });
+  }
+});
+
+// PATCH /api/expenses/:expenseId/splits/:userId — mark a share as paid/unpaid.
+// Allowed: the person who owes it, the expense payer, or the plan admin.
+router.patch("/:expenseId/splits/:userId", authMiddleware, async (req: Request, res: Response) => {
+  const expenseId = String(req.params["expenseId"]);
+  const targetUserId = String(req.params["userId"]);
+  const { settled } = req.body as { settled: boolean };
+
+  try {
+    const expense = await prisma.expense.findUnique({
+      where: { id: expenseId },
+      include: { splits: true },
+    });
+    if (!expense) return res.status(404).json({ error: "Expense not found" });
+
+    const membership = await assertPlanMember(req.userId!, expense.planId);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+
+    const isOwner = targetUserId === req.userId;
+    const isPayer = expense.paidBy === req.userId;
+    const isAdmin = membership.role === "admin";
+    if (!isOwner && !isPayer && !isAdmin) {
+      return res.status(403).json({ error: "You can only mark your own share as paid" });
+    }
+
+    const split = expense.splits.find((s) => s.userId === targetUserId);
+    if (!split) return res.status(404).json({ error: "That user has no share in this expense" });
+
+    const updated = await prisma.expenseSplit.update({
+      where: { id: split.id },
+      data: { settled: !!settled },
+    });
+
+    io.to(`plan:${expense.planId}`).emit("expense:added", { refresh: true });
+    res.json(updated);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update share" });
   }
 });
 

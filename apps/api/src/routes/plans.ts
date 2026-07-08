@@ -203,6 +203,150 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /api/plans/:id — delete the whole plan (admin only)
+router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+    if (membership.role !== "admin") {
+      return res.status(403).json({ error: "Only the plan admin can delete the plan" });
+    }
+    await prisma.plan.delete({ where: { id } });
+    res.json({ message: "Plan deleted" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to delete plan" });
+  }
+});
+
+// POST /api/plans/:id/save-template — snapshot this plan as a reusable template
+router.post("/:id/save-template", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const { name } = req.body as { name?: string };
+  try {
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+
+    const plan = await prisma.plan.findUnique({
+      where: { id },
+      include: {
+        modules: { orderBy: { order: "asc" } },
+        checkItems: true,
+        activities: { orderBy: { order: "asc" } },
+      },
+    });
+    if (!plan) return res.status(404).json({ error: "Plan not found" });
+
+    const template = await prisma.planTemplate.create({
+      data: {
+        name: name?.trim() || plan.title,
+        userId: req.userId!,
+        data: {
+          title: plan.title,
+          description: plan.description,
+          location: plan.location,
+          type: plan.type,
+          modules: plan.modules.map((m) => m.type),
+          checkItems: plan.checkItems.map((c) => ({ title: c.title, category: c.category })),
+          activities: plan.activities.map((a) => ({ title: a.title, notes: a.notes })),
+        },
+      },
+    });
+    res.status(201).json(template);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to save template" });
+  }
+});
+
+// GET /api/plans/templates/mine — my saved templates
+router.get("/templates/mine", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const templates = await prisma.planTemplate.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(templates);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch templates" });
+  }
+});
+
+// DELETE /api/plans/templates/:templateId — delete one of my templates
+router.delete("/templates/:templateId", authMiddleware, async (req: Request, res: Response) => {
+  const templateId = String(req.params["templateId"]);
+  try {
+    const template = await prisma.planTemplate.findUnique({ where: { id: templateId } });
+    if (!template || template.userId !== req.userId) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+    await prisma.planTemplate.delete({ where: { id: templateId } });
+    res.json({ message: "Template deleted" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to delete template" });
+  }
+});
+
+// POST /api/plans/templates/:templateId/use — create a new plan from a template
+router.post("/templates/:templateId/use", authMiddleware, async (req: Request, res: Response) => {
+  const templateId = String(req.params["templateId"]);
+  const { title, startDate, endDate, location, memberIds, groupIds } = req.body as {
+    title?: string; startDate?: string; endDate?: string; location?: string;
+    memberIds?: string[]; groupIds?: string[];
+  };
+  try {
+    const template = await prisma.planTemplate.findUnique({ where: { id: templateId } });
+    if (!template || template.userId !== req.userId) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+    const data = template.data as {
+      title: string; description: string | null; location: string | null; type: string;
+      modules: string[]; checkItems: { title: string; category: string | null }[];
+      activities: { title: string; notes: string | null }[];
+    };
+
+    // Resolve invitees (same logic as plan creation)
+    const invited = new Set<string>(memberIds ?? []);
+    if (groupIds?.length) {
+      const groupMembers = await prisma.groupMember.findMany({
+        where: { groupId: { in: groupIds }, group: { members: { some: { userId: req.userId! } } } },
+        select: { userId: true },
+      });
+      groupMembers.forEach((m) => invited.add(m.userId));
+    }
+    invited.delete(req.userId!);
+
+    const plan = await prisma.plan.create({
+      data: {
+        title: title?.trim() || data.title,
+        description: data.description,
+        location: location ?? data.location,
+        type: data.type,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        members: {
+          create: [
+            { userId: req.userId!, rsvp: "yes", role: "admin" },
+            ...[...invited].map((userId) => ({ userId, rsvp: "pending" })),
+          ],
+        },
+        modules: {
+          create: data.modules.map((type, i) => ({ type, order: i })),
+        },
+        checkItems: {
+          create: data.checkItems.map((c) => ({ title: c.title, category: c.category })),
+        },
+        activities: {
+          create: data.activities.map((a, i) => ({ title: a.title, notes: a.notes, order: i })),
+        },
+      },
+      include: { members: true, modules: true },
+    });
+    res.status(201).json(plan);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to create plan from template" });
+  }
+});
+
 // POST set a member's role (admin only). Roles: helper | member
 router.post("/:id/members/:userId/role", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
