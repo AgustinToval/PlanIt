@@ -150,13 +150,19 @@ router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Re
   }
 });
 
-// DELETE /api/expenses/:id — only the payer can remove an expense
+// DELETE /api/expenses/:id — the payer or the plan admin can remove an expense
 router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   try {
     const expense = await prisma.expense.findUnique({ where: { id } });
     if (!expense) return res.status(404).json({ error: "Expense not found" });
-    if (expense.paidBy !== req.userId) return res.status(403).json({ error: "Only the payer can delete it" });
+
+    const membership = await assertPlanMember(req.userId!, expense.planId);
+    const isPayer = expense.paidBy === req.userId;
+    const isAdmin = membership?.role === "admin";
+    if (!isPayer && !isAdmin) {
+      return res.status(403).json({ error: "Only the payer or the plan admin can delete it" });
+    }
 
     await prisma.expense.delete({ where: { id } });
     io.to(`plan:${expense.planId}`).emit("expense:removed", { id });

@@ -12,6 +12,7 @@ import planRoutes from "./routes/plans";
 import userRoutes from "./routes/users";
 import messageRoutes from "./routes/messages";
 import expenseRoutes from "./routes/expenses";
+import friendRoutes from "./routes/friends";
 import { socketHandler } from "./lib/socket";
 
 dotenv.config();
@@ -44,6 +45,7 @@ app.use("/api/plans", planRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/friends", friendRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

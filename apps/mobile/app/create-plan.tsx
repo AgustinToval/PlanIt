@@ -11,6 +11,8 @@ type Group = {
   members: { user: { id: string; name: string | null } }[];
 };
 
+type Friend = { id: string; name: string | null; username: string | null };
+
 export default function CreatePlanScreen() {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -20,11 +22,15 @@ export default function CreatePlanScreen() {
   const [time, setTime] = useState(""); // HH:MM
   const [type, setType] = useState<"full" | "quick">("full");
   const [groups, setGroups] = useState<Group[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
+  const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     api.get("/groups").then((res) => setGroups(res.data)).catch(() => {});
+    api.get("/friends").then((res) => setFriends(res.data)).catch(() => {});
   }, []);
 
   const toggleGroup = (id: string) => {
@@ -33,6 +39,27 @@ export default function CreatePlanScreen() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const toggleFriend = (id: string) => {
+    setSelectedFriends((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const joinPlan = async () => {
+    if (!joinCode.trim()) return;
+    setBusy(true);
+    try {
+      const res = await api.post(`/plans/join/${joinCode.trim()}`);
+      router.replace(`/plan/${res.data.plan.id}`);
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Invalid invite code");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const create = async () => {
@@ -53,6 +80,7 @@ export default function CreatePlanScreen() {
         type,
         startDate,
         groupIds: [...selectedGroups],
+        memberIds: [...selectedFriends],
       });
       router.replace(`/plan/${res.data.id}`);
     } catch (e: any) {
@@ -121,6 +149,31 @@ export default function CreatePlanScreen() {
         })
       )}
 
+      <Text style={styles.label}>Invite friends</Text>
+      {friends.length === 0 ? (
+        <Text style={styles.hint}>Add friends from Profile → Friends to invite them individually.</Text>
+      ) : (
+        friends.map((f) => {
+          const selected = selectedFriends.has(f.id);
+          return (
+            <TouchableOpacity
+              key={f.id}
+              style={[styles.groupRow, selected && styles.groupRowActive]}
+              onPress={() => toggleFriend(f.id)}
+            >
+              <View style={styles.groupAvatar}>
+                <Text style={styles.groupAvatarText}>{(f.name ?? "?")[0]?.toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.groupName}>{f.name ?? "?"}</Text>
+                {f.username && <Text style={styles.groupMeta}>@{f.username}</Text>}
+              </View>
+              <Text style={styles.check}>{selected ? "✅" : "⬜"}</Text>
+            </TouchableOpacity>
+          );
+        })
+      )}
+
       <Text style={styles.label}>Location (optional)</Text>
       <TextInput
         style={styles.input}
@@ -172,6 +225,29 @@ export default function CreatePlanScreen() {
         <Text style={styles.buttonText}>{busy ? "..." : type === "quick" ? "⚡ Send it!" : "Create Plan"}</Text>
       </TouchableOpacity>
 
+      <View style={styles.divider}>
+        <View style={styles.line} />
+        <Text style={styles.dividerText}>or join a plan</Text>
+        <View style={styles.line} />
+      </View>
+
+      <Text style={styles.label}>Invite code</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Paste plan invite code"
+        placeholderTextColor="#475569"
+        value={joinCode}
+        onChangeText={setJoinCode}
+        autoCapitalize="none"
+      />
+      <TouchableOpacity
+        style={[styles.buttonOutline, (!joinCode.trim() || busy) && styles.buttonDisabled]}
+        onPress={joinPlan}
+        disabled={!joinCode.trim() || busy}
+      >
+        <Text style={styles.buttonOutlineText}>Join Plan</Text>
+      </TouchableOpacity>
+
       <View style={{ height: 60 }} />
     </ScrollView>
   );
@@ -207,4 +283,9 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#6366f1", borderRadius: 16, padding: 18, alignItems: "center", marginTop: 16 },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: "#ffffff", fontSize: 17, fontWeight: "700" },
+  divider: { flexDirection: "row", alignItems: "center", marginVertical: 28 },
+  line: { flex: 1, height: 1, backgroundColor: "#1e293b" },
+  dividerText: { color: "#475569", marginHorizontal: 12, fontSize: 14 },
+  buttonOutline: { borderRadius: 16, padding: 18, alignItems: "center", borderWidth: 2, borderColor: "#6366f1" },
+  buttonOutlineText: { color: "#6366f1", fontSize: 17, fontWeight: "700" },
 });

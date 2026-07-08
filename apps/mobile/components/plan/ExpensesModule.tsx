@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Modal, Alert, RefreshControl,
+  Modal, Alert, RefreshControl, Keyboard, TouchableWithoutFeedback,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
@@ -25,7 +26,7 @@ type Summary = {
 
 type Member = { rsvp: string; user: { id: string; name: string | null } };
 
-export default function ExpensesModule({ planId, members }: { planId: string; members: Member[] }) {
+export default function ExpensesModule({ planId, members, myRole = "member" }: { planId: string; members: Member[]; myRole?: string }) {
   const { user } = useAuthStore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -91,7 +92,8 @@ export default function ExpensesModule({ planId, members }: { planId: string; me
   };
 
   const deleteExpense = (exp: Expense) => {
-    if (exp.payer.id !== user?.id) return;
+    const canDelete = exp.payer.id === user?.id || myRole === "admin";
+    if (!canDelete) return;
     Alert.alert("Delete expense?", `"${exp.title}" — $${exp.amount.toFixed(2)}`, [
       { text: "Cancel", style: "cancel" },
       {
@@ -179,62 +181,82 @@ export default function ExpensesModule({ planId, members }: { planId: string; me
 
       {/* Add expense modal */}
       <Modal visible={showAdd} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New expense</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.label}>What was it?</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Firewood, dinner, gas..."
-              placeholderTextColor="#475569"
-              value={title}
-              onChangeText={setTitle}
-            />
-
-            <Text style={styles.label}>Amount</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="25.50"
-              placeholderTextColor="#475569"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
-
-            <Text style={styles.label}>Split between</Text>
-            <ScrollView style={{ maxHeight: 200 }}>
-              {members.map((m) => {
-                const selected = sharers.has(m.user.id);
-                return (
-                  <TouchableOpacity
-                    key={m.user.id}
-                    style={[styles.sharerRow, selected && styles.sharerRowActive]}
-                    onPress={() => toggleSharer(m.user.id)}
-                  >
-                    <Text style={styles.sharerName}>
-                      {m.user.id === user?.id ? "You" : m.user.name ?? "?"}
-                    </Text>
-                    <Text>{selected ? "✅" : "⬜"}</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.modal}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>New expense</Text>
+                  <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowAdd(false); }}>
+                    <Text style={styles.modalClose}>✕</Text>
                   </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                </View>
 
-            <TouchableOpacity
-              style={[styles.button, busy && { opacity: 0.5 }]}
-              onPress={addExpense}
-              disabled={busy}
-            >
-              <Text style={styles.buttonText}>{busy ? "..." : "Add expense"}</Text>
-            </TouchableOpacity>
+                <Text style={styles.label}>What was it?</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Firewood, dinner, gas..."
+                  placeholderTextColor="#475569"
+                  value={title}
+                  onChangeText={setTitle}
+                  returnKeyType="done"
+                />
+
+                <Text style={styles.label}>Amount</Text>
+                <View style={styles.amountRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    placeholder="25.50"
+                    placeholderTextColor="#475569"
+                    value={amount}
+                    onChangeText={setAmount}
+                    keyboardType="decimal-pad"
+                  />
+                  <TouchableOpacity style={styles.doneBtn} onPress={Keyboard.dismiss}>
+                    <Text style={styles.doneBtnText}>OK</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.label}>Split between</Text>
+                <ScrollView style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled">
+                  <TouchableOpacity
+                    style={[styles.sharerRow, styles.everyoneRow, sharers.size === members.length && styles.sharerRowActive]}
+                    onPress={() => setSharers(new Set(members.map((m) => m.user.id)))}
+                  >
+                    <Text style={[styles.sharerName, { fontWeight: "700" }]}>👥 Everyone</Text>
+                    <Text>{sharers.size === members.length ? "✅" : "⬜"}</Text>
+                  </TouchableOpacity>
+                  {members.map((m) => {
+                    const selected = sharers.has(m.user.id);
+                    return (
+                      <TouchableOpacity
+                        key={m.user.id}
+                        style={[styles.sharerRow, selected && styles.sharerRowActive]}
+                        onPress={() => toggleSharer(m.user.id)}
+                      >
+                        <Text style={styles.sharerName}>
+                          {m.user.id === user?.id ? "You" : m.user.name ?? "?"}
+                        </Text>
+                        <Text>{selected ? "✅" : "⬜"}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <TouchableOpacity
+                  style={[styles.button, busy && { opacity: 0.5 }]}
+                  onPress={addExpense}
+                  disabled={busy}
+                >
+                  <Text style={styles.buttonText}>{busy ? "..." : "Add expense"}</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -267,6 +289,10 @@ const styles = StyleSheet.create({
   input: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 16, marginBottom: 14, borderWidth: 1, borderColor: "#334155" },
   sharerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 12, padding: 12, marginBottom: 6, borderWidth: 2, borderColor: "transparent" },
   sharerRowActive: { borderColor: "#6366f1" },
+  everyoneRow: { backgroundColor: "#312e81" },
+  amountRow: { flexDirection: "row", gap: 8, marginBottom: 14, alignItems: "center" },
+  doneBtn: { backgroundColor: "#334155", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  doneBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   sharerName: { color: "#e2e8f0", fontSize: 15 },
   button: { backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 12 },
   buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  KeyboardAvoidingView, Platform, ScrollView, Modal, Alert,
+  KeyboardAvoidingView, Platform, ScrollView, Modal, Alert, Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { api } from "../../lib/api";
@@ -22,7 +22,8 @@ type Plan = {
   type: string;
   location: string | null;
   startDate: string | null;
-  members: { rsvp: string; user: { id: string; name: string | null } }[];
+  inviteCode: string;
+  members: { rsvp: string; role: string; user: { id: string; name: string | null } }[];
   modules: { id: string; type: string }[];
   messages: Message[];
 };
@@ -48,7 +49,22 @@ export default function PlanScreen() {
   const [text, setText] = useState("");
   const [activeTab, setActiveTab] = useState<string>("chat");
   const [showAddModule, setShowAddModule] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const listRef = useRef<FlatList>(null);
+
+  const myMembership = plan?.members.find((m) => m.user.id === user?.id);
+  const myRole = myMembership?.role ?? "member";
+  const canManage = myRole === "admin" || myRole === "helper";
+  const isAdmin = myRole === "admin";
+
+  const setRole = async (targetUserId: string, role: "helper" | "member") => {
+    try {
+      await api.post(`/plans/${id}/members/${targetUserId}/role`, { role });
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not change role");
+    }
+  };
 
   const load = async () => {
     try {
@@ -135,12 +151,18 @@ export default function PlanScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>‹ Back</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backText}>‹ Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowMembers(true)}>
+            <Text style={styles.backText}>👥 {plan?.members.length ?? 0}</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.title} numberOfLines={1}>{plan?.title ?? "..."}</Text>
         <Text style={styles.meta}>
           {plan?.location ? `📍 ${plan.location}  ` : ""}✅ {yesCount} in
+          {myRole !== "member" ? `  ·  ${myRole === "admin" ? "👑 Admin" : "🛠️ Helper"}` : ""}
         </Text>
       </View>
 
@@ -177,15 +199,17 @@ export default function PlanScreen() {
                 key={m.type}
                 style={[styles.tab, activeTab === m.type && styles.tabActive]}
                 onPress={() => setActiveTab(m.type)}
-                onLongPress={() => removeModule(m.type)}
+                onLongPress={canManage ? () => removeModule(m.type) : undefined}
               >
                 <Text style={styles.tabText}>{info?.emoji} {info?.name}</Text>
               </TouchableOpacity>
             );
           })}
-          <TouchableOpacity style={styles.tabAdd} onPress={() => setShowAddModule(true)}>
-            <Text style={styles.tabAddText}>＋</Text>
-          </TouchableOpacity>
+          {canManage && (
+            <TouchableOpacity style={styles.tabAdd} onPress={() => setShowAddModule(true)}>
+              <Text style={styles.tabAddText}>＋</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
 
@@ -231,7 +255,7 @@ export default function PlanScreen() {
           </View>
         </>
       ) : activeTab === "expenses" && plan ? (
-        <ExpensesModule planId={plan.id} members={plan.members} />
+        <ExpensesModule planId={plan.id} members={plan.members} myRole={myRole} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <Text style={styles.modulePlaceholderEmoji}>
@@ -244,6 +268,59 @@ export default function PlanScreen() {
           <Text style={styles.modulePlaceholderHint}>Long-press the tab to remove this module</Text>
         </View>
       )}
+
+      {/* Members & roles modal */}
+      <Modal visible={showMembers} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Members</Text>
+              <TouchableOpacity onPress={() => setShowMembers(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.shareBtn}
+              onPress={() => {
+                if (!plan) return;
+                Share.share({
+                  message: `Join my plan "${plan.title}" on PlanIt! Invite code: ${plan.inviteCode}`,
+                });
+              }}
+            >
+              <Text style={styles.shareBtnText}>🔗 Share invite code</Text>
+            </TouchableOpacity>
+            <ScrollView>
+              {plan?.members.map((m) => {
+                const isMe = m.user.id === user?.id;
+                const roleLabel = m.role === "admin" ? "👑 Admin" : m.role === "helper" ? "🛠️ Helper" : "";
+                const rsvpEmoji = m.rsvp === "yes" ? "✅" : m.rsvp === "no" ? "❌" : m.rsvp === "maybe" ? "🤔" : "⏳";
+                return (
+                  <View key={m.user.id} style={styles.memberRow}>
+                    <Text style={styles.memberRsvp}>{rsvpEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.memberName}>
+                        {isMe ? "You" : m.user.name ?? "?"}
+                      </Text>
+                      {roleLabel !== "" && <Text style={styles.memberRole}>{roleLabel}</Text>}
+                    </View>
+                    {isAdmin && !isMe && m.role !== "admin" && (
+                      <TouchableOpacity
+                        style={styles.roleBtn}
+                        onPress={() => setRole(m.user.id, m.role === "helper" ? "member" : "helper")}
+                      >
+                        <Text style={styles.roleBtnText}>
+                          {m.role === "helper" ? "Remove helper" : "Make helper"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add module modal */}
       <Modal visible={showAddModule} animationType="slide" transparent>
@@ -323,4 +400,12 @@ const styles = StyleSheet.create({
   moduleName: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
   moduleDesc: { color: "#64748b", fontSize: 13, marginTop: 2 },
   moduleAdd: { color: "#6366f1", fontSize: 24, fontWeight: "700" },
+  memberRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 14, marginBottom: 8 },
+  memberRsvp: { fontSize: 18, marginRight: 12 },
+  memberName: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
+  memberRole: { color: "#818cf8", fontSize: 12, marginTop: 2 },
+  roleBtn: { backgroundColor: "#312e81", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  roleBtnText: { color: "#c7d2fe", fontSize: 12, fontWeight: "700" },
+  shareBtn: { backgroundColor: "#312e81", borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 12 },
+  shareBtnText: { color: "#c7d2fe", fontSize: 15, fontWeight: "700" },
 });

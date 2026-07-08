@@ -1,8 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuthStore } from "../../hooks/useAuthStore";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
+  const router = useRouter();
 
   return (
     <ScrollView style={styles.container}>
@@ -20,6 +22,11 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/friends")}>
+          <Text style={styles.menuIcon}>🤝</Text>
+          <Text style={styles.menuText}>Friends</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuIcon}>✏️</Text>
           <Text style={styles.menuText}>Edit Profile</Text>

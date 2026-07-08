@@ -28,6 +28,20 @@ model User {
   reminders     Reminder[]
   accounts      Account[]
   sessions      Session[]
+  friendsAdded  Friendship[] @relation("FriendshipsInitiated")
+  friendsOf     Friendship[] @relation("FriendshipsReceived")
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId   String
+  friendId String
+  user   User @relation("FriendshipsInitiated", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipsReceived", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
 }
 
 model Account {
@@ -124,6 +138,7 @@ model PlanModule {
 model PlanMember {
   id       String   @id @default(cuid())
   rsvp     String   @default("pending") // yes | no | maybe | pending
+  role     String   @default("member") // admin | helper | member
   joinedAt DateTime @default(now())
 
   userId String

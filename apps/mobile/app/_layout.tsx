@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="plan/[id]" />
           <Stack.Screen name="create-group" />
           <Stack.Screen name="create-plan" />
+          <Stack.Screen name="friends" />
         </Stack.Protected>
 
         <Stack.Protected guard={!token}>

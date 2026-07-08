@@ -9,6 +9,17 @@ export const MODULE_TYPES = [
   "walkietalkie", "gallery", "playlist", "files", "meetup",
 ] as const;
 
+// Permission helper: returns the member row or null
+export async function getPlanMembership(userId: string, planId: string) {
+  return prisma.planMember.findUnique({
+    where: { userId_planId: { userId, planId } },
+  });
+}
+
+export function canManage(role: string | undefined): boolean {
+  return role === "admin" || role === "helper";
+}
+
 // GET my plans (all plans I'm a member of)
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -67,7 +78,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
         location,
         members: {
           create: [
-            { userId: req.userId!, rsvp: "yes" },
+            { userId: req.userId!, rsvp: "yes", role: "admin" },
             ...[...invited].map((userId) => ({ userId, rsvp: "pending" })),
           ],
         },
@@ -164,7 +175,7 @@ router.post("/:id/invite", authMiddleware, async (req: Request, res: Response) =
   }
 });
 
-// PATCH update plan
+// PATCH update plan (admin/helper only)
 router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   const { title, description, startDate, endDate, location, status } = req.body as {
@@ -172,10 +183,11 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
     endDate?: string; location?: string; status?: string;
   };
   try {
-    const isMember = await prisma.planMember.findUnique({
-      where: { userId_planId: { userId: req.userId!, planId: id } },
-    });
-    if (!isMember) return res.status(403).json({ error: "Not a member of this plan" });
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+    if (!canManage(membership.role)) {
+      return res.status(403).json({ error: "Only the plan admin or helpers can edit the plan" });
+    }
 
     const plan = await prisma.plan.update({
       where: { id },
@@ -188,6 +200,37 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
     res.json(plan);
   } catch (e) {
     res.status(500).json({ error: "Failed to update plan" });
+  }
+});
+
+// POST set a member's role (admin only). Roles: helper | member
+router.post("/:id/members/:userId/role", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const targetUserId = String(req.params["userId"]);
+  const { role } = req.body as { role: string };
+  if (!["helper", "member"].includes(role)) {
+    return res.status(400).json({ error: "Role must be helper or member" });
+  }
+  try {
+    const me = await getPlanMembership(req.userId!, id);
+    if (me?.role !== "admin") {
+      return res.status(403).json({ error: "Only the plan admin can change roles" });
+    }
+    if (targetUserId === req.userId) {
+      return res.status(400).json({ error: "You are the admin — you cannot demote yourself" });
+    }
+
+    const target = await getPlanMembership(targetUserId, id);
+    if (!target) return res.status(404).json({ error: "That user is not in this plan" });
+
+    const updated = await prisma.planMember.update({
+      where: { id: target.id },
+      data: { role },
+      include: { user: { select: { id: true, name: true } } },
+    });
+    res.json(updated);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update role" });
   }
 });
 
@@ -207,7 +250,7 @@ router.post("/:id/rsvp", authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
-// POST add a module to a plan
+// POST add a module to a plan (admin/helper only)
 router.post("/:id/modules", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   const { type } = req.body as { type: string };
@@ -215,10 +258,11 @@ router.post("/:id/modules", authMiddleware, async (req: Request, res: Response) 
     return res.status(400).json({ error: "Invalid module type" });
   }
   try {
-    const isMember = await prisma.planMember.findUnique({
-      where: { userId_planId: { userId: req.userId!, planId: id } },
-    });
-    if (!isMember) return res.status(403).json({ error: "Not a member of this plan" });
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+    if (!canManage(membership.role)) {
+      return res.status(403).json({ error: "Only the plan admin or helpers can manage modules" });
+    }
 
     const count = await prisma.planModule.count({ where: { planId: id } });
     const module = await prisma.planModule.upsert({
@@ -232,15 +276,16 @@ router.post("/:id/modules", authMiddleware, async (req: Request, res: Response) 
   }
 });
 
-// DELETE remove a module from a plan
+// DELETE remove a module from a plan (admin/helper only)
 router.delete("/:id/modules/:type", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   const type = String(req.params["type"]);
   try {
-    const isMember = await prisma.planMember.findUnique({
-      where: { userId_planId: { userId: req.userId!, planId: id } },
-    });
-    if (!isMember) return res.status(403).json({ error: "Not a member of this plan" });
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+    if (!canManage(membership.role)) {
+      return res.status(403).json({ error: "Only the plan admin or helpers can manage modules" });
+    }
 
     await prisma.planModule.delete({ where: { planId_type: { planId: id, type } } });
     res.json({ message: "Module removed" });
