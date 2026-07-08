@@ -9,7 +9,9 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      include: {
+      select: {
+        id: true, email: true, username: true, name: true, avatar: true,
+        bio: true, location: true, createdAt: true, updatedAt: true,
         _count: {
           select: {
             planMembers: true,
@@ -40,6 +42,10 @@ router.patch("/me", authMiddleware, async (req: Request, res: Response) => {
     const user = await prisma.user.update({
       where: { id: req.userId },
       data: { name, username, bio, location, avatar },
+      select: {
+        id: true, email: true, username: true, name: true, avatar: true,
+        bio: true, location: true, createdAt: true, updatedAt: true,
+      },
     });
     res.json(user);
   } catch (e) {

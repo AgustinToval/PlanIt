@@ -98,6 +98,60 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// POST leave group
+router.post("/:id/leave", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const membership = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: req.userId!, groupId: id } },
+    });
+    if (!membership) return res.status(404).json({ error: "Not a member" });
+
+    await prisma.groupMember.delete({ where: { id: membership.id } });
+
+    const remaining = await prisma.groupMember.count({ where: { groupId: id } });
+    if (remaining === 0) {
+      // last member left — remove the empty group
+      await prisma.group.delete({ where: { id } });
+    } else if (membership.role === "admin") {
+      // promote the oldest remaining member if no admin is left
+      const hasAdmin = await prisma.groupMember.findFirst({ where: { groupId: id, role: "admin" } });
+      if (!hasAdmin) {
+        const oldest = await prisma.groupMember.findFirst({
+          where: { groupId: id },
+          orderBy: { joinedAt: "asc" },
+        });
+        if (oldest) {
+          await prisma.groupMember.update({ where: { id: oldest.id }, data: { role: "admin" } });
+        }
+      }
+    }
+    res.json({ message: "Left group" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to leave group" });
+  }
+});
+
+// POST mute/unmute group notifications for the current user
+router.post("/:id/mute", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const { muted } = req.body as { muted: boolean };
+  try {
+    const membership = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: req.userId!, groupId: id } },
+    });
+    if (!membership) return res.status(404).json({ error: "Not a member" });
+
+    const updated = await prisma.groupMember.update({
+      where: { id: membership.id },
+      data: { muted: !!muted },
+    });
+    res.json(updated);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update mute setting" });
+  }
+});
+
 // DELETE group
 router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);

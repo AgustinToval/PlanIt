@@ -32,7 +32,7 @@ export default function GroupsScreen() {
     >
       <View style={styles.header}>
         <Text style={styles.title}>Your Groups</Text>
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/create-group")}>
           <Text style={styles.addBtnText}>+ New</Text>
         </TouchableOpacity>
       </View>
@@ -42,7 +42,7 @@ export default function GroupsScreen() {
           <Text style={styles.emptyIcon}>👥</Text>
           <Text style={styles.emptyText}>No groups yet</Text>
           <Text style={styles.emptySubtext}>Create one and invite your friends</Text>
-          <TouchableOpacity style={styles.createBtn}>
+          <TouchableOpacity style={styles.createBtn} onPress={() => router.push("/create-group")}>
             <Text style={styles.createBtnText}>Create a Group</Text>
           </TouchableOpacity>
         </View>

@@ -18,6 +18,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="group/[id]" />
           <Stack.Screen name="plan/[id]" />
+          <Stack.Screen name="create-group" />
+          <Stack.Screen name="create-plan" />
         </Stack.Protected>
 
         <Stack.Protected guard={!token}>

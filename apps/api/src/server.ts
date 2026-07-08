@@ -10,6 +10,8 @@ import authRoutes from "./routes/auth";
 import groupRoutes from "./routes/groups";
 import planRoutes from "./routes/plans";
 import userRoutes from "./routes/users";
+import messageRoutes from "./routes/messages";
+import expenseRoutes from "./routes/expenses";
 import { socketHandler } from "./lib/socket";
 
 dotenv.config();
@@ -17,16 +19,21 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
+// Dev: allow any origin (phone on LAN, Expo web on :8081). Lock down in production.
+const corsOrigin = process.env.NODE_ENV === "production"
+  ? (process.env.WEB_URL || "http://localhost:3000")
+  : true;
+
 export const io = new Server(httpServer, {
   cors: {
-    origin: process.env.WEB_URL || "http://localhost:3000",
+    origin: corsOrigin,
     credentials: true,
   },
 });
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: process.env.WEB_URL || "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(morgan("dev"));
 app.use(express.json());
 
@@ -35,6 +42,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/expenses", expenseRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

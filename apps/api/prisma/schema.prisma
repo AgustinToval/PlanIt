@@ -10,6 +10,7 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  password      String?   // bcrypt hash; null for OAuth-only accounts
   username      String?   @unique
   name          String?
   avatar        String?
@@ -68,6 +69,7 @@ model Group {
 model GroupMember {
   id       String   @id @default(cuid())
   role     String   @default("member") // admin | member
+  muted    Boolean  @default(false)
   joinedAt DateTime @default(now())
 
   userId  String
@@ -91,10 +93,13 @@ model Plan {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  groupId     String
-  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // Optional link to a group (plans are independent; members are invited
+  // directly or in bulk from groups at creation time)
+  groupId     String?
+  group       Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   members     PlanMember[]
+  modules     PlanModule[]
   messages    Message[]
   activities  Activity[]
   checkItems  CheckItem[]
@@ -102,6 +107,18 @@ model Plan {
   photos      Photo[]
   reminders   Reminder[]
   votes       Vote[]
+}
+
+model PlanModule {
+  id        String   @id @default(cuid())
+  type      String   // expenses | checklist | activities | votes | walkietalkie | gallery | playlist | files | meetup
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, type])
 }
 
 model PlanMember {

@@ -1,10 +1,5 @@
 import { create } from "zustand";
-import * as SecureStore from "expo-secure-store";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
-import { api } from "../lib/api";
-
-WebBrowser.maybeCompleteAuthSession();
+import { api, tokenStorage } from "../lib/api";
 
 type User = {
   id: string;
@@ -12,61 +7,74 @@ type User = {
   email: string;
   avatar: string | null;
   username: string | null;
+  bio?: string | null;
+  location?: string | null;
 };
 
 type AuthStore = {
   token: string | null;
   user: User | null;
   loading: boolean;
+  error: string | null;
   loadToken: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User) => void;
+  clearError: () => void;
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
   token: null,
   user: null,
   loading: false,
+  error: null,
 
   loadToken: async () => {
-    const token = await SecureStore.getItemAsync("planit_token");
-    if (token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      try {
-        const res = await api.get("/users/me");
-        set({ token, user: res.data });
-      } catch {
-        await SecureStore.deleteItemAsync("planit_token");
-        set({ token: null, user: null });
-      }
+    const token = await tokenStorage.get();
+    if (!token) return;
+    try {
+      const res = await api.get("/users/me");
+      set({ token, user: res.data });
+    } catch {
+      await tokenStorage.delete();
+      set({ token: null, user: null });
     }
   },
 
-  signInWithGoogle: async () => {
-    // Placeholder — will be wired to real Google OAuth in Phase 2
-    // For now sets a mock user for testing the UI
-    set({ loading: true });
+  signIn: async (email: string, password: string) => {
+    set({ loading: true, error: null });
     try {
-      await new Promise((r) => setTimeout(r, 1000));
-      const mockUser: User = {
-        id: "mock-id",
-        name: "AgustinToval",
-        email: "agntoval@gmail.com",
-        avatar: null,
-        username: "agustintoval",
-      };
-      set({ token: "mock-token", user: mockUser, loading: false });
-      await SecureStore.setItemAsync("planit_token", "mock-token");
-    } catch {
-      set({ loading: false });
+      const res = await api.post("/auth/login", { email, password });
+      await tokenStorage.set(res.data.token);
+      set({ token: res.data.token, user: res.data.user, loading: false });
+    } catch (e: any) {
+      set({
+        loading: false,
+        error: e?.response?.data?.error ?? "Could not reach the server",
+      });
+    }
+  },
+
+  signUp: async (name: string, email: string, password: string) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.post("/auth/register", { name, email, password });
+      await tokenStorage.set(res.data.token);
+      set({ token: res.data.token, user: res.data.user, loading: false });
+    } catch (e: any) {
+      set({
+        loading: false,
+        error: e?.response?.data?.error ?? "Could not reach the server",
+      });
     }
   },
 
   signOut: async () => {
-    await SecureStore.deleteItemAsync("planit_token");
+    await tokenStorage.delete();
     set({ token: null, user: null });
   },
 
   setUser: (user) => set({ user }),
+  clearError: () => set({ error: null }),
 }));
