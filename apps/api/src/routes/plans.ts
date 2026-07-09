@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
+import { io } from "../server";
 
 const router = Router();
 
@@ -443,6 +444,28 @@ router.post("/:id/members/:userId/role", authMiddleware, async (req: Request, re
     res.json(updated);
   } catch (e) {
     res.status(500).json({ error: "Failed to update role" });
+  }
+});
+
+// POST /api/plans/:id/meetup — update my "on the way" status
+router.post("/:id/meetup", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const { status } = req.body as { status?: string };
+  if (!["none", "home", "onway", "there"].includes(status ?? "")) {
+    return res.status(400).json({ error: "Invalid status" });
+  }
+  try {
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+
+    await prisma.planMember.update({
+      where: { id: membership.id },
+      data: { meetupStatus: status! },
+    });
+    io.to(`plan:${id}`).emit("meetup:changed", { planId: id, userId: req.userId, status });
+    res.json({ message: "Status updated" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update status" });
   }
 });
 

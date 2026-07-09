@@ -13,6 +13,7 @@ import ActivitiesModule from "../../components/plan/ActivitiesModule";
 import VotesModule from "../../components/plan/VotesModule";
 import GalleryModule from "../../components/plan/GalleryModule";
 import PlaylistModule from "../../components/plan/PlaylistModule";
+import MeetupModule from "../../components/plan/MeetupModule";
 
 type Message = {
   id: string;
@@ -328,6 +329,8 @@ export default function PlanScreen() {
         <GalleryModule planId={plan.id} myRole={myRole} />
       ) : activeTab === "playlist" && plan ? (
         <PlaylistModule planId={plan.id} myRole={myRole} />
+      ) : activeTab === "meetup" && plan ? (
+        <MeetupModule planId={plan.id} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <Text style={styles.modulePlaceholderEmoji}>
