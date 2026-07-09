@@ -11,6 +11,8 @@ import ExpensesModule from "../../components/plan/ExpensesModule";
 import ChecklistModule from "../../components/plan/ChecklistModule";
 import ActivitiesModule from "../../components/plan/ActivitiesModule";
 import VotesModule from "../../components/plan/VotesModule";
+import GalleryModule from "../../components/plan/GalleryModule";
+import PlaylistModule from "../../components/plan/PlaylistModule";
 
 type Message = {
   id: string;
@@ -322,6 +324,10 @@ export default function PlanScreen() {
         <ActivitiesModule planId={plan.id} myRole={myRole} />
       ) : activeTab === "votes" && plan ? (
         <VotesModule planId={plan.id} myRole={myRole} />
+      ) : activeTab === "gallery" && plan ? (
+        <GalleryModule planId={plan.id} myRole={myRole} />
+      ) : activeTab === "playlist" && plan ? (
+        <PlaylistModule planId={plan.id} myRole={myRole} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <Text style={styles.modulePlaceholderEmoji}>

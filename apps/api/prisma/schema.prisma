@@ -136,6 +136,7 @@ model Plan {
   photos      Photo[]
   reminders   Reminder[]
   votes       Vote[]
+  songs       Song[]
 }
 
 model PlanModule {
@@ -261,6 +262,20 @@ model Vote {
   results   Json     @default("{}")
   closesAt  DateTime?
   closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model Song {
+  id        String   @id @default(cuid())
+  title     String
+  artist    String?
+  source    String   // spotify | youtube
+  url       String   // link to the track
+  addedBy   String   // user id
+  votes     Json     @default("{}") // { userId: 1 | -1 }
   createdAt DateTime @default(now())
 
   planId String

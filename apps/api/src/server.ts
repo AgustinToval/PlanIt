@@ -16,6 +16,8 @@ import friendRoutes from "./routes/friends";
 import checklistRoutes from "./routes/checklist";
 import activityRoutes from "./routes/activities";
 import voteRoutes from "./routes/votes";
+import galleryRoutes from "./routes/gallery";
+import playlistRoutes from "./routes/playlist";
 import { socketHandler } from "./lib/socket";
 
 dotenv.config();
@@ -39,7 +41,7 @@ export const io = new Server(httpServer, {
 app.use(helmet());
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(morgan("dev"));
-app.use(express.json());
+app.use(express.json({ limit: "8mb" })); // room for base64 photo uploads
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -52,6 +54,8 @@ app.use("/api/friends", friendRoutes);
 app.use("/api/checklist", checklistRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/votes", voteRoutes);
+app.use("/api/gallery", galleryRoutes);
+app.use("/api/playlist", playlistRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
