@@ -2,17 +2,20 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { api } from "../../lib/api";
+import { useAuthStore } from "../../hooks/useAuthStore";
 
 type Group = {
   id: string;
   name: string;
   description: string | null;
+  lastActivityAt: string;
   _count: { plans: number };
-  members: { user: { name: string | null; avatar: string | null } }[];
+  members: { lastSeenAt?: string; user: { id?: string; name: string | null; avatar: string | null } }[];
 };
 
 export default function GroupsScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [groups, setGroups] = useState<Group[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,8 +50,12 @@ export default function GroupsScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        groups.map((group) => (
+        groups.map((group) => {
+          const mySeen = group.members.find((m) => m.user.id === user?.id)?.lastSeenAt;
+          const unseen = mySeen ? new Date(group.lastActivityAt) > new Date(mySeen) : false;
+          return (
           <TouchableOpacity key={group.id} style={styles.card} onPress={() => router.push(`/group/${group.id}`)}>
+            {unseen && <View style={styles.unseenDot} />}
             <View style={styles.cardTop}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{group.name[0]?.toUpperCase()}</Text>
@@ -63,7 +70,8 @@ export default function GroupsScreen() {
               <Text style={styles.cardMeta}>🗓️ {group._count.plans} plans</Text>
             </View>
           </TouchableOpacity>
-        ))
+          );
+        })
       )}
     </ScrollView>
   );
@@ -90,4 +98,5 @@ const styles = StyleSheet.create({
   cardDesc: { color: "#94a3b8", fontSize: 14, marginTop: 2 },
   cardFooter: { flexDirection: "row", gap: 16 },
   cardMeta: { color: "#64748b", fontSize: 13 },
+  unseenDot: { position: "absolute", top: 12, right: 12, width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444", zIndex: 1 },
 });

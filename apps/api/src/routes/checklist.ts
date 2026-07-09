@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan } from "../lib/touch";
 
 const router = Router();
 
@@ -14,6 +15,7 @@ async function getMembership(userId: string, planId: string) {
 
 function notify(planId: string) {
   io.to(`plan:${planId}`).emit("checklist:changed", { planId });
+  void touchPlan(planId, "checklist");
 }
 
 // POST /api/checklist/plan/:planId — add an item (any member)

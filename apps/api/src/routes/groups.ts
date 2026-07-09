@@ -16,6 +16,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
         },
         _count: { select: { plans: true } },
       },
+      orderBy: { lastActivityAt: "desc" }, // most recent chat activity first
     });
     res.json(groups);
   } catch (e) {
@@ -181,6 +182,26 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
     res.json(group);
   } catch (e) {
     res.status(500).json({ error: "Failed to update group" });
+  }
+});
+
+// POST /api/groups/:id/seen — mark the group chat as seen by me
+router.post("/:id/seen", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const membership = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: req.userId!, groupId: id } },
+    });
+    if (!membership || membership.status !== "member") {
+      return res.status(403).json({ error: "Not a member of this group" });
+    }
+    await prisma.groupMember.update({
+      where: { id: membership.id },
+      data: { lastSeenAt: new Date() },
+    });
+    res.json({ message: "Seen" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to mark seen" });
   }
 });
 

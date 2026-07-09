@@ -35,7 +35,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
         modules: { orderBy: { order: "asc" } },
         _count: { select: { messages: true, photos: true, expenses: true } },
       },
-      orderBy: { startDate: "asc" },
+      orderBy: { lastActivityAt: "desc" }, // most recent activity first
     });
     res.json(plans);
   } catch (e) {
@@ -444,6 +444,27 @@ router.post("/:id/members/:userId/role", authMiddleware, async (req: Request, re
     res.json(updated);
   } catch (e) {
     res.status(500).json({ error: "Failed to update role" });
+  }
+});
+
+// POST /api/plans/:id/seen — mark a module as seen by me (clears its red dot)
+router.post("/:id/seen", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const { module } = req.body as { module?: string };
+  if (!module) return res.status(400).json({ error: "Module is required" });
+  try {
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+
+    const seen = { ...(membership.moduleSeen as Record<string, string>) };
+    seen[module] = new Date().toISOString();
+    await prisma.planMember.update({
+      where: { id: membership.id },
+      data: { moduleSeen: seen },
+    });
+    res.json({ message: "Seen" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to mark seen" });
   }
 });
 

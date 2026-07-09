@@ -93,13 +93,19 @@ export default function GroupScreen() {
     } catch { /* noop */ }
   };
 
-  useFocusEffect(useCallback(() => { load(); }, [id]));
+  useFocusEffect(useCallback(() => {
+    load();
+    // mark chat as read when opening the group
+    api.post(`/groups/${id}/seen`).catch(() => {});
+  }, [id]));
 
   useEffect(() => {
     const socket = getSocket();
     socket.emit("join:group", id);
     const onNew = (msg: Message) => {
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      // I'm looking at the chat right now — stay marked as read
+      api.post(`/groups/${id}/seen`).catch(() => {});
     };
     socket.on("message:new", onNew);
     return () => {

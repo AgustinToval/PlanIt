@@ -11,9 +11,19 @@ type Plan = {
   startDate: string | null;
   location: string | null;
   status: string;
-  members: { rsvp: string; user: { id: string; name: string | null } }[];
+  moduleActivity: Record<string, string>;
+  members: { rsvp: string; moduleSeen?: Record<string, string>; user: { id: string; name: string | null } }[];
   modules: { type: string }[];
 };
+
+// Does this plan have activity I haven't seen yet?
+function hasUnseen(plan: Plan, myId: string | undefined): boolean {
+  if (!myId) return false;
+  const seen = plan.members.find((m) => m.user.id === myId)?.moduleSeen ?? {};
+  return Object.entries(plan.moduleActivity ?? {}).some(
+    ([mod, at]) => !seen[mod] || new Date(at) > new Date(seen[mod]!)
+  );
+}
 
 export default function PlansScreen() {
   const { user } = useAuthStore();
@@ -88,8 +98,10 @@ export default function PlansScreen() {
       ) : (
         plans.map((plan) => {
           const yes = plan.members.filter((m) => m.rsvp === "yes").length;
+          const unseen = hasUnseen(plan, user?.id);
           return (
             <TouchableOpacity key={plan.id} style={styles.card} onPress={() => router.push(`/plan/${plan.id}`)}>
+              {unseen && <View style={styles.unseenDot} />}
               <View style={styles.cardHeader}>
                 <Text style={styles.cardType}>{plan.type === "quick" ? "⚡ Quick Plan" : "🗓️ Plan"}</Text>
                 <Text style={styles.cardCount}>✅ {yes} in</Text>
@@ -134,6 +146,7 @@ const styles = StyleSheet.create({
   addBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
   badge: { position: "absolute", top: -6, right: -8, backgroundColor: "#ef4444", borderRadius: 10, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   badgeText: { color: "#ffffff", fontSize: 11, fontWeight: "800" },
+  unseenDot: { position: "absolute", top: 12, right: 12, width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444", zIndex: 1 },
   empty: { alignItems: "center", marginTop: 80 },
   emptyIcon: { fontSize: 56 },
   emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },

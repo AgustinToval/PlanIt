@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan } from "../lib/touch";
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
       include: { user: { select: { id: true, name: true } } },
     });
     io.to(`plan:${planId}`).emit("gallery:changed", { planId });
+    void touchPlan(planId, "gallery");
     res.status(201).json(photo);
   } catch (e) {
     res.status(500).json({ error: "Failed to add photo" });
@@ -70,6 +72,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
 
     await prisma.photo.delete({ where: { id } });
     io.to(`plan:${photo.planId}`).emit("gallery:changed", { planId: photo.planId });
+    void touchPlan(photo.planId, "gallery");
     res.json({ message: "Photo deleted" });
   } catch (e) {
     res.status(500).json({ error: "Failed to delete photo" });

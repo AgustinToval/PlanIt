@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan } from "../lib/touch";
 
 const router = Router();
 
@@ -74,6 +75,7 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
     });
 
     io.to(`plan:${planId}`).emit("expense:added", expense);
+    void touchPlan(planId, "expenses");
     res.status(201).json(expense);
   } catch (e) {
     res.status(500).json({ error: "Failed to add expense" });
@@ -207,6 +209,7 @@ router.patch("/:expenseId/splits/:userId", authMiddleware, async (req: Request, 
     });
 
     io.to(`plan:${expense.planId}`).emit("expense:added", { refresh: true });
+    void touchPlan(expense.planId, "expenses");
     res.json(updated);
   } catch (e) {
     res.status(500).json({ error: "Failed to update share" });
@@ -229,6 +232,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
 
     await prisma.expense.delete({ where: { id } });
     io.to(`plan:${expense.planId}`).emit("expense:removed", { id });
+    void touchPlan(expense.planId, "expenses");
     res.json({ message: "Expense deleted" });
   } catch (e) {
     res.status(500).json({ error: "Failed to delete expense" });

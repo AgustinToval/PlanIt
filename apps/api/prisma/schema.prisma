@@ -86,6 +86,7 @@ model Group {
   photo       String?
   description String?
   inviteCode  String    @unique @default(cuid())
+  lastActivityAt DateTime @default(now()) // bumped on chat activity, used for list ordering
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -95,11 +96,12 @@ model Group {
 }
 
 model GroupMember {
-  id       String   @id @default(cuid())
-  role     String   @default("member") // admin | member
-  muted    Boolean  @default(false)
-  status   String   @default("member") // invited | member — invited users must accept before joining
-  joinedAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  role       String   @default("member") // admin | member
+  muted      Boolean  @default(false)
+  status     String   @default("member") // invited | member — invited users must accept before joining
+  lastSeenAt DateTime @default(now()) // when I last opened this group's chat
+  joinedAt   DateTime @default(now())
 
   userId  String
   groupId String
@@ -120,6 +122,8 @@ model Plan {
   location    String?
   notes       String    @default("") // shared notepad
   inviteCode  String    @unique @default(cuid())
+  lastActivityAt DateTime @default(now()) // bumped on any interaction, used for list ordering
+  moduleActivity Json     @default("{}")  // { chat: iso, expenses: iso, ... } last change per module
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -162,6 +166,7 @@ model PlanMember {
   lat          Float?   // live location while sharing
   lng          Float?
   locationAt   DateTime?
+  moduleSeen   Json     @default("{}") // { chat: iso, ... } when I last opened each module
   joinedAt     DateTime @default(now())
 
   userId String

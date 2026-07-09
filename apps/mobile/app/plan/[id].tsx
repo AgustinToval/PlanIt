@@ -30,7 +30,12 @@ type Plan = {
   location: string | null;
   startDate: string | null;
   inviteCode: string;
-  members: { rsvp: string; role: string; user: { id: string; name: string | null } }[];
+  moduleActivity: Record<string, string>;
+  members: {
+    rsvp: string; role: string;
+    moduleSeen?: Record<string, string>;
+    user: { id: string; name: string | null };
+  }[];
   modules: { id: string; type: string }[];
   messages: Message[];
 };
@@ -65,6 +70,26 @@ export default function PlanScreen() {
   const myRole = myMembership?.role ?? "member";
   const canManage = myRole === "admin" || myRole === "helper";
   const isAdmin = myRole === "admin";
+
+  // Local copy of what I've seen, so dots clear instantly when switching tabs
+  const [seenLocal, setSeenLocal] = useState<Record<string, string>>({});
+  const mySeen = { ...(myMembership?.moduleSeen ?? {}), ...seenLocal };
+
+  const isUnseen = (module: string): boolean => {
+    if (module === activeTab) return false;
+    const at = plan?.moduleActivity?.[module];
+    if (!at) return false;
+    const seenAt = mySeen[module];
+    return !seenAt || new Date(at) > new Date(seenAt);
+  };
+
+  // Mark the active tab as seen whenever it changes (or activity arrives on it)
+  useEffect(() => {
+    if (!plan) return;
+    const now = new Date().toISOString();
+    setSeenLocal((prev) => ({ ...prev, [activeTab]: now }));
+    api.post(`/plans/${id}/seen`, { module: activeTab }).catch(() => {});
+  }, [activeTab, plan?.moduleActivity?.[activeTab]]);
 
   const setRole = async (targetUserId: string, role: "helper" | "member") => {
     try {
@@ -140,9 +165,33 @@ export default function PlanScreen() {
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
     };
     socket.on("message:new", onNew);
+
+    // Bump local module activity so tab dots light up live
+    const bump = (module: string) => () => {
+      setPlan((prev) =>
+        prev
+          ? { ...prev, moduleActivity: { ...prev.moduleActivity, [module]: new Date().toISOString() } }
+          : prev
+      );
+    };
+    const listeners: [string, () => void][] = [
+      ["message:new", bump("chat")],
+      ["expense:added", bump("expenses")],
+      ["expense:removed", bump("expenses")],
+      ["checklist:changed", bump("checklist")],
+      ["activities:changed", bump("activities")],
+      ["votes:changed", bump("votes")],
+      ["gallery:changed", bump("gallery")],
+      ["playlist:changed", bump("playlist")],
+      ["files:changed", bump("files")],
+      ["notes:changed", bump("files")],
+    ];
+    listeners.forEach(([ev, fn]) => socket.on(ev, fn));
+
     return () => {
       socket.emit("leave:plan", id);
       socket.off("message:new", onNew);
+      listeners.forEach(([ev, fn]) => socket.off(ev, fn));
     };
   }, [id]);
 
@@ -253,6 +302,7 @@ export default function PlanScreen() {
             onPress={() => setActiveTab("chat")}
           >
             <Text style={styles.tabText}>💬 Chat</Text>
+            {isUnseen("chat") && <View style={styles.tabDot} />}
           </TouchableOpacity>
           {enabledModules.map((m) => {
             const info = MODULE_CATALOG.find((c) => c.type === m.type);
@@ -264,6 +314,7 @@ export default function PlanScreen() {
                 onLongPress={canManage ? () => removeModule(m.type) : undefined}
               >
                 <Text style={styles.tabText}>{info?.emoji} {info?.name}</Text>
+                {isUnseen(m.type) && <View style={styles.tabDot} />}
               </TouchableOpacity>
             );
           })}
@@ -513,6 +564,7 @@ const styles = StyleSheet.create({
   tabText: { color: "#e2e8f0", fontSize: 13, fontWeight: "600" },
   tabAdd: { backgroundColor: "#6366f1", borderRadius: 20, width: 36, alignItems: "center", justifyContent: "center" },
   tabAddText: { color: "#ffffff", fontSize: 18, fontWeight: "700" },
+  tabDot: { position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" },
   chat: { flex: 1, paddingHorizontal: 12, paddingTop: 8 },
   bubble: { borderRadius: 16, padding: 12, marginBottom: 8, maxWidth: "80%" },
   bubbleMine: { backgroundColor: "#4f46e5", alignSelf: "flex-end" },

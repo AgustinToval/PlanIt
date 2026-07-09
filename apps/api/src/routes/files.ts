@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan } from "../lib/touch";
 
 const router = Router();
 
@@ -68,6 +69,7 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
       select: { id: true, name: true, mime: true, size: true, addedBy: true, createdAt: true },
     });
     io.to(`plan:${planId}`).emit("files:changed", { planId });
+    void touchPlan(planId, "files");
     res.status(201).json(file);
   } catch (e) {
     res.status(500).json({ error: "Failed to upload file" });
@@ -89,6 +91,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
 
     await prisma.planFile.delete({ where: { id } });
     io.to(`plan:${file.planId}`).emit("files:changed", { planId: file.planId });
+    void touchPlan(file.planId, "files");
     res.json({ message: "File deleted" });
   } catch (e) {
     res.status(500).json({ error: "Failed to delete file" });
@@ -124,6 +127,7 @@ router.put("/plan/:planId/notes", authMiddleware, async (req: Request, res: Resp
     }
     await prisma.plan.update({ where: { id: planId }, data: { notes } });
     io.to(`plan:${planId}`).emit("notes:changed", { planId, notes, by: req.userId });
+    void touchPlan(planId, "files");
     res.json({ message: "Notes saved" });
   } catch (e) {
     res.status(500).json({ error: "Failed to save notes" });

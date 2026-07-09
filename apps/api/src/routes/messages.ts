@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan, touchGroup } from "../lib/touch";
 
 const router = Router();
 
@@ -61,6 +62,7 @@ router.post("/group/:groupId", authMiddleware, async (req: Request, res: Respons
     });
 
     io.to(`group:${groupId}`).emit("message:new", message);
+    void touchGroup(groupId);
     res.status(201).json(message);
   } catch (e) {
     res.status(500).json({ error: "Failed to send message" });
@@ -85,6 +87,7 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
     });
 
     io.to(`plan:${planId}`).emit("message:new", message);
+    void touchPlan(planId, "chat");
     res.status(201).json(message);
   } catch (e) {
     res.status(500).json({ error: "Failed to send message" });

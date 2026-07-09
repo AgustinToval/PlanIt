@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan } from "../lib/touch";
 
 const router = Router();
 
@@ -18,6 +19,7 @@ function canManage(role: string | undefined): boolean {
 
 function notify(planId: string) {
   io.to(`plan:${planId}`).emit("activities:changed", { planId });
+  void touchPlan(planId, "activities");
 }
 
 // POST /api/activities/plan/:planId — add an activity (any member)

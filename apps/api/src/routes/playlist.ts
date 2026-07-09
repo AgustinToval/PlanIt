@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { touchPlan } from "../lib/touch";
 
 const router = Router();
 
@@ -14,6 +15,7 @@ async function getMembership(userId: string, planId: string) {
 
 function notify(planId: string) {
   io.to(`plan:${planId}`).emit("playlist:changed", { planId });
+  void touchPlan(planId, "playlist");
 }
 
 // Detect source and derive a title from a pasted link. Spotify & YouTube Music.
