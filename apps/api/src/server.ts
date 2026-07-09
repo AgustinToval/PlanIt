@@ -19,6 +19,7 @@ import voteRoutes from "./routes/votes";
 import galleryRoutes from "./routes/gallery";
 import playlistRoutes from "./routes/playlist";
 import fileRoutes from "./routes/files";
+import availabilityRoutes from "./routes/availability";
 import { socketHandler } from "./lib/socket";
 
 dotenv.config();
@@ -58,6 +59,7 @@ app.use("/api/votes", voteRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/playlist", playlistRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/availability", availabilityRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

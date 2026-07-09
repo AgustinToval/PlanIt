@@ -31,6 +31,7 @@ model User {
   friendsAdded  Friendship[] @relation("FriendshipsInitiated")
   friendsOf     Friendship[] @relation("FriendshipsReceived")
   templates     PlanTemplate[]
+  availability  Availability[]
 }
 
 model PlanTemplate {
@@ -277,6 +278,17 @@ model Vote {
 
   planId String
   plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model Availability {
+  id     String @id @default(cuid())
+  date   String // YYYY-MM-DD (string avoids timezone drift)
+  status String // free | maybe | busy
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
 }
 
 model PlanFile {
