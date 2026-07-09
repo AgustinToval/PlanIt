@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "PlanMember" ADD COLUMN     "lat" DOUBLE PRECISION,
+ADD COLUMN     "lng" DOUBLE PRECISION,
+ADD COLUMN     "locationAt" TIMESTAMP(3);

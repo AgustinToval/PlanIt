@@ -469,6 +469,40 @@ router.post("/:id/meetup", authMiddleware, async (req: Request, res: Response) =
   }
 });
 
+// POST /api/plans/:id/location — push my live location (or clear it with null)
+router.post("/:id/location", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const { lat, lng } = req.body as { lat?: number | null; lng?: number | null };
+
+  const clearing = lat === null || lng === null;
+  if (!clearing && (typeof lat !== "number" || typeof lng !== "number" ||
+      lat < -90 || lat > 90 || lng < -180 || lng > 180)) {
+    return res.status(400).json({ error: "Invalid coordinates" });
+  }
+
+  try {
+    const membership = await getPlanMembership(req.userId!, id);
+    if (!membership) return res.status(403).json({ error: "Not a member of this plan" });
+
+    await prisma.planMember.update({
+      where: { id: membership.id },
+      data: clearing
+        ? { lat: null, lng: null, locationAt: null }
+        : { lat: lat!, lng: lng!, locationAt: new Date() },
+    });
+    io.to(`plan:${id}`).emit("location:changed", {
+      planId: id,
+      userId: req.userId,
+      lat: clearing ? null : lat,
+      lng: clearing ? null : lng,
+      at: clearing ? null : new Date().toISOString(),
+    });
+    res.json({ message: "Location updated" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update location" });
+  }
+});
+
 // POST update RSVP
 router.post("/:id/rsvp", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);

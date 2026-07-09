@@ -157,6 +157,9 @@ model PlanMember {
   role         String   @default("member") // admin | helper | member
   status       String   @default("member") // invited | member — invited users must accept before joining
   meetupStatus String   @default("none") // none | home | onway | there
+  lat          Float?   // live location while sharing
+  lng          Float?
+  locationAt   DateTime?
   joinedAt     DateTime @default(now())
 
   userId String
