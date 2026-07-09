@@ -118,6 +118,7 @@ model Plan {
   startDate   DateTime?
   endDate     DateTime?
   location    String?
+  notes       String    @default("") // shared notepad
   inviteCode  String    @unique @default(cuid())
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -137,6 +138,7 @@ model Plan {
   reminders   Reminder[]
   votes       Vote[]
   songs       Song[]
+  files       PlanFile[]
 }
 
 model PlanModule {
@@ -266,6 +268,19 @@ model Vote {
   results   Json     @default("{}")
   closesAt  DateTime?
   closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model PlanFile {
+  id        String   @id @default(cuid())
+  name      String
+  mime      String
+  size      Int      @default(0)
+  data      String   // base64 data URL
+  addedBy   String   // user id
   createdAt DateTime @default(now())
 
   planId String

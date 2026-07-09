@@ -7,15 +7,7 @@ import * as Location from "expo-location";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-
-// react-native-maps doesn't support web — load it lazily on native only
-let MapView: any = null;
-let Marker: any = null;
-if (Platform.OS !== "web") {
-  const maps = require("react-native-maps");
-  MapView = maps.default;
-  Marker = maps.Marker;
-}
+import MeetupMap from "./MeetupMap"; // resolves to .native.tsx on phone, .tsx on web
 
 type Member = {
   rsvp: string;
@@ -139,36 +131,24 @@ export default function MeetupModule({ planId }: { planId: string }) {
   const there = members.filter((m) => m.meetupStatus === "there").length;
   const onway = members.filter((m) => m.meetupStatus === "onway").length;
 
-  // Center map on the average of shared locations
-  const region = located.length > 0 ? {
-    latitude: located.reduce((s, m) => s + m.lat!, 0) / located.length,
-    longitude: located.reduce((s, m) => s + m.lng!, 0) / located.length,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  } : null;
+  const mapMembers = located.map((m) => ({
+    id: m.user.id,
+    name: m.user.id === user?.id ? "You" : m.user.name ?? "?",
+    lat: m.lat!,
+    lng: m.lng!,
+    isMe: m.user.id === user?.id,
+    statusLabel: statusInfo(m.meetupStatus).label,
+  }));
 
   return (
     <ScrollView
       style={{ flex: 1, padding: 12 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
     >
-      {/* Live map */}
-      {Platform.OS !== "web" && MapView && located.length > 0 && region && (
-        <View style={styles.mapWrap}>
-          <MapView style={styles.map} initialRegion={region}>
-            {located.map((m) => (
-              <Marker
-                key={m.user.id}
-                coordinate={{ latitude: m.lat!, longitude: m.lng! }}
-                title={m.user.id === user?.id ? "You" : m.user.name ?? "?"}
-                description={statusInfo(m.meetupStatus).label}
-                pinColor={m.user.id === user?.id ? "#6366f1" : "#ef4444"}
-              />
-            ))}
-          </MapView>
-        </View>
-      )}
-      {Platform.OS !== "web" && located.length === 0 && (
+      {/* Live map (native) / notice (web) */}
+      {located.length > 0 ? (
+        <MeetupMap members={mapMembers} />
+      ) : (
         <View style={styles.mapEmpty}>
           <Text style={styles.mapEmptyText}>🗺️ No one is sharing location yet</Text>
         </View>
