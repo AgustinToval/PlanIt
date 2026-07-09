@@ -10,6 +10,7 @@ import { useAuthStore } from "../../hooks/useAuthStore";
 import ExpensesModule from "../../components/plan/ExpensesModule";
 import ChecklistModule from "../../components/plan/ChecklistModule";
 import ActivitiesModule from "../../components/plan/ActivitiesModule";
+import VotesModule from "../../components/plan/VotesModule";
 
 type Message = {
   id: string;
@@ -316,6 +317,8 @@ export default function PlanScreen() {
         <ChecklistModule planId={plan.id} members={plan.members} myRole={myRole} />
       ) : activeTab === "activities" && plan ? (
         <ActivitiesModule planId={plan.id} myRole={myRole} />
+      ) : activeTab === "votes" && plan ? (
+        <VotesModule planId={plan.id} myRole={myRole} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <Text style={styles.modulePlaceholderEmoji}>

@@ -6,18 +6,20 @@ const router = Router();
 
 const publicUser = { id: true, name: true, username: true, avatar: true } as const;
 
-// GET /api/friends — my friends list
+// GET /api/friends — my accepted friends
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const friendships = await prisma.friendship.findMany({
-      where: { OR: [{ userId: req.userId }, { friendId: req.userId }] },
+      where: {
+        status: "accepted",
+        OR: [{ userId: req.userId }, { friendId: req.userId }],
+      },
       include: {
         user: { select: publicUser },
         friend: { select: publicUser },
       },
       orderBy: { createdAt: "desc" },
     });
-    // return "the other person" of each friendship
     const friends = friendships.map((f) =>
       f.userId === req.userId ? f.friend : f.user
     );
@@ -27,7 +29,21 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/friends — add a friend by email or username
+// GET /api/friends/requests — pending requests sent TO me
+router.get("/requests", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const requests = await prisma.friendship.findMany({
+      where: { friendId: req.userId, status: "pending" },
+      include: { user: { select: publicUser } },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(requests.map((r) => ({ id: r.id, createdAt: r.createdAt, from: r.user })));
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch requests" });
+  }
+});
+
+// POST /api/friends — send a friend request by email or username
 router.post("/", authMiddleware, async (req: Request, res: Response) => {
   const { query } = req.body as { query?: string };
   const q = query?.trim();
@@ -49,14 +65,82 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
         ],
       },
     });
-    if (existing) return res.status(409).json({ error: "Already friends" });
+    if (existing) {
+      if (existing.status === "accepted") return res.status(409).json({ error: "Already friends" });
+      // If THEY already sent me a request, accept it instead of duplicating
+      if (existing.friendId === req.userId) {
+        await prisma.friendship.update({ where: { id: existing.id }, data: { status: "accepted" } });
+        return res.json({ ...target, autoAccepted: true });
+      }
+      return res.status(409).json({ error: "Request already sent — waiting for them to accept" });
+    }
 
     await prisma.friendship.create({
-      data: { userId: req.userId!, friendId: target.id },
+      data: { userId: req.userId!, friendId: target.id, status: "pending" },
     });
-    res.status(201).json(target);
+    res.status(201).json({ ...target, requested: true });
   } catch (e) {
-    res.status(500).json({ error: "Failed to add friend" });
+    res.status(500).json({ error: "Failed to send request" });
+  }
+});
+
+// POST /api/friends/requests/:id/accept
+router.post("/requests/:id/accept", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const request = await prisma.friendship.findUnique({ where: { id } });
+    if (!request || request.friendId !== req.userId || request.status !== "pending") {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    await prisma.friendship.update({ where: { id }, data: { status: "accepted" } });
+    res.json({ message: "Friend request accepted" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to accept request" });
+  }
+});
+
+// POST /api/friends/requests/:id/decline
+router.post("/requests/:id/decline", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const request = await prisma.friendship.findUnique({ where: { id } });
+    if (!request || request.friendId !== req.userId || request.status !== "pending") {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    await prisma.friendship.delete({ where: { id } });
+    res.json({ message: "Request declined" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to decline request" });
+  }
+});
+
+// GET /api/friends/:friendId/profile — public profile of a friend
+router.get("/:friendId/profile", authMiddleware, async (req: Request, res: Response) => {
+  const friendId = String(req.params["friendId"]);
+  try {
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        status: "accepted",
+        OR: [
+          { userId: req.userId, friendId },
+          { userId: friendId, friendId: req.userId },
+        ],
+      },
+    });
+    if (!friendship) return res.status(403).json({ error: "You can only view friends' profiles" });
+
+    const profile = await prisma.user.findUnique({
+      where: { id: friendId },
+      select: {
+        id: true, name: true, username: true, email: true, avatar: true,
+        bio: true, location: true, createdAt: true,
+        _count: { select: { planMembers: true, groupMembers: true, photos: true } },
+      },
+    });
+    if (!profile) return res.status(404).json({ error: "User not found" });
+    res.json(profile);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch profile" });
   }
 });
 

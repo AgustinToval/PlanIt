@@ -47,10 +47,11 @@ model PlanTemplate {
 
 model Friendship {
   id        String   @id @default(cuid())
+  status    String   @default("accepted") // pending | accepted (existing rows stay accepted)
   createdAt DateTime @default(now())
 
-  userId   String
-  friendId String
+  userId   String   // requester
+  friendId String   // recipient
   user   User @relation("FriendshipsInitiated", fields: [userId], references: [id], onDelete: Cascade)
   friend User @relation("FriendshipsReceived", fields: [friendId], references: [id], onDelete: Cascade)
 

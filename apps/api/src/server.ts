@@ -15,6 +15,7 @@ import expenseRoutes from "./routes/expenses";
 import friendRoutes from "./routes/friends";
 import checklistRoutes from "./routes/checklist";
 import activityRoutes from "./routes/activities";
+import voteRoutes from "./routes/votes";
 import { socketHandler } from "./lib/socket";
 
 dotenv.config();
@@ -50,6 +51,7 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/checklist", checklistRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/api/votes", voteRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

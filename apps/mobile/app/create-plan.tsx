@@ -115,8 +115,17 @@ export default function CreatePlanScreen() {
     setBusy(true);
     try {
       let startDate: string | undefined;
-      if (date.trim()) {
-        startDate = time.trim() ? `${date.trim()}T${time.trim()}:00` : `${date.trim()}T00:00:00`;
+      const dm = date.trim().match(/^(\d{1,2})\/(\d{1,2})$/); // DD/MM
+      if (dm) {
+        const day = dm[1]!.padStart(2, "0");
+        const month = dm[2]!.padStart(2, "0");
+        const now = new Date();
+        let year = now.getFullYear();
+        // if that day/month already passed this year, assume next year
+        const candidate = new Date(`${year}-${month}-${day}T23:59:59`);
+        if (candidate.getTime() < now.getTime()) year += 1;
+        const hhmm = /^\d{1,2}:\d{2}$/.test(time.trim()) ? time.trim().padStart(5, "0") : "00:00";
+        startDate = `${year}-${month}-${day}T${hhmm}:00`;
       } else if (type === "quick") {
         startDate = new Date().toISOString();
       }
@@ -245,14 +254,15 @@ export default function CreatePlanScreen() {
 
       {type === "full" && (
         <>
-          <Text style={styles.label}>Date (optional) — YYYY-MM-DD</Text>
+          <Text style={styles.label}>Date (optional) — DD/MM</Text>
           <TextInput
             style={styles.input}
-            placeholder="2026-07-18"
+            placeholder="18/07"
             placeholderTextColor="#475569"
             value={date}
             onChangeText={setDate}
             autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
           />
         </>
       )}
