@@ -12,7 +12,7 @@ router.get("/plan/:planId", authMiddleware, async (req: Request, res: Response) 
     const messages = await prisma.message.findMany({
       where: {
         planId,
-        plan: { members: { some: { userId: req.userId } } },
+        plan: { members: { some: { userId: req.userId, status: "member" } } },
       },
       include: { user: { select: { id: true, name: true, avatar: true } } },
       orderBy: { createdAt: "asc" },
@@ -31,7 +31,7 @@ router.get("/group/:groupId", authMiddleware, async (req: Request, res: Response
     const messages = await prisma.message.findMany({
       where: {
         groupId,
-        group: { members: { some: { userId: req.userId } } },
+        group: { members: { some: { userId: req.userId, status: "member" } } },
       },
       include: { user: { select: { id: true, name: true, avatar: true } } },
       orderBy: { createdAt: "asc" },
@@ -51,7 +51,7 @@ router.post("/group/:groupId", authMiddleware, async (req: Request, res: Respons
 
   try {
     const isMember = await prisma.groupMember.findUnique({
-      where: { userId_groupId: { userId: req.userId!, groupId } },
+      where: { userId_groupId: { userId: req.userId!, groupId }, status: "member" },
     });
     if (!isMember) return res.status(403).json({ error: "Not a member of this group" });
 
@@ -75,7 +75,7 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
 
   try {
     const isMember = await prisma.plan.findFirst({
-      where: { id: planId, members: { some: { userId: req.userId } } },
+      where: { id: planId, members: { some: { userId: req.userId, status: "member" } } },
     });
     if (!isMember) return res.status(403).json({ error: "Not a member of this plan" });
 

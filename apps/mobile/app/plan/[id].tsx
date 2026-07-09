@@ -78,10 +78,11 @@ export default function PlanScreen() {
     } catch { /* noop */ }
   };
 
+  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
   const inviteFriend = async (friendId: string) => {
     try {
       await api.post(`/plans/${id}/invite`, { memberIds: [friendId] });
-      await load();
+      setInvitedIds((prev) => new Set(prev).add(friendId));
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not invite");
     }
@@ -278,6 +279,8 @@ export default function PlanScreen() {
             data={messages}
             keyExtractor={(m) => m.id}
             style={styles.chat}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 12 }}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => {
@@ -396,9 +399,13 @@ export default function PlanScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.memberName}>{f.name ?? "?"}</Text>
                         </View>
-                        <TouchableOpacity style={styles.roleBtn} onPress={() => inviteFriend(f.id)}>
-                          <Text style={styles.roleBtnText}>Invite</Text>
-                        </TouchableOpacity>
+                        {invitedIds.has(f.id) ? (
+                          <Text style={styles.invitedTag}>Invited ✓</Text>
+                        ) : (
+                          <TouchableOpacity style={styles.roleBtn} onPress={() => inviteFriend(f.id)}>
+                            <Text style={styles.roleBtnText}>Invite</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     ))}
                   </>
@@ -530,6 +537,7 @@ const styles = StyleSheet.create({
   shareBtn: { backgroundColor: "#312e81", borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 12 },
   shareBtnText: { color: "#c7d2fe", fontSize: 15, fontWeight: "700" },
   inviteSectionTitle: { color: "#94a3b8", fontSize: 14, fontWeight: "700", marginTop: 16, marginBottom: 8 },
+  invitedTag: { color: "#22c55e", fontSize: 13, fontWeight: "700" },
   settingRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 16, padding: 16, marginBottom: 10 },
   settingIcon: { fontSize: 24, marginRight: 14 },
   settingText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },

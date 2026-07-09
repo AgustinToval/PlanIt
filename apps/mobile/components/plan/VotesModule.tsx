@@ -110,6 +110,8 @@ export default function VotesModule({
     <View style={{ flex: 1 }}>
       <ScrollView
         style={{ flex: 1, padding: 12 }}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
       >
         {votes.length === 0 && (

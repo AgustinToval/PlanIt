@@ -6,9 +6,10 @@ import { io } from "../server";
 const router = Router();
 
 async function getMembership(userId: string, planId: string) {
-  return prisma.planMember.findUnique({
+  const m = await prisma.planMember.findUnique({
     where: { userId_planId: { userId, planId } },
   });
+  return m && m.status === "member" ? m : null;
 }
 
 function canManage(role: string | undefined): boolean {

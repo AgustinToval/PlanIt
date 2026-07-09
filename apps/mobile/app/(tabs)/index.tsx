@@ -21,6 +21,8 @@ export default function PlansScreen() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [notifCount, setNotifCount] = useState(0);
+
   const loadPlans = async () => {
     try {
       const res = await api.get("/plans");
@@ -30,7 +32,18 @@ export default function PlansScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { loadPlans(); }, []));
+  const loadNotifs = async () => {
+    try {
+      const [fr, gi, pi] = await Promise.all([
+        api.get("/friends/requests"),
+        api.get("/groups/invitations/mine"),
+        api.get("/plans/invitations/mine"),
+      ]);
+      setNotifCount(fr.data.length + gi.data.length + pi.data.length);
+    } catch { /* noop */ }
+  };
+
+  useFocusEffect(useCallback(() => { loadPlans(); loadNotifs(); }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -48,9 +61,19 @@ export default function PlansScreen() {
           <Text style={styles.title}>Plans</Text>
           <Text style={styles.subtitle}>Hey {user?.name?.split(" ")[0]} 👋</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/create-plan")}>
-          <Text style={styles.addBtnText}>+ New Plan</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <TouchableOpacity onPress={() => router.push("/notifications")}>
+            <Text style={{ fontSize: 24 }}>🔔</Text>
+            {notifCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{notifCount > 9 ? "9+" : notifCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/create-plan")}>
+            <Text style={styles.addBtnText}>+ New</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {plans.length === 0 ? (
@@ -109,6 +132,8 @@ const styles = StyleSheet.create({
   subtitle: { color: "#94a3b8", fontSize: 15, marginTop: 2 },
   addBtn: { backgroundColor: "#6366f1", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
   addBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
+  badge: { position: "absolute", top: -6, right: -8, backgroundColor: "#ef4444", borderRadius: 10, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+  badgeText: { color: "#ffffff", fontSize: 11, fontWeight: "800" },
   empty: { alignItems: "center", marginTop: 80 },
   emptyIcon: { fontSize: 56 },
   emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },

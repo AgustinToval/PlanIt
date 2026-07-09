@@ -98,6 +98,7 @@ model GroupMember {
   id       String   @id @default(cuid())
   role     String   @default("member") // admin | member
   muted    Boolean  @default(false)
+  status   String   @default("member") // invited | member — invited users must accept before joining
   joinedAt DateTime @default(now())
 
   userId  String
@@ -153,6 +154,7 @@ model PlanMember {
   id       String   @id @default(cuid())
   rsvp     String   @default("pending") // yes | no | maybe | pending
   role     String   @default("member") // admin | helper | member
+  status   String   @default("member") // invited | member — invited users must accept before joining
   joinedAt DateTime @default(now())
 
   userId String

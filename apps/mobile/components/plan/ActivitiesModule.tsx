@@ -116,6 +116,8 @@ export default function ActivitiesModule({
 
       <ScrollView
         style={{ flex: 1, paddingHorizontal: 12 }}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
       >
         {activities.map((act, i) => (

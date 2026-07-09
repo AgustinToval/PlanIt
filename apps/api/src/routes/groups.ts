@@ -4,19 +4,101 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
-// GET all groups for current user
+// GET groups I've joined (not pending invites)
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const groups = await prisma.group.findMany({
-      where: { members: { some: { userId: req.userId } } },
+      where: { members: { some: { userId: req.userId, status: "member" } } },
       include: {
-        members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        members: {
+          where: { status: "member" },
+          include: { user: { select: { id: true, name: true, avatar: true } } },
+        },
         _count: { select: { plans: true } },
       },
     });
     res.json(groups);
   } catch (e) {
     res.status(500).json({ error: "Failed to fetch groups" });
+  }
+});
+
+// GET /api/groups/invitations/mine — pending group invites for me
+router.get("/invitations/mine", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const invites = await prisma.groupMember.findMany({
+      where: { userId: req.userId, status: "invited" },
+      include: {
+        group: {
+          include: {
+            members: { where: { role: "admin" }, include: { user: { select: { name: true } } } },
+            _count: { select: { members: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "desc" },
+    });
+    res.json(
+      invites.map((i) => ({
+        id: i.id,
+        group: { id: i.group.id, name: i.group.name, description: i.group.description },
+        invitedBy: i.group.members[0]?.user.name ?? "Someone",
+        memberCount: i.group._count.members,
+      }))
+    );
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch invitations" });
+  }
+});
+
+// POST /api/groups/:id/invite — invite friends to a group (pending)
+router.post("/:id/invite", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  const { memberIds } = req.body as { memberIds?: string[] };
+  try {
+    const me = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: req.userId!, groupId: id } },
+    });
+    if (!me || me.status !== "member") return res.status(403).json({ error: "Not a member of this group" });
+
+    const invited = (memberIds ?? []).filter((uid) => uid !== req.userId);
+    await prisma.groupMember.createMany({
+      data: invited.map((userId) => ({ userId, groupId: id, status: "invited" })),
+      skipDuplicates: true,
+    });
+    res.json({ message: "Invitations sent" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to invite" });
+  }
+});
+
+// POST /api/groups/invitations/:memberId/accept
+router.post("/invitations/:memberId/accept", authMiddleware, async (req: Request, res: Response) => {
+  const memberId = String(req.params["memberId"]);
+  try {
+    const membership = await prisma.groupMember.findUnique({ where: { id: memberId } });
+    if (!membership || membership.userId !== req.userId || membership.status !== "invited") {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+    await prisma.groupMember.update({ where: { id: memberId }, data: { status: "member" } });
+    res.json({ message: "Joined group", groupId: membership.groupId });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to accept invitation" });
+  }
+});
+
+// POST /api/groups/invitations/:memberId/decline
+router.post("/invitations/:memberId/decline", authMiddleware, async (req: Request, res: Response) => {
+  const memberId = String(req.params["memberId"]);
+  try {
+    const membership = await prisma.groupMember.findUnique({ where: { id: memberId } });
+    if (!membership || membership.userId !== req.userId || membership.status !== "invited") {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+    await prisma.groupMember.delete({ where: { id: memberId } });
+    res.json({ message: "Invitation declined" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to decline invitation" });
   }
 });
 
@@ -31,7 +113,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
         name,
         description,
         photo,
-        members: { create: { userId: req.userId!, role: "admin" } },
+        members: { create: { userId: req.userId!, role: "admin", status: "member" } },
       },
       include: { members: { include: { user: true } } },
     });
@@ -46,9 +128,9 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   try {
     const group = await prisma.group.findFirst({
-      where: { id, members: { some: { userId: req.userId } } },
+      where: { id, members: { some: { userId: req.userId, status: "member" } } },
       include: {
-        members: { include: { user: { select: { id: true, name: true, avatar: true, username: true } } } },
+        members: { where: { status: "member" }, include: { user: { select: { id: true, name: true, avatar: true, username: true } } } },
         plans: { orderBy: { startDate: "asc" } },
       },
     });
@@ -69,9 +151,13 @@ router.post("/join/:inviteCode", authMiddleware, async (req: Request, res: Respo
     const existing = await prisma.groupMember.findUnique({
       where: { userId_groupId: { userId: req.userId!, groupId: group.id } },
     });
-    if (existing) return res.status(400).json({ error: "Already a member" });
+    if (existing?.status === "member") return res.status(400).json({ error: "Already a member" });
 
-    await prisma.groupMember.create({ data: { userId: req.userId!, groupId: group.id } });
+    await prisma.groupMember.upsert({
+      where: { userId_groupId: { userId: req.userId!, groupId: group.id } },
+      update: { status: "member" },
+      create: { userId: req.userId!, groupId: group.id, status: "member" },
+    });
     res.json({ message: "Joined group", group });
   } catch (e) {
     res.status(500).json({ error: "Failed to join group" });

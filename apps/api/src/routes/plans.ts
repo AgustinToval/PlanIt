@@ -9,24 +9,28 @@ export const MODULE_TYPES = [
   "walkietalkie", "gallery", "playlist", "files", "meetup",
 ] as const;
 
-// Permission helper: returns the member row or null
+// Permission helper: returns the ACTIVE member row (joined, not just invited) or null
 export async function getPlanMembership(userId: string, planId: string) {
-  return prisma.planMember.findUnique({
+  const m = await prisma.planMember.findUnique({
     where: { userId_planId: { userId, planId } },
   });
+  return m && m.status === "member" ? m : null;
 }
 
 export function canManage(role: string | undefined): boolean {
   return role === "admin" || role === "helper";
 }
 
-// GET my plans (all plans I'm a member of)
+// GET my plans (only plans I have actually joined — not pending invites)
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const plans = await prisma.plan.findMany({
-      where: { members: { some: { userId: req.userId } } },
+      where: { members: { some: { userId: req.userId, status: "member" } } },
       include: {
-        members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        members: {
+          where: { status: "member" },
+          include: { user: { select: { id: true, name: true, avatar: true } } },
+        },
         modules: { orderBy: { order: "asc" } },
         _count: { select: { messages: true, photos: true, expenses: true } },
       },
@@ -35,6 +39,70 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
     res.json(plans);
   } catch (e) {
     res.status(500).json({ error: "Failed to fetch plans" });
+  }
+});
+
+// GET /api/plans/invitations/mine — pending plan invites for me
+router.get("/invitations/mine", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const invites = await prisma.planMember.findMany({
+      where: { userId: req.userId, status: "invited" },
+      include: {
+        plan: {
+          include: {
+            members: { where: { role: "admin" }, include: { user: { select: { id: true, name: true } } } },
+            _count: { select: { members: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "desc" },
+    });
+    res.json(
+      invites.map((i) => ({
+        id: i.id,
+        plan: {
+          id: i.plan.id,
+          title: i.plan.title,
+          type: i.plan.type,
+          startDate: i.plan.startDate,
+          location: i.plan.location,
+        },
+        invitedBy: i.plan.members[0]?.user.name ?? "Someone",
+        memberCount: i.plan._count.members,
+      }))
+    );
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch invitations" });
+  }
+});
+
+// POST /api/plans/invitations/:memberId/accept
+router.post("/invitations/:memberId/accept", authMiddleware, async (req: Request, res: Response) => {
+  const memberId = String(req.params["memberId"]);
+  try {
+    const membership = await prisma.planMember.findUnique({ where: { id: memberId } });
+    if (!membership || membership.userId !== req.userId || membership.status !== "invited") {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+    await prisma.planMember.update({ where: { id: memberId }, data: { status: "member" } });
+    res.json({ message: "Joined plan", planId: membership.planId });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to accept invitation" });
+  }
+});
+
+// POST /api/plans/invitations/:memberId/decline
+router.post("/invitations/:memberId/decline", authMiddleware, async (req: Request, res: Response) => {
+  const memberId = String(req.params["memberId"]);
+  try {
+    const membership = await prisma.planMember.findUnique({ where: { id: memberId } });
+    if (!membership || membership.userId !== req.userId || membership.status !== "invited") {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+    await prisma.planMember.delete({ where: { id: memberId } });
+    res.json({ message: "Invitation declined" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to decline invitation" });
   }
 });
 
@@ -78,8 +146,8 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
         location,
         members: {
           create: [
-            { userId: req.userId!, rsvp: "yes", role: "admin" },
-            ...[...invited].map((userId) => ({ userId, rsvp: "pending" })),
+            { userId: req.userId!, rsvp: "yes", role: "admin", status: "member" },
+            ...[...invited].map((userId) => ({ userId, rsvp: "pending", status: "invited" })),
           ],
         },
       },
@@ -99,9 +167,9 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   try {
     const plan = await prisma.plan.findFirst({
-      where: { id, members: { some: { userId: req.userId } } },
+      where: { id, members: { some: { userId: req.userId, status: "member" } } },
       include: {
-        members: { include: { user: { select: { id: true, name: true, avatar: true, username: true } } } },
+        members: { where: { status: "member" }, include: { user: { select: { id: true, name: true, avatar: true, username: true } } } },
         modules: { orderBy: { order: "asc" } },
         activities: { orderBy: { order: "asc" } },
         checkItems: true,
@@ -123,7 +191,7 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// POST join plan via invite code
+// POST join plan via invite code — immediate (the code is shared deliberately)
 router.post("/join/:inviteCode", authMiddleware, async (req: Request, res: Response) => {
   const inviteCode = String(req.params["inviteCode"]);
   try {
@@ -132,8 +200,8 @@ router.post("/join/:inviteCode", authMiddleware, async (req: Request, res: Respo
 
     await prisma.planMember.upsert({
       where: { userId_planId: { userId: req.userId!, planId: plan.id } },
-      update: {},
-      create: { userId: req.userId!, planId: plan.id },
+      update: { status: "member" }, // accept even if previously just invited
+      create: { userId: req.userId!, planId: plan.id, status: "member" },
     });
     res.json({ message: "Joined plan", plan });
   } catch (e) {
@@ -141,33 +209,33 @@ router.post("/join/:inviteCode", authMiddleware, async (req: Request, res: Respo
   }
 });
 
-// POST invite more people/groups to an existing plan
+// POST invite more people/groups to an existing plan — sends pending invites
 router.post("/:id/invite", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
   const { memberIds, groupIds } = req.body as { memberIds?: string[]; groupIds?: string[] };
   try {
-    const isMember = await prisma.planMember.findUnique({
-      where: { userId_planId: { userId: req.userId!, planId: id } },
-    });
-    if (!isMember) return res.status(403).json({ error: "Not a member of this plan" });
+    if (!(await getPlanMembership(req.userId!, id))) {
+      return res.status(403).json({ error: "Not a member of this plan" });
+    }
 
     const invited = new Set<string>(memberIds ?? []);
     if (groupIds?.length) {
       const groupMembers = await prisma.groupMember.findMany({
-        where: { groupId: { in: groupIds }, group: { members: { some: { userId: req.userId! } } } },
+        where: { groupId: { in: groupIds }, status: "member", group: { members: { some: { userId: req.userId! } } } },
         select: { userId: true },
       });
       groupMembers.forEach((m) => invited.add(m.userId));
     }
+    invited.delete(req.userId!);
 
     await prisma.planMember.createMany({
-      data: [...invited].map((userId) => ({ userId, planId: id })),
+      data: [...invited].map((userId) => ({ userId, planId: id, status: "invited" })),
       skipDuplicates: true,
     });
 
     const plan = await prisma.plan.findUnique({
       where: { id },
-      include: { members: { include: { user: { select: { id: true, name: true } } } } },
+      include: { members: { where: { status: "member" }, include: { user: { select: { id: true, name: true } } } } },
     });
     res.json(plan);
   } catch (e) {

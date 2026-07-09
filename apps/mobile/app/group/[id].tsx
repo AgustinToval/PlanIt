@@ -165,6 +165,8 @@ export default function GroupScreen() {
         data={messages}
         keyExtractor={(m) => m.id}
         style={styles.chat}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 12 }}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         renderItem={({ item }) => {

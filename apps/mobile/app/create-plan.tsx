@@ -160,7 +160,7 @@ export default function CreatePlanScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
         <Text style={styles.backText}>‹ Back</Text>
       </TouchableOpacity>

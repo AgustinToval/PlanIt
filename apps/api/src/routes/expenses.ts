@@ -6,9 +6,10 @@ import { io } from "../server";
 const router = Router();
 
 async function assertPlanMember(userId: string, planId: string) {
-  return prisma.planMember.findUnique({
+  const m = await prisma.planMember.findUnique({
     where: { userId_planId: { userId, planId } },
   });
+  return m && m.status === "member" ? m : null;
 }
 
 // POST /api/expenses/plan/:planId — add an expense, split equally
