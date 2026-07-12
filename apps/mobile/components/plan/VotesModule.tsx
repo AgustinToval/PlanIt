@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, RefreshControl, Modal,
+  Alert, RefreshControl, Modal, KeyboardAvoidingView, Platform,
+  Keyboard, TouchableWithoutFeedback,
 } from "react-native";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
@@ -180,7 +181,9 @@ export default function VotesModule({
 
       {/* Create vote modal */}
       <Modal visible={showCreate} animationType="slide" transparent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New vote</Text>
@@ -235,7 +238,9 @@ export default function VotesModule({
               <Text style={styles.buttonText}>{busy ? "..." : "Create vote"}</Text>
             </TouchableOpacity>
           </View>
+          </TouchableWithoutFeedback>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

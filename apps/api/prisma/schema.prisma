@@ -32,6 +32,7 @@ model User {
   friendsOf     Friendship[] @relation("FriendshipsReceived")
   templates     PlanTemplate[]
   availability  Availability[]
+  voiceClips    VoiceClip[]
 }
 
 model PlanTemplate {
@@ -144,6 +145,7 @@ model Plan {
   votes       Vote[]
   songs       Song[]
   files       PlanFile[]
+  voiceClips  VoiceClip[]
 }
 
 model PlanModule {
@@ -164,6 +166,7 @@ model PlanMember {
   role         String   @default("member") // admin | helper | member
   status       String   @default("member") // invited | member — invited users must accept before joining
   meetupStatus String   @default("none") // none | home | onway | there
+  walkieOptIn  String   @default("pending") // pending | accepted | declined — consent to the walkie talkie channel
   lat          Float?   // live location while sharing
   lng          Float?
   locationAt   DateTime?
@@ -289,6 +292,18 @@ model Availability {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+}
+
+model VoiceClip {
+  id        String   @id @default(cuid())
+  url       String   // base64 data URL (audio/m4a)
+  duration  Float    @default(0)
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PlanFile {

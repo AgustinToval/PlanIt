@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useAuthStore } from "../../hooks/useAuthStore";
@@ -12,7 +12,7 @@ type Plan = {
   location: string | null;
   status: string;
   moduleActivity: Record<string, string>;
-  members: { rsvp: string; moduleSeen?: Record<string, string>; user: { id: string; name: string | null } }[];
+  members: { rsvp: string; role?: string; moduleSeen?: Record<string, string>; user: { id: string; name: string | null } }[];
   modules: { type: string }[];
 };
 
@@ -40,6 +40,56 @@ export default function PlansScreen() {
     } catch (e) {
       console.log(e);
     }
+  };
+
+  const leavePlan = (plan: Plan) => {
+    Alert.alert("Leave plan?", `You will leave "${plan.title}".`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave", style: "destructive",
+        onPress: async () => {
+          try {
+            await api.post(`/plans/${plan.id}/leave`);
+            await loadPlans();
+          } catch (e: any) {
+            Alert.alert("Error", e?.response?.data?.error ?? "Could not leave the plan");
+          }
+        },
+      },
+    ]);
+  };
+
+  const deletePlan = (plan: Plan) => {
+    Alert.alert(
+      "Delete plan?",
+      `"${plan.title}" and everything in it will be deleted for everyone. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete", style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete(`/plans/${plan.id}`);
+              await loadPlans();
+            } catch (e: any) {
+              Alert.alert("Error", e?.response?.data?.error ?? "Could not delete the plan");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const planActions = (plan: Plan) => {
+    const me = plan.members.find((m) => m.user.id === user?.id);
+    const isAdmin = me?.role === "admin";
+    Alert.alert(plan.title, "What do you want to do?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "🚪 Leave plan", onPress: () => leavePlan(plan) },
+      ...(isAdmin
+        ? [{ text: "🗑️ Delete plan", style: "destructive" as const, onPress: () => deletePlan(plan) }]
+        : []),
+    ]);
   };
 
   const loadNotifs = async () => {
@@ -100,7 +150,12 @@ export default function PlansScreen() {
           const yes = plan.members.filter((m) => m.rsvp === "yes").length;
           const unseen = hasUnseen(plan, user?.id);
           return (
-            <TouchableOpacity key={plan.id} style={styles.card} onPress={() => router.push(`/plan/${plan.id}`)}>
+            <TouchableOpacity
+              key={plan.id}
+              style={styles.card}
+              onPress={() => router.push(`/plan/${plan.id}`)}
+              onLongPress={() => planActions(plan)}
+            >
               {unseen && <View style={styles.unseenDot} />}
               <View style={styles.cardHeader}>
                 <Text style={styles.cardType}>{plan.type === "quick" ? "⚡ Quick Plan" : "🗓️ Plan"}</Text>

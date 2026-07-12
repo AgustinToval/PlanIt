@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "../lib/api";
+import { shareInvite } from "../lib/invite";
 
 type Group = {
   id: string;
@@ -151,7 +152,20 @@ export default function CreatePlanScreen() {
           memberIds: [...selectedFriends],
         });
       }
-      router.replace(`/plan/${res.data.id}`);
+      const plan = res.data;
+      router.replace(`/plan/${plan.id}`);
+      // Only offer the invite link if nobody was added to the plan
+      const nobodyAdded = selectedGroups.size === 0 && selectedFriends.size === 0;
+      if (plan.inviteCode && nobodyAdded) {
+        Alert.alert(
+          "✅ Plan created!",
+          "You didn't invite anyone yet — share an invite link?",
+          [
+            { text: "Later", style: "cancel" },
+            { text: "🔗 Share link", onPress: () => shareInvite("plan", plan.title, plan.inviteCode) },
+          ]
+        );
+      }
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not create the plan");
     } finally {

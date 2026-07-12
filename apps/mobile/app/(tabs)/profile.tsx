@@ -1,10 +1,13 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../hooks/useAuthStore";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
   const router = useRouter();
+
+  const comingWithBuild = (feature: string) =>
+    Alert.alert(feature, "Coming with the native app build (App Store / Play Store version) 🚀");
 
   return (
     <ScrollView style={styles.container}>
@@ -13,12 +16,18 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.avatarSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() ?? "?"}</Text>
-        </View>
+        {user?.avatar ? (
+          <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() ?? "?"}</Text>
+          </View>
+        )}
         <Text style={styles.name}>{user?.name ?? "Unknown"}</Text>
         <Text style={styles.email}>{user?.email ?? ""}</Text>
         {user?.username && <Text style={styles.username}>@{user.username}</Text>}
+        {user?.bio && <Text style={styles.bio}>{user.bio}</Text>}
+        {user?.location && <Text style={styles.location}>📍 {user.location}</Text>}
       </View>
 
       <View style={styles.section}>
@@ -27,22 +36,27 @@ export default function ProfileScreen() {
           <Text style={styles.menuText}>Friends</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/edit-profile")}>
           <Text style={styles.menuIcon}>✏️</Text>
           <Text style={styles.menuText}>Edit Profile</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/notifications")}>
           <Text style={styles.menuIcon}>🔔</Text>
           <Text style={styles.menuText}>Notifications</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/templates")}>
+          <Text style={styles.menuIcon}>📑</Text>
+          <Text style={styles.menuText}>Plan templates</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem} onPress={() => comingWithBuild("Connect Spotify")}>
           <Text style={styles.menuIcon}>🎵</Text>
           <Text style={styles.menuText}>Connect Spotify</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => comingWithBuild("Connect Google Calendar")}>
           <Text style={styles.menuIcon}>📅</Text>
           <Text style={styles.menuText}>Connect Google Calendar</Text>
           <Text style={styles.menuArrow}>›</Text>
@@ -62,6 +76,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "800", color: "#ffffff" },
   avatarSection: { alignItems: "center", paddingVertical: 24 },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatarImage: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
+  bio: { color: "#cbd5e1", fontSize: 14, marginTop: 8, textAlign: "center", paddingHorizontal: 32 },
+  location: { color: "#64748b", fontSize: 13, marginTop: 4 },
   avatarText: { color: "#ffffff", fontSize: 36, fontWeight: "800" },
   name: { color: "#ffffff", fontSize: 22, fontWeight: "700" },
   email: { color: "#94a3b8", fontSize: 15, marginTop: 4 },

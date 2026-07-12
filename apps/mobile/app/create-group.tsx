@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "../lib/api";
+import { shareInvite } from "../lib/invite";
 
 export default function CreateGroupScreen() {
   const router = useRouter();
@@ -17,7 +18,16 @@ export default function CreateGroupScreen() {
     setBusy(true);
     try {
       const res = await api.post("/groups", { name: name.trim(), description: description.trim() || undefined });
-      router.replace(`/group/${res.data.id}`);
+      const g = res.data;
+      router.replace(`/group/${g.id}`);
+      Alert.alert(
+        "✅ Group created!",
+        "Share an invite link so friends can join?",
+        [
+          { text: "Later", style: "cancel" },
+          { text: "🔗 Share link", onPress: () => shareInvite("group", g.name, g.inviteCode) },
+        ]
+      );
     } catch {
       Alert.alert("Error", "Could not create the group. Is the API running?");
     } finally {

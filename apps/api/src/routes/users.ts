@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 
@@ -50,6 +51,27 @@ router.patch("/me", authMiddleware, async (req: Request, res: Response) => {
     res.json(user);
   } catch (e) {
     res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// POST /api/users/me/password — change password (requires current password)
+router.post("/me/password", authMiddleware, async (req: Request, res: Response) => {
+  const { current, next } = req.body as { current?: string; next?: string };
+  if (!current || !next) return res.status(400).json({ error: "Current and new password are required" });
+  if (next.length < 8) return res.status(400).json({ error: "New password must be at least 8 characters" });
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!user?.password) return res.status(400).json({ error: "No password set on this account" });
+
+    const ok = await bcrypt.compare(current, user.password);
+    if (!ok) return res.status(401).json({ error: "Current password is incorrect" });
+
+    const hash = await bcrypt.hash(next, 10);
+    await prisma.user.update({ where: { id: req.userId }, data: { password: hash } });
+    res.json({ message: "Password updated" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update password" });
   }
 });
 

@@ -15,6 +15,9 @@ import GalleryModule from "../../components/plan/GalleryModule";
 import PlaylistModule from "../../components/plan/PlaylistModule";
 import MeetupModule from "../../components/plan/MeetupModule";
 import FilesModule from "../../components/plan/FilesModule";
+import AvailabilityHeatmap from "../../components/plan/AvailabilityHeatmap";
+import WalkieTalkieModule from "../../components/plan/WalkieTalkieModule";
+import { shareInvite } from "../../lib/invite";
 
 type Message = {
   id: string;
@@ -63,6 +66,26 @@ export default function PlanScreen() {
   const [showAddModule, setShowAddModule] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showDates, setShowDates] = useState(false);
+  const [showAi, setShowAi] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiAnswer, setAiAnswer] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const askAi = async () => {
+    const q = aiQuestion.trim();
+    if (!q) return;
+    setAiLoading(true);
+    setAiAnswer("");
+    try {
+      const res = await api.post(`/ai/assistant/${id}`, { question: q }, { timeout: 40000 });
+      setAiAnswer(res.data.answer);
+    } catch (e: any) {
+      setAiAnswer(`⚠️ ${e?.response?.data?.error ?? "AI request failed"}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
   const [friends, setFriends] = useState<{ id: string; name: string | null }[]>([]);
   const listRef = useRef<FlatList>(null);
 
@@ -125,6 +148,23 @@ export default function PlanScreen() {
     } catch {
       Alert.alert("Error", "Could not save the template");
     }
+  };
+
+  const leavePlan = () => {
+    Alert.alert("Leave plan?", `You will leave "${plan?.title}".`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave", style: "destructive",
+        onPress: async () => {
+          try {
+            await api.post(`/plans/${id}/leave`);
+            router.back();
+          } catch (e: any) {
+            Alert.alert("Error", e?.response?.data?.error ?? "Could not leave the plan");
+          }
+        },
+      },
+    ]);
   };
 
   const deletePlan = () => {
@@ -262,6 +302,12 @@ export default function PlanScreen() {
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: "row", gap: 20 }}>
+            <TouchableOpacity onPress={() => setShowAi(true)}>
+              <Text style={styles.backText}>🤖</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowDates(true)}>
+              <Text style={styles.backText}>📅</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => { loadFriends(); setShowMembers(true); }}>
               <Text style={styles.backText}>👥 {plan?.members.length ?? 0}</Text>
             </TouchableOpacity>
@@ -385,6 +431,8 @@ export default function PlanScreen() {
         <MeetupModule planId={plan.id} />
       ) : activeTab === "files" && plan ? (
         <FilesModule planId={plan.id} myRole={myRole} />
+      ) : activeTab === "walkietalkie" && plan ? (
+        <WalkieTalkieModule planId={plan.id} members={plan.members} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <Text style={styles.modulePlaceholderEmoji}>
@@ -410,14 +458,9 @@ export default function PlanScreen() {
             </View>
             <TouchableOpacity
               style={styles.shareBtn}
-              onPress={() => {
-                if (!plan) return;
-                Share.share({
-                  message: `Join my plan "${plan.title}" on PlanIt! Invite code: ${plan.inviteCode}`,
-                });
-              }}
+              onPress={() => plan && shareInvite("plan", plan.title, plan.inviteCode)}
             >
-              <Text style={styles.shareBtnText}>🔗 Share invite code</Text>
+              <Text style={styles.shareBtnText}>🔗 Share invite link</Text>
             </TouchableOpacity>
             <ScrollView>
               {plan?.members.map((m) => {
@@ -479,6 +522,74 @@ export default function PlanScreen() {
         </View>
       </Modal>
 
+      {/* AI assistant modal */}
+      <Modal visible={showAi} animationType="slide" transparent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modal, { maxHeight: "85%" }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🤖 Plan Assistant</Text>
+              <TouchableOpacity onPress={() => setShowAi(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 320 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
+              {aiAnswer ? (
+                <View style={styles.aiAnswerBox}>
+                  <Text style={styles.aiAnswerText}>{aiAnswer}</Text>
+                </View>
+              ) : (
+                <Text style={styles.aiHint}>
+                  Ask anything about this plan:{"\n\n"}
+                  💡 "What should we pack?"{"\n"}
+                  💡 "Suggest a schedule for the day"{"\n"}
+                  💡 "How should we split the budget?"{"\n"}
+                  💡 "¿Qué comida conviene para 6 personas?"
+                </Text>
+              )}
+            </ScrollView>
+
+            <View style={styles.aiInputRow}>
+              <TextInput
+                style={styles.aiInput}
+                placeholder="Ask the assistant..."
+                placeholderTextColor="#475569"
+                value={aiQuestion}
+                onChangeText={setAiQuestion}
+                onSubmitEditing={askAi}
+                returnKeyType="send"
+              />
+              <TouchableOpacity
+                style={[styles.aiSendBtn, (aiLoading || !aiQuestion.trim()) && { opacity: 0.5 }]}
+                onPress={askAi}
+                disabled={aiLoading || !aiQuestion.trim()}
+              >
+                {aiLoading
+                  ? <Text style={styles.aiSendText}>...</Text>
+                  : <Text style={styles.aiSendText}>➤</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Group availability heatmap modal */}
+      <Modal visible={showDates} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modal, { maxHeight: "88%" }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📅 Group availability</Text>
+              <TouchableOpacity onPress={() => setShowDates(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {plan && <AvailabilityHeatmap planId={plan.id} />}
+          </View>
+        </View>
+      </Modal>
+
       {/* Plan settings modal */}
       <Modal visible={showSettings} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -497,6 +608,14 @@ export default function PlanScreen() {
                 <Text style={styles.settingDesc}>
                   Reuse this plan's modules, checklist and activities next time
                 </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingRow} onPress={() => { setShowSettings(false); leavePlan(); }}>
+              <Text style={styles.settingIcon}>🚪</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingText}>Leave plan</Text>
+                <Text style={styles.settingDesc}>You can rejoin later with an invite</Text>
               </View>
             </TouchableOpacity>
 
@@ -598,6 +717,13 @@ const styles = StyleSheet.create({
   memberRole: { color: "#818cf8", fontSize: 12, marginTop: 2 },
   roleBtn: { backgroundColor: "#312e81", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   roleBtnText: { color: "#c7d2fe", fontSize: 12, fontWeight: "700" },
+  aiAnswerBox: { backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
+  aiAnswerText: { color: "#e2e8f0", fontSize: 15, lineHeight: 22 },
+  aiHint: { color: "#64748b", fontSize: 14, lineHeight: 22, padding: 8 },
+  aiInputRow: { flexDirection: "row", gap: 8, marginTop: 14 },
+  aiInput: { flex: 1, backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 15, borderWidth: 1, borderColor: "#334155" },
+  aiSendBtn: { backgroundColor: "#7c3aed", borderRadius: 14, width: 50, alignItems: "center", justifyContent: "center" },
+  aiSendText: { color: "#ffffff", fontSize: 18 },
   shareBtn: { backgroundColor: "#312e81", borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 12 },
   shareBtnText: { color: "#c7d2fe", fontSize: 15, fontWeight: "700" },
   inviteSectionTitle: { color: "#94a3b8", fontSize: 14, fontWeight: "700", marginTop: 16, marginBottom: 8 },

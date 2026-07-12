@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, RefreshControl, Keyboard,
+  Alert, RefreshControl, Keyboard, Modal, ActivityIndicator,
 } from "react-native";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
@@ -31,6 +31,49 @@ export default function ChecklistModule({
   const [newTitle, setNewTitle] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [hidePacked, setHidePacked] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiItems, setAiItems] = useState<{ title: string; category: string }[]>([]);
+  const [aiSelected, setAiSelected] = useState<Set<number>>(new Set());
+  const [showAi, setShowAi] = useState(false);
+  const [aiAdding, setAiAdding] = useState(false);
+
+  const generateWithAi = async () => {
+    setAiLoading(true);
+    try {
+      const res = await api.post(`/ai/packing-list/${planId}`, {}, { timeout: 40000 });
+      const suggestions = res.data.items ?? [];
+      if (suggestions.length === 0) {
+        Alert.alert("Hmm", "The AI didn't suggest anything new.");
+        return;
+      }
+      setAiItems(suggestions);
+      setAiSelected(new Set(suggestions.map((_: unknown, i: number) => i)));
+      setShowAi(true);
+    } catch (e: any) {
+      Alert.alert("AI error", e?.response?.data?.error ?? "Could not generate suggestions");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const addAiItems = async () => {
+    setAiAdding(true);
+    try {
+      for (const i of aiSelected) {
+        const item = aiItems[i];
+        if (item) {
+          await api.post(`/checklist/plan/${planId}`, { title: item.title, category: item.category });
+        }
+      }
+      setShowAi(false);
+      await load();
+    } catch {
+      Alert.alert("Error", "Some items could not be added");
+      await load();
+    } finally {
+      setAiAdding(false);
+    }
+  };
 
   const canManage = myRole === "admin" || myRole === "helper";
   const nameOf = (id: string | null) => {
@@ -115,11 +158,18 @@ export default function ChecklistModule({
           <Text style={styles.progressText}>
             {items.length === 0 ? "Nothing on the list yet" : `${done} / ${items.length} packed`}
           </Text>
-          {items.length > 0 && (
-            <TouchableOpacity onPress={() => setHidePacked((v) => !v)}>
-              <Text style={styles.hideToggle}>{hidePacked ? "Show packed" : "Hide packed"}</Text>
+          <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
+            <TouchableOpacity onPress={generateWithAi} disabled={aiLoading}>
+              {aiLoading
+                ? <ActivityIndicator size="small" color="#818cf8" />
+                : <Text style={styles.aiBtn}>✨ AI</Text>}
             </TouchableOpacity>
-          )}
+            {items.length > 0 && (
+              <TouchableOpacity onPress={() => setHidePacked((v) => !v)}>
+                <Text style={styles.hideToggle}>{hidePacked ? "Show packed" : "Hide packed"}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <View style={styles.progressBar}>
           <View
@@ -191,6 +241,54 @@ export default function ChecklistModule({
           <Text style={styles.addText}>＋</Text>
         </TouchableOpacity>
       </View>
+
+      {/* AI suggestions modal */}
+      <Modal visible={showAi} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>✨ AI suggestions</Text>
+              <TouchableOpacity onPress={() => setShowAi(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSub}>Tap to deselect what you don't need</Text>
+            <ScrollView style={{ maxHeight: 380 }}>
+              {aiItems.map((item, i) => {
+                const selected = aiSelected.has(i);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.aiRow, !selected && { opacity: 0.4 }]}
+                    onPress={() =>
+                      setAiSelected((prev) => {
+                        const next = new Set(prev);
+                        next.has(i) ? next.delete(i) : next.add(i);
+                        return next;
+                      })
+                    }
+                  >
+                    <Text style={styles.aiCheck}>{selected ? "✅" : "⬜"}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.aiTitle}>{item.title}</Text>
+                      <Text style={styles.aiCategory}>{item.category}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.aiAddBtn, (aiSelected.size === 0 || aiAdding) && { opacity: 0.5 }]}
+              onPress={addAiItems}
+              disabled={aiSelected.size === 0 || aiAdding}
+            >
+              {aiAdding
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.aiAddText}>Add {aiSelected.size} items</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -215,4 +313,17 @@ const styles = StyleSheet.create({
   input: { flex: 1, backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 15 },
   addBtn: { backgroundColor: "#6366f1", borderRadius: 14, width: 50, alignItems: "center", justifyContent: "center" },
   addText: { color: "#ffffff", fontSize: 22, fontWeight: "700" },
+  aiBtn: { color: "#a78bfa", fontSize: 13, fontWeight: "800" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
+  modalClose: { color: "#64748b", fontSize: 20 },
+  modalSub: { color: "#64748b", fontSize: 13, marginBottom: 14 },
+  aiRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 12, padding: 12, marginBottom: 6 },
+  aiCheck: { fontSize: 16, marginRight: 10 },
+  aiTitle: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
+  aiCategory: { color: "#818cf8", fontSize: 12, marginTop: 1 },
+  aiAddBtn: { backgroundColor: "#7c3aed", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 12 },
+  aiAddText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
 });

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, RefreshControl, Modal, Linking,
+  Alert, RefreshControl, Modal, Linking, KeyboardAvoidingView, Platform,
+  Keyboard, TouchableWithoutFeedback,
 } from "react-native";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
@@ -152,7 +153,9 @@ export default function PlaylistModule({
 
       {/* Add song modal */}
       <Modal visible={showAdd} animationType="slide" transparent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add a song</Text>
@@ -202,7 +205,9 @@ export default function PlaylistModule({
               <Text style={styles.buttonText}>{busy ? "..." : "Add to playlist"}</Text>
             </TouchableOpacity>
           </View>
+          </TouchableWithoutFeedback>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

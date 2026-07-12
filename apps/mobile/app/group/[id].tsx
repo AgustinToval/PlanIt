@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { shareInvite } from "../../lib/invite";
 
 type Message = {
   id: string;
@@ -123,11 +124,9 @@ export default function GroupScreen() {
     } catch { /* noop */ }
   };
 
-  const shareInvite = () => {
+  const doShareInvite = () => {
     if (!group) return;
-    Share.share({
-      message: `Join my group "${group.name}" on PlanIt! Use invite code: ${group.inviteCode}`,
-    });
+    shareInvite("group", group.name, group.inviteCode);
   };
 
   return (
@@ -141,7 +140,7 @@ export default function GroupScreen() {
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: "row", gap: 20 }}>
-            <TouchableOpacity onPress={shareInvite}>
+            <TouchableOpacity onPress={doShareInvite}>
               <Text style={styles.inviteText}>+ Invite</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowSettings(true)}>

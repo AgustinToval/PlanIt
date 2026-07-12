@@ -272,6 +272,64 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/plans/:id/leave — leave a plan (any member)
+router.post("/:id/leave", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const membership = await prisma.planMember.findUnique({
+      where: { userId_planId: { userId: req.userId!, planId: id } },
+    });
+    if (!membership) return res.status(404).json({ error: "You're not in this plan" });
+
+    await prisma.planMember.delete({ where: { id: membership.id } });
+
+    const remaining = await prisma.planMember.count({
+      where: { planId: id, status: "member" },
+    });
+    if (remaining === 0) {
+      // last active member left — remove the empty plan
+      await prisma.plan.delete({ where: { id } });
+    } else if (membership.role === "admin") {
+      // promote the oldest remaining member if no admin is left
+      const hasAdmin = await prisma.planMember.findFirst({
+        where: { planId: id, role: "admin", status: "member" },
+      });
+      if (!hasAdmin) {
+        const oldest = await prisma.planMember.findFirst({
+          where: { planId: id, status: "member" },
+          orderBy: { joinedAt: "asc" },
+        });
+        if (oldest) {
+          await prisma.planMember.update({ where: { id: oldest.id }, data: { role: "admin" } });
+        }
+      }
+    }
+    res.json({ message: "Left plan" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to leave plan" });
+  }
+});
+
+// PATCH /api/plans/templates/:templateId — rename one of my templates
+router.patch("/templates/:templateId", authMiddleware, async (req: Request, res: Response) => {
+  const templateId = String(req.params["templateId"]);
+  const { name } = req.body as { name?: string };
+  if (!name?.trim()) return res.status(400).json({ error: "Name is required" });
+  try {
+    const template = await prisma.planTemplate.findUnique({ where: { id: templateId } });
+    if (!template || template.userId !== req.userId) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+    const updated = await prisma.planTemplate.update({
+      where: { id: templateId },
+      data: { name: name.trim() },
+    });
+    res.json(updated);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to rename template" });
+  }
+});
+
 // DELETE /api/plans/:id — delete the whole plan (admin only)
 router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
@@ -560,6 +618,15 @@ router.post("/:id/modules", authMiddleware, async (req: Request, res: Response) 
       update: {},
       create: { planId: id, type, order: count },
     });
+
+    // Whoever adds the walkie talkie is opted in automatically
+    if (type === "walkietalkie") {
+      await prisma.planMember.update({
+        where: { id: membership.id },
+        data: { walkieOptIn: "accepted" },
+      });
+    }
+
     res.status(201).json(module);
   } catch (e) {
     res.status(500).json({ error: "Failed to add module" });
