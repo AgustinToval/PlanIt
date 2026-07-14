@@ -3,9 +3,12 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-// Resolve the dev machine's LAN IP from the Expo bundler URL so the phone
-// can reach the API on the same network. Falls back to localhost on web.
+// Resolve the API base URL. Prefers EXPO_PUBLIC_API_URL (e.g. a deployed
+// backend); otherwise derives the dev machine's LAN IP from the Expo bundler
+// URL so the phone can reach a local API on the same network.
 function resolveBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (configured) return `${configured.replace(/\/+$/, "")}/api`;
   const debuggerHost = Constants.expoConfig?.hostUri; // e.g. "192.168.1.37:8081"
   const host = debuggerHost?.split(":")[0];
   if (Platform.OS === "web" || !host) return "http://localhost:4000/api";

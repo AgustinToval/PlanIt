@@ -30,9 +30,7 @@ const app = express();
 const httpServer = createServer(app);
 
 // Dev: allow any origin (phone on LAN, Expo web on :8081). Lock down in production.
-const corsOrigin = process.env.NODE_ENV === "production"
-  ? (process.env.WEB_URL || "http://localhost:3000")
-  : true;
+const corsOrigin = true;
 
 export const io = new Server(httpServer, {
   cors: {
