@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../lib/api";
 import { useAuthStore } from "../../../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../../../lib/theme";
 
 // Handles deep links like planit://join/plan/<code> and planit://join/group/<code>
 export default function JoinScreen() {
@@ -38,19 +40,23 @@ export default function JoinScreen() {
     <View style={styles.container}>
       {status === "joining" && (
         <>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color={colors.orange} />
           <Text style={styles.text}>Joining {kind === "group" ? "group" : "plan"}...</Text>
         </>
       )}
       {status === "done" && (
         <>
-          <Text style={styles.emoji}>🎉</Text>
+          <View style={[styles.iconWrap, { backgroundColor: colors.tealSoft }]}>
+            <Ionicons name="checkmark-circle" size={44} color={colors.teal} />
+          </View>
           <Text style={styles.text}>You're in! Opening it...</Text>
         </>
       )}
       {status === "needLogin" && (
         <>
-          <Text style={styles.emoji}>👋</Text>
+          <View style={[styles.iconWrap, { backgroundColor: colors.orangeSoft }]}>
+            <Ionicons name="hand-left-outline" size={40} color={colors.orange} />
+          </View>
           <Text style={styles.title}>Log in to join</Text>
           <Text style={styles.sub}>Create an account or log in, then open this link again.</Text>
           <TouchableOpacity style={styles.btn} onPress={() => router.replace("/(auth)/sign-in")}>
@@ -60,7 +66,9 @@ export default function JoinScreen() {
       )}
       {status === "error" && (
         <>
-          <Text style={styles.emoji}>😕</Text>
+          <View style={[styles.iconWrap, { backgroundColor: colors.dangerSoft }]}>
+            <Ionicons name="alert-circle-outline" size={44} color={colors.danger} />
+          </View>
           <Text style={styles.title}>{message}</Text>
           <TouchableOpacity style={styles.btn} onPress={() => router.replace("/(tabs)")}>
             <Text style={styles.btnText}>Go home</Text>
@@ -72,11 +80,17 @@ export default function JoinScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center", padding: 32 },
-  emoji: { fontSize: 56, marginBottom: 16 },
-  title: { color: "#ffffff", fontSize: 22, fontWeight: "800", textAlign: "center" },
-  sub: { color: "#94a3b8", fontSize: 15, textAlign: "center", marginTop: 10 },
-  text: { color: "#cbd5e1", fontSize: 16, marginTop: 16 },
-  btn: { marginTop: 24, backgroundColor: "#6366f1", borderRadius: 14, paddingHorizontal: 28, paddingVertical: 14 },
-  btnText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  container: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", padding: 32 },
+  iconWrap: {
+    width: 88, height: 88, borderRadius: 28,
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  title: { color: colors.ink, fontSize: 21, fontFamily: font.title, textAlign: "center", letterSpacing: -0.3 },
+  sub: { color: colors.muted, fontSize: 14, fontFamily: font.bodyMedium, textAlign: "center", marginTop: 10 },
+  text: { color: colors.ink, fontSize: 15, fontFamily: font.bodySemi, marginTop: 16 },
+  btn: {
+    marginTop: 24, backgroundColor: colors.orange, borderRadius: radius.md,
+    paddingHorizontal: 28, paddingVertical: 14, ...shadow.orange,
+  },
+  btnText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
 });

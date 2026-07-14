@@ -3,8 +3,10 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import { shareInvite } from "../lib/invite";
+import { colors, font, radius, shadow, userColor } from "../lib/theme";
 
 type Group = {
   id: string;
@@ -158,11 +160,11 @@ export default function CreatePlanScreen() {
       const nobodyAdded = selectedGroups.size === 0 && selectedFriends.size === 0;
       if (plan.inviteCode && nobodyAdded) {
         Alert.alert(
-          "✅ Plan created!",
+          "Plan created!",
           "You didn't invite anyone yet — share an invite link?",
           [
             { text: "Later", style: "cancel" },
-            { text: "🔗 Share link", onPress: () => shareInvite("plan", plan.title, plan.inviteCode) },
+            { text: "Share link", onPress: () => shareInvite("plan", plan.title, plan.inviteCode) },
           ]
         );
       }
@@ -176,14 +178,17 @@ export default function CreatePlanScreen() {
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹ Back</Text>
+        <Ionicons name="chevron-back" size={18} color={colors.teal} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>New Plan</Text>
 
       {templates.length > 0 && (
         <TouchableOpacity style={styles.templateBtn} onPress={() => setShowTemplates(true)}>
-          <Text style={styles.templateIcon}>📑</Text>
+          <View style={styles.templateIconWrap}>
+            <Ionicons name="documents-outline" size={18} color={colors.onOrange} />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.templateTitle}>
               {selectedTemplate ? `Template: ${selectedTemplate.name}` : "Start from a template"}
@@ -195,11 +200,11 @@ export default function CreatePlanScreen() {
             </Text>
           </View>
           {selectedTemplate ? (
-            <TouchableOpacity onPress={() => setSelectedTemplate(null)}>
-              <Text style={styles.templateClear}>✕</Text>
+            <TouchableOpacity onPress={() => setSelectedTemplate(null)} style={{ padding: 6 }}>
+              <Ionicons name="close" size={18} color={colors.onOrange} />
             </TouchableOpacity>
           ) : (
-            <Text style={styles.pickerCount}>›</Text>
+            <Ionicons name="chevron-forward" size={17} color={colors.onOrange} />
           )}
         </TouchableOpacity>
       )}
@@ -209,14 +214,20 @@ export default function CreatePlanScreen() {
           style={[styles.typeBtn, type === "full" && styles.typeBtnActive]}
           onPress={() => setType("full")}
         >
-          <Text style={[styles.typeBtnText, type === "full" && styles.typeBtnTextActive]}>🗓️ Full Plan</Text>
+          <View style={styles.typeBtnTitleRow}>
+            <Ionicons name="calendar-clear-outline" size={15} color={type === "full" ? colors.teal : colors.muted} />
+            <Text style={[styles.typeBtnText, type === "full" && styles.typeBtnTextActive]}>Full Plan</Text>
+          </View>
           <Text style={styles.typeBtnSub}>Trips, dinners, events</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.typeBtn, type === "quick" && styles.typeBtnActive]}
+          style={[styles.typeBtn, type === "quick" && styles.typeBtnActiveQuick]}
           onPress={() => setType("quick")}
         >
-          <Text style={[styles.typeBtnText, type === "quick" && styles.typeBtnTextActive]}>⚡ Quick Plan</Text>
+          <View style={styles.typeBtnTitleRow}>
+            <Ionicons name="flash" size={15} color={type === "quick" ? colors.orange : colors.muted} />
+            <Text style={[styles.typeBtnText, type === "quick" && styles.typeBtnTextActive]}>Quick Plan</Text>
+          </View>
           <Text style={styles.typeBtnSub}>Today — who's in?</Text>
         </TouchableOpacity>
       </View>
@@ -225,43 +236,49 @@ export default function CreatePlanScreen() {
       <TextInput
         style={styles.input}
         placeholder={type === "quick" ? "Football at 6pm" : "Camping July"}
-        placeholderTextColor="#475569"
+        placeholderTextColor={colors.faint}
         value={title}
         onChangeText={setTitle}
       />
 
       <Text style={styles.label}>Who's invited?</Text>
       <TouchableOpacity style={styles.pickerBtn} onPress={() => { setSearch(""); setPicker("groups"); }}>
-        <Text style={styles.pickerIcon}>👥</Text>
+        <View style={styles.pickerIconWrap}>
+          <Ionicons name="people-outline" size={18} color={colors.teal} />
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.pickerTitle}>Groups</Text>
-          <Text style={styles.pickerMeta}>
+          <Text style={styles.pickerMeta} numberOfLines={1}>
             {selectedGroups.size === 0
               ? "None selected"
               : groups.filter((g) => selectedGroups.has(g.id)).map((g) => g.name).join(", ")}
           </Text>
         </View>
-        <Text style={styles.pickerCount}>{selectedGroups.size > 0 ? `${selectedGroups.size} ›` : "›"}</Text>
+        <Text style={styles.pickerCount}>{selectedGroups.size > 0 ? `${selectedGroups.size}` : ""}</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.teal} />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.pickerBtn} onPress={() => { setSearch(""); setPicker("friends"); }}>
-        <Text style={styles.pickerIcon}>🤝</Text>
+        <View style={styles.pickerIconWrap}>
+          <Ionicons name="person-add-outline" size={17} color={colors.teal} />
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.pickerTitle}>Friends</Text>
-          <Text style={styles.pickerMeta}>
+          <Text style={styles.pickerMeta} numberOfLines={1}>
             {selectedFriends.size === 0
               ? "None selected"
               : friends.filter((f) => selectedFriends.has(f.id)).map((f) => f.name ?? "?").join(", ")}
           </Text>
         </View>
-        <Text style={styles.pickerCount}>{selectedFriends.size > 0 ? `${selectedFriends.size} ›` : "›"}</Text>
+        <Text style={styles.pickerCount}>{selectedFriends.size > 0 ? `${selectedFriends.size}` : ""}</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.teal} />
       </TouchableOpacity>
 
       <Text style={styles.label}>Location (optional)</Text>
       <TextInput
         style={styles.input}
         placeholder="The park"
-        placeholderTextColor="#475569"
+        placeholderTextColor={colors.faint}
         value={location}
         onChangeText={setLocation}
       />
@@ -272,7 +289,7 @@ export default function CreatePlanScreen() {
           <TextInput
             style={styles.input}
             placeholder="18/07"
-            placeholderTextColor="#475569"
+            placeholderTextColor={colors.faint}
             value={date}
             onChangeText={setDate}
             autoCapitalize="none"
@@ -285,7 +302,7 @@ export default function CreatePlanScreen() {
       <TextInput
         style={styles.input}
         placeholder="18:00"
-        placeholderTextColor="#475569"
+        placeholderTextColor={colors.faint}
         value={time}
         onChangeText={setTime}
         autoCapitalize="none"
@@ -295,10 +312,11 @@ export default function CreatePlanScreen() {
       <TextInput
         style={[styles.input, { height: 80 }]}
         placeholder="Bring your boots!"
-        placeholderTextColor="#475569"
+        placeholderTextColor={colors.faint}
         value={description}
         onChangeText={setDescription}
         multiline
+        textAlignVertical="top"
       />
 
       <TouchableOpacity
@@ -306,7 +324,7 @@ export default function CreatePlanScreen() {
         onPress={create}
         disabled={!title.trim() || busy}
       >
-        <Text style={styles.buttonText}>{busy ? "..." : type === "quick" ? "⚡ Send it!" : "Create Plan"}</Text>
+        <Text style={styles.buttonText}>{busy ? "..." : type === "quick" ? "Send it!" : "Create Plan"}</Text>
       </TouchableOpacity>
 
       <View style={styles.divider}>
@@ -319,7 +337,7 @@ export default function CreatePlanScreen() {
       <TextInput
         style={styles.input}
         placeholder="Paste plan invite code"
-        placeholderTextColor="#475569"
+        placeholderTextColor={colors.faint}
         value={joinCode}
         onChangeText={setJoinCode}
         autoCapitalize="none"
@@ -352,14 +370,20 @@ export default function CreatePlanScreen() {
                   onPress={() => pickTemplate(t)}
                   onLongPress={() => deleteTemplate(t)}
                 >
-                  <Text style={{ fontSize: 24, marginRight: 12 }}>📑</Text>
+                  <View style={styles.pickerIconWrap}>
+                    <Ionicons name="documents-outline" size={18} color={colors.teal} />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.groupName}>{t.name}</Text>
                     <Text style={styles.groupMeta}>
                       {t.data.modules.length} modules · {t.data.checkItems.length} items · {t.data.activities.length} activities
                     </Text>
                   </View>
-                  <Text style={styles.check}>{selectedTemplate?.id === t.id ? "✅" : "›"}</Text>
+                  <Ionicons
+                    name={selectedTemplate?.id === t.id ? "checkmark-circle" : "chevron-forward"}
+                    size={20}
+                    color={selectedTemplate?.id === t.id ? colors.teal : colors.faint}
+                  />
                 </TouchableOpacity>
               ))}
               <Text style={styles.hint}>Long-press a template to delete it</Text>
@@ -384,7 +408,7 @@ export default function CreatePlanScreen() {
             <TextInput
               style={styles.input}
               placeholder="Search..."
-              placeholderTextColor="#475569"
+              placeholderTextColor={colors.faint}
               value={search}
               onChangeText={setSearch}
               autoCapitalize="none"
@@ -407,14 +431,18 @@ export default function CreatePlanScreen() {
                         style={[styles.groupRow, selected && styles.groupRowActive]}
                         onPress={() => toggleGroup(g.id)}
                       >
-                        <View style={styles.groupAvatar}>
+                        <View style={[styles.groupAvatar, { backgroundColor: userColor(g.id) }]}>
                           <Text style={styles.groupAvatarText}>{g.name[0]?.toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.groupName}>{g.name}</Text>
                           <Text style={styles.groupMeta}>{g.members.length} members</Text>
                         </View>
-                        <Text style={styles.check}>{selected ? "✅" : "⬜"}</Text>
+                        <Ionicons
+                          name={selected ? "checkbox" : "square-outline"}
+                          size={20}
+                          color={selected ? colors.orange : colors.faint}
+                        />
                       </TouchableOpacity>
                     );
                   })
@@ -437,14 +465,18 @@ export default function CreatePlanScreen() {
                         style={[styles.groupRow, selected && styles.groupRowActive]}
                         onPress={() => toggleFriend(f.id)}
                       >
-                        <View style={styles.groupAvatar}>
+                        <View style={[styles.groupAvatar, { backgroundColor: userColor(f.id) }]}>
                           <Text style={styles.groupAvatarText}>{(f.name ?? "?")[0]?.toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.groupName}>{f.name ?? "?"}</Text>
                           {f.username && <Text style={styles.groupMeta}>@{f.username}</Text>}
                         </View>
-                        <Text style={styles.check}>{selected ? "✅" : "⬜"}</Text>
+                        <Ionicons
+                          name={selected ? "checkbox" : "square-outline"}
+                          size={20}
+                          color={selected ? colors.orange : colors.faint}
+                        />
                       </TouchableOpacity>
                     );
                   })
@@ -459,59 +491,80 @@ export default function CreatePlanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a", padding: 24, paddingTop: 60 },
-  back: { marginBottom: 16 },
-  backText: { color: "#6366f1", fontSize: 17 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff", marginBottom: 20 },
+  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
+  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 20 },
   typeRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
-  typeBtn: { flex: 1, backgroundColor: "#1e293b", borderRadius: 16, padding: 16, borderWidth: 2, borderColor: "transparent" },
-  typeBtnActive: { borderColor: "#6366f1" },
-  typeBtnText: { color: "#94a3b8", fontSize: 15, fontWeight: "700" },
-  typeBtnTextActive: { color: "#ffffff" },
-  typeBtnSub: { color: "#475569", fontSize: 12, marginTop: 4 },
-  label: { color: "#cbd5e1", fontSize: 14, fontWeight: "600", marginBottom: 8 },
+  typeBtn: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 15,
+    borderWidth: 1.5, borderColor: colors.line,
+  },
+  typeBtnActive: { borderColor: colors.teal, backgroundColor: colors.tealSoft },
+  typeBtnActiveQuick: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  typeBtnTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  typeBtnText: { color: colors.muted, fontSize: 14, fontFamily: font.semi },
+  typeBtnTextActive: { color: colors.ink },
+  typeBtnSub: { color: colors.faint, fontSize: 11.5, fontFamily: font.body, marginTop: 4 },
+  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   input: {
-    backgroundColor: "#1e293b", borderRadius: 14, padding: 16, color: "#ffffff",
-    fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: "#334155",
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 15, color: colors.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: colors.line,
   },
-  hint: { color: "#64748b", fontSize: 13, marginBottom: 16, lineHeight: 18 },
+  hint: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 16, lineHeight: 18 },
   groupRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b",
-    borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 2, borderColor: "transparent",
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1.5, borderColor: colors.line,
   },
-  groupRowActive: { borderColor: "#6366f1" },
-  groupAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center", marginRight: 12 },
-  groupAvatarText: { color: "#ffffff", fontWeight: "800", fontSize: 16 },
-  groupName: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
-  groupMeta: { color: "#64748b", fontSize: 13 },
-  check: { fontSize: 18 },
-  button: { backgroundColor: "#6366f1", borderRadius: 16, padding: 18, alignItems: "center", marginTop: 16 },
+  groupRowActive: { borderColor: colors.orange },
+  groupAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  groupAvatarText: { color: "#fff", fontFamily: font.title, fontSize: 15 },
+  groupName: { color: colors.ink, fontSize: 15, fontFamily: font.bodySemi },
+  groupMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.body },
+  button: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 17,
+    alignItems: "center", marginTop: 16, ...shadow.orange,
+  },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#ffffff", fontSize: 17, fontWeight: "700" },
+  buttonText: { color: colors.onOrange, fontSize: 16, fontFamily: font.semi },
   divider: { flexDirection: "row", alignItems: "center", marginVertical: 28 },
-  line: { flex: 1, height: 1, backgroundColor: "#1e293b" },
-  dividerText: { color: "#475569", marginHorizontal: 12, fontSize: 14 },
-  buttonOutline: { borderRadius: 16, padding: 18, alignItems: "center", borderWidth: 2, borderColor: "#6366f1" },
-  buttonOutlineText: { color: "#6366f1", fontSize: 17, fontWeight: "700" },
+  line: { flex: 1, height: 1, backgroundColor: colors.line },
+  dividerText: { color: colors.faint, marginHorizontal: 12, fontSize: 13, fontFamily: font.bodyMedium },
+  buttonOutline: {
+    borderRadius: radius.lg, padding: 16, alignItems: "center",
+    borderWidth: 1.5, borderColor: colors.teal, backgroundColor: colors.surface,
+  },
+  buttonOutlineText: { color: colors.teal, fontSize: 16, fontFamily: font.semi },
   pickerBtn: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b",
-    borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: "#334155",
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 13, marginBottom: 10, borderWidth: 1, borderColor: colors.line,
   },
-  pickerIcon: { fontSize: 22, marginRight: 12 },
-  pickerTitle: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
-  pickerMeta: { color: "#64748b", fontSize: 13, marginTop: 2 },
-  pickerCount: { color: "#6366f1", fontSize: 16, fontWeight: "700" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: "85%" },
+  pickerIconWrap: {
+    width: 36, height: 36, borderRadius: 11, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  pickerTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.semi },
+  pickerMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  pickerCount: { color: colors.orange, fontSize: 14, fontFamily: font.semi, marginRight: 4 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40, maxHeight: "85%",
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalDone: { color: "#6366f1", fontSize: 17, fontWeight: "700" },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  modalDone: { color: colors.teal, fontSize: 15.5, fontFamily: font.semi },
   templateBtn: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#312e81",
-    borderRadius: 14, padding: 14, marginBottom: 16,
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.petrol,
+    borderRadius: radius.md, padding: 13, marginBottom: 16, ...shadow.card,
   },
-  templateIcon: { fontSize: 22, marginRight: 12 },
-  templateTitle: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
-  templateMeta: { color: "#a5b4fc", fontSize: 12, marginTop: 2 },
-  templateClear: { color: "#c7d2fe", fontSize: 18, paddingHorizontal: 8 },
+  templateIconWrap: {
+    width: 36, height: 36, borderRadius: 11, backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  templateTitle: { color: "#FFFFFF", fontSize: 14.5, fontFamily: font.semi },
+  templateMeta: { color: "#8FB0C0", fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },
 });
