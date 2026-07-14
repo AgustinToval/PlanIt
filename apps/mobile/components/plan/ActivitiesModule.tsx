@@ -3,8 +3,10 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   Alert, RefreshControl, Keyboard,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Activity = {
   id: string;
@@ -118,7 +120,7 @@ export default function ActivitiesModule({
         style={{ flex: 1, paddingHorizontal: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
       >
         {activities.map((act, i) => (
           <TouchableOpacity
@@ -128,30 +130,38 @@ export default function ActivitiesModule({
             onLongPress={() => deleteActivity(act)}
           >
             <Text style={styles.orderNum}>{i + 1}</Text>
-            <Text style={styles.checkbox}>{act.done ? "✅" : "⬜"}</Text>
+            <Ionicons
+              name={act.done ? "checkbox" : "square-outline"}
+              size={21}
+              color={act.done ? colors.teal : colors.faint}
+              style={{ marginRight: 10 }}
+            />
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, act.done && styles.titleDone]}>{act.title}</Text>
               {act.time && (
-                <Text style={styles.time}>
-                  🕐 {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </Text>
+                <View style={styles.timeRow}>
+                  <Ionicons name="time-outline" size={12} color={colors.teal} />
+                  <Text style={styles.time}>
+                    {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </Text>
+                </View>
               )}
               {act.notes && <Text style={styles.notes}>{act.notes}</Text>}
             </View>
             {canManage && (
               <View style={styles.arrows}>
-                <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0}>
-                  <Text style={[styles.arrow, i === 0 && styles.arrowDisabled]}>▲</Text>
+                <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} style={{ padding: 3 }}>
+                  <Ionicons name="chevron-up" size={17} color={i === 0 ? colors.line : colors.teal} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => move(i, 1)} disabled={i === activities.length - 1}>
-                  <Text style={[styles.arrow, i === activities.length - 1 && styles.arrowDisabled]}>▼</Text>
+                <TouchableOpacity onPress={() => move(i, 1)} disabled={i === activities.length - 1} style={{ padding: 3 }}>
+                  <Ionicons name="chevron-down" size={17} color={i === activities.length - 1 ? colors.line : colors.teal} />
                 </TouchableOpacity>
               </View>
             )}
           </TouchableOpacity>
         ))}
         {activities.length === 0 && (
-          <Text style={styles.empty}>Add what you'll do, in order 📋</Text>
+          <Text style={styles.empty}>Add what you'll do, in order</Text>
         )}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -160,7 +170,7 @@ export default function ActivitiesModule({
         <TextInput
           style={[styles.input, { flex: 2 }]}
           placeholder="Hike to the lake..."
-          placeholderTextColor="#475569"
+          placeholderTextColor={colors.faint}
           value={newTitle}
           onChangeText={setNewTitle}
           onSubmitEditing={addActivity}
@@ -169,7 +179,7 @@ export default function ActivitiesModule({
         <TextInput
           style={[styles.input, { flex: 1 }]}
           placeholder="18:00"
-          placeholderTextColor="#475569"
+          placeholderTextColor={colors.faint}
           value={newTime}
           onChangeText={setNewTime}
           autoCapitalize="none"
@@ -179,7 +189,7 @@ export default function ActivitiesModule({
           onPress={() => { addActivity(); Keyboard.dismiss(); }}
           disabled={!newTitle.trim()}
         >
-          <Text style={styles.addText}>＋</Text>
+          <Ionicons name="add" size={22} color={colors.onOrange} />
         </TouchableOpacity>
       </View>
     </View>
@@ -187,23 +197,35 @@ export default function ActivitiesModule({
 }
 
 const styles = StyleSheet.create({
-  progressCard: { margin: 12, backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
-  progressText: { color: "#ffffff", fontSize: 15, fontWeight: "700", marginBottom: 10 },
-  progressBar: { height: 8, backgroundColor: "#0f172a", borderRadius: 4, overflow: "hidden" },
-  progressFill: { height: 8, backgroundColor: "#6366f1", borderRadius: 4 },
-  row: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 12, marginBottom: 8 },
-  orderNum: { color: "#475569", fontSize: 13, fontWeight: "800", width: 20 },
-  checkbox: { fontSize: 20, marginRight: 10 },
-  title: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  titleDone: { color: "#475569", textDecorationLine: "line-through" },
-  time: { color: "#818cf8", fontSize: 12, marginTop: 2 },
-  notes: { color: "#64748b", fontSize: 12, marginTop: 2 },
-  arrows: { marginLeft: 8, alignItems: "center", gap: 6 },
-  arrow: { color: "#6366f1", fontSize: 16, paddingHorizontal: 6 },
-  arrowDisabled: { color: "#334155" },
-  empty: { color: "#475569", textAlign: "center", marginTop: 40, fontSize: 14 },
-  inputRow: { flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: "#1e293b" },
-  input: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 15 },
-  addBtn: { backgroundColor: "#6366f1", borderRadius: 14, width: 50, alignItems: "center", justifyContent: "center" },
-  addText: { color: "#ffffff", fontSize: 22, fontWeight: "700" },
+  progressCard: {
+    margin: 12, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16,
+    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  progressText: { color: colors.ink, fontSize: 14, fontFamily: font.semi, marginBottom: 10 },
+  progressBar: { height: 8, backgroundColor: colors.line, borderRadius: 4, overflow: "hidden" },
+  progressFill: { height: 8, backgroundColor: colors.teal, borderRadius: 4 },
+  row: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  orderNum: { color: colors.faint, fontSize: 12.5, fontFamily: font.bodyBold, width: 20 },
+  title: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  titleDone: { color: colors.faint, textDecorationLine: "line-through" },
+  timeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  time: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium },
+  notes: { color: colors.muted, fontSize: 12, fontFamily: font.body, marginTop: 2 },
+  arrows: { marginLeft: 8, alignItems: "center", gap: 2 },
+  empty: { color: colors.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
+  inputRow: {
+    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  input: {
+    backgroundColor: colors.surface2, borderRadius: radius.md, padding: 13, color: colors.ink,
+    fontSize: 14, fontFamily: font.bodyMedium, borderWidth: 1, borderColor: colors.line,
+  },
+  addBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.md, width: 48,
+    alignItems: "center", justifyContent: "center", ...shadow.orange,
+  },
 });

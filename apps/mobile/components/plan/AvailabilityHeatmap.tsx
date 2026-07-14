@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
+import { colors, font, radius } from "../../lib/theme";
 
 type Entry = { userId: string; date: string; status: string };
 type MemberInfo = { id: string; name: string | null };
@@ -80,17 +82,17 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
   return (
     <ScrollView>
       <Text style={styles.subtitle}>
-        Darker green = more people free. Everyone sets their days in Calendar → My availability.
+        Darker teal = more people free. Everyone sets their days in Calendar → My availability.
       </Text>
 
       {/* Month nav */}
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-          <Text style={styles.navText}>‹</Text>
+          <Ionicons name="chevron-back" size={18} color={colors.teal} />
         </TouchableOpacity>
         <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-          <Text style={styles.navText}>›</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.teal} />
         </TouchableOpacity>
       </View>
 
@@ -105,21 +107,21 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
           const bucket = byDay[key];
           const score = bucket ? bucket.free.length + bucket.maybe.length * 0.5 : 0;
           const intensity = Math.min(score / total, 1);
-          const bg = intensity > 0 ? `rgba(34, 197, 94, ${0.15 + intensity * 0.6})` : "transparent";
+          const bg = intensity > 0 ? `rgba(8, 146, 165, ${0.12 + intensity * 0.55})` : "transparent";
           const allBusy = bucket && bucket.busy.length > 0 && score === 0;
           return (
             <TouchableOpacity
               key={key}
               style={[
                 styles.cell,
-                { backgroundColor: allBusy ? "rgba(239,68,68,0.25)" : bg },
+                { backgroundColor: allBusy ? "rgba(224,82,82,0.2)" : bg },
                 selectedDay === key && styles.cellSelected,
               ]}
               onPress={() => setSelectedDay(selectedDay === key ? null : key)}
             >
-              <Text style={styles.cellText}>{day}</Text>
+              <Text style={[styles.cellText, intensity > 0.55 && { color: "#fff" }]}>{day}</Text>
               {bucket && (
-                <Text style={styles.cellCount}>
+                <Text style={[styles.cellCount, intensity > 0.55 && { color: "#fff" }]}>
                   {bucket.free.length > 0 ? `${bucket.free.length}✓` : bucket.busy.length > 0 ? "✕" : "~"}
                 </Text>
               )}
@@ -135,13 +137,22 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
             {new Date(`${selectedDay}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
           </Text>
           {selected.free.length > 0 && (
-            <Text style={styles.detailLine}>🟢 Free: {selected.free.map(nameOf).join(", ")}</Text>
+            <View style={styles.detailRow}>
+              <View style={[styles.dot, { backgroundColor: colors.teal }]} />
+              <Text style={styles.detailLine}>Free: {selected.free.map(nameOf).join(", ")}</Text>
+            </View>
           )}
           {selected.maybe.length > 0 && (
-            <Text style={styles.detailLine}>🟡 Maybe: {selected.maybe.map(nameOf).join(", ")}</Text>
+            <View style={styles.detailRow}>
+              <View style={[styles.dot, { backgroundColor: "#F0A72B" }]} />
+              <Text style={styles.detailLine}>Maybe: {selected.maybe.map(nameOf).join(", ")}</Text>
+            </View>
           )}
           {selected.busy.length > 0 && (
-            <Text style={styles.detailLine}>🔴 Busy: {selected.busy.map(nameOf).join(", ")}</Text>
+            <View style={styles.detailRow}>
+              <View style={[styles.dot, { backgroundColor: colors.danger }]} />
+              <Text style={styles.detailLine}>Busy: {selected.busy.map(nameOf).join(", ")}</Text>
+            </View>
           )}
         </View>
       )}
@@ -149,10 +160,15 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
       {/* Best dates */}
       {bestDays.length > 0 && (
         <View style={styles.best}>
-          <Text style={styles.bestTitle}>🏆 Best dates this month</Text>
+          <View style={styles.bestTitleRow}>
+            <Ionicons name="trophy-outline" size={15} color={colors.orange} />
+            <Text style={styles.bestTitle}>Best dates this month</Text>
+          </View>
           {bestDays.map((d, i) => (
             <View key={d.date} style={styles.bestRow}>
-              <Text style={styles.bestMedal}>{["🥇", "🥈", "🥉"][i]}</Text>
+              <View style={[styles.bestRank, i === 0 && { backgroundColor: colors.orange }]}>
+                <Text style={[styles.bestRankText, i === 0 && { color: "#fff" }]}>{i + 1}</Text>
+              </View>
               <Text style={styles.bestDate}>
                 {new Date(`${d.date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
               </Text>
@@ -165,7 +181,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
       )}
       {entries.length === 0 && (
         <Text style={styles.empty}>
-          No availability set this month yet — ask everyone to mark their days in Calendar → My availability 🟢
+          No availability set this month yet — ask everyone to mark their days in Calendar → My availability
         </Text>
       )}
       <View style={{ height: 20 }} />
@@ -174,26 +190,41 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
 }
 
 const styles = StyleSheet.create({
-  subtitle: { color: "#64748b", fontSize: 13, marginBottom: 14, lineHeight: 18 },
+  subtitle: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 14, lineHeight: 18 },
   monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  navBtn: { backgroundColor: "#1e293b", borderRadius: 12, width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  navText: { color: "#6366f1", fontSize: 20, fontWeight: "700" },
-  monthTitle: { color: "#ffffff", fontSize: 16, fontWeight: "800" },
+  navBtn: {
+    backgroundColor: colors.surface, borderRadius: radius.md, width: 36, height: 36,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.line,
+  },
+  monthTitle: { color: colors.ink, fontSize: 15.5, fontFamily: font.semi },
   weekRow: { flexDirection: "row", marginBottom: 4 },
-  weekday: { flex: 1, textAlign: "center", color: "#475569", fontSize: 11, fontWeight: "700" },
+  weekday: { flex: 1, textAlign: "center", color: colors.faint, fontSize: 11, fontFamily: font.semi },
   grid: { flexDirection: "row", flexWrap: "wrap" },
-  cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center", borderRadius: 10 },
-  cellSelected: { borderWidth: 2, borderColor: "#6366f1" },
-  cellText: { color: "#e2e8f0", fontSize: 13 },
-  cellCount: { color: "#a7f3d0", fontSize: 9, fontWeight: "700", marginTop: 1 },
-  detail: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, marginTop: 12 },
-  detailTitle: { color: "#ffffff", fontSize: 14, fontWeight: "800", marginBottom: 6 },
-  detailLine: { color: "#cbd5e1", fontSize: 13, marginBottom: 3 },
-  best: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, marginTop: 12 },
-  bestTitle: { color: "#ffffff", fontSize: 14, fontWeight: "800", marginBottom: 8 },
-  bestRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
-  bestMedal: { fontSize: 16, marginRight: 8 },
-  bestDate: { color: "#e2e8f0", fontSize: 14, fontWeight: "700", flex: 1 },
-  bestMeta: { color: "#64748b", fontSize: 12 },
-  empty: { color: "#475569", fontSize: 13, textAlign: "center", marginTop: 16, lineHeight: 18 },
+  cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center", borderRadius: radius.sm },
+  cellSelected: { borderWidth: 2, borderColor: colors.orange },
+  cellText: { color: colors.ink, fontSize: 12.5, fontFamily: font.bodyMedium },
+  cellCount: { color: colors.teal, fontSize: 9, fontFamily: font.bodyBold, marginTop: 1 },
+  detail: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginTop: 12,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  detailTitle: { color: colors.ink, fontSize: 13.5, fontFamily: font.semi, marginBottom: 8 },
+  detailRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 4 },
+  dot: { width: 9, height: 9, borderRadius: 3 },
+  detailLine: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, flex: 1 },
+  best: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginTop: 12,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  bestTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
+  bestTitle: { color: colors.ink, fontSize: 13.5, fontFamily: font.semi },
+  bestRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4, gap: 9 },
+  bestRank: {
+    width: 22, height: 22, borderRadius: 11, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  bestRankText: { color: colors.teal, fontSize: 11.5, fontFamily: font.semi },
+  bestDate: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodySemi, flex: 1 },
+  bestMeta: { color: colors.muted, fontSize: 12, fontFamily: font.bodyMedium },
+  empty: { color: colors.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", marginTop: 16, lineHeight: 18 },
 });

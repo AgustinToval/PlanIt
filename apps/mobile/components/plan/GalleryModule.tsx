@@ -7,9 +7,11 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Photo = {
   id: string;
@@ -103,7 +105,7 @@ export default function GalleryModule({
       const fileUri = `${FileSystem.cacheDirectory}planit_${photo.id}.${ext}`;
       await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
       await MediaLibrary.saveToLibraryAsync(fileUri);
-      Alert.alert("✅ Saved", "The photo is now in your gallery.");
+      Alert.alert("Saved", "The photo is now in your gallery.");
     } catch {
       Alert.alert("Error", "Could not save the photo.");
     } finally {
@@ -134,11 +136,13 @@ export default function GalleryModule({
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.grid}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
       >
         {photos.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📸</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="images-outline" size={38} color={colors.teal} />
+            </View>
             <Text style={styles.emptyText}>No photos yet</Text>
             <Text style={styles.emptySub}>Share the memories from this plan</Text>
           </View>
@@ -154,21 +158,26 @@ export default function GalleryModule({
       <TouchableOpacity style={styles.fab} onPress={pickAndUpload} disabled={uploading}>
         {uploading
           ? <ActivityIndicator color="#ffffff" />
-          : <Text style={styles.fabText}>＋ Add photo</Text>}
+          : (
+            <View style={styles.fabRow}>
+              <Ionicons name="add" size={18} color={colors.onOrange} />
+              <Text style={styles.fabText}>Add photo</Text>
+            </View>
+          )}
       </TouchableOpacity>
 
       {/* Full-screen viewer */}
       <Modal visible={viewer !== null} transparent animationType="fade">
         <View style={styles.viewerOverlay}>
           <TouchableOpacity style={styles.viewerClose} onPress={() => setViewer(null)}>
-            <Text style={styles.viewerCloseText}>✕</Text>
+            <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
           {viewer && (
             <>
               <Image source={{ uri: viewer.url }} style={styles.viewerImage} resizeMode="contain" />
               <View style={styles.viewerInfo}>
                 <Text style={styles.viewerUser}>
-                  📷 {viewer.user.id === user?.id ? "You" : viewer.user.name ?? "?"}
+                  {viewer.user.id === user?.id ? "You" : viewer.user.name ?? "?"}
                 </Text>
                 <Text style={styles.viewerDate}>
                   {new Date(viewer.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -181,12 +190,20 @@ export default function GalleryModule({
                   disabled={saving}
                 >
                   {saving
-                    ? <ActivityIndicator color="#c7d2fe" />
-                    : <Text style={styles.viewerSaveText}>⬇️ Save</Text>}
+                    ? <ActivityIndicator color="#fff" />
+                    : (
+                      <View style={styles.fabRow}>
+                        <Ionicons name="download-outline" size={16} color="#fff" />
+                        <Text style={styles.viewerSaveText}>Save</Text>
+                      </View>
+                    )}
                 </TouchableOpacity>
                 {(viewer.user.id === user?.id || myRole === "admin") && (
                   <TouchableOpacity style={styles.viewerDelete} onPress={() => deletePhoto(viewer)}>
-                    <Text style={styles.viewerDeleteText}>🗑️ Delete</Text>
+                    <View style={styles.fabRow}>
+                      <Ionicons name="trash-outline" size={16} color="#FCA5A5" />
+                      <Text style={styles.viewerDeleteText}>Delete</Text>
+                    </View>
                   </TouchableOpacity>
                 )}
               </View>
@@ -201,23 +218,35 @@ export default function GalleryModule({
 const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", padding: GAP, paddingBottom: 90 },
   tileWrap: { margin: GAP / 2 },
-  tile: { width: TILE, height: TILE, borderRadius: 8, backgroundColor: "#1e293b" },
+  tile: { width: TILE, height: TILE, borderRadius: 8, backgroundColor: colors.line },
   empty: { width: "100%", alignItems: "center", marginTop: 80 },
-  emptyIcon: { fontSize: 56 },
-  emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySub: { color: "#64748b", fontSize: 14, marginTop: 8 },
-  fab: { position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center" },
-  fabText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  viewerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySub: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8 },
+  fab: {
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
+  },
+  fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  viewerOverlay: { flex: 1, backgroundColor: "rgba(4,22,33,0.96)", justifyContent: "center", alignItems: "center" },
   viewerClose: { position: "absolute", top: 60, right: 24, zIndex: 2 },
-  viewerCloseText: { color: "#ffffff", fontSize: 28, fontWeight: "700" },
   viewerImage: { width: "100%", height: "70%" },
   viewerInfo: { position: "absolute", bottom: 110, left: 24 },
-  viewerUser: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  viewerDate: { color: "#94a3b8", fontSize: 13, marginTop: 2 },
+  viewerUser: { color: "#fff", fontSize: 15, fontFamily: font.semi },
+  viewerDate: { color: "#8FB0C0", fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 2 },
   viewerActions: { position: "absolute", bottom: 48, alignSelf: "center", flexDirection: "row", gap: 12 },
-  viewerSave: { backgroundColor: "#312e81", borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
-  viewerSaveText: { color: "#c7d2fe", fontSize: 15, fontWeight: "700" },
-  viewerDelete: { backgroundColor: "#450a0a", borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 },
-  viewerDeleteText: { color: "#fca5a5", fontSize: 15, fontWeight: "700" },
+  viewerSave: {
+    backgroundColor: colors.teal, borderRadius: radius.md,
+    paddingHorizontal: 24, paddingVertical: 12,
+  },
+  viewerSaveText: { color: "#fff", fontSize: 14, fontFamily: font.semi },
+  viewerDelete: {
+    backgroundColor: "rgba(224,82,82,0.25)", borderRadius: radius.md,
+    paddingHorizontal: 20, paddingVertical: 12,
+  },
+  viewerDeleteText: { color: "#FCA5A5", fontSize: 14, fontFamily: font.semi },
 });
