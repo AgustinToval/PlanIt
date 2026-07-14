@@ -1,13 +1,16 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Image } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { api } from "../../lib/api";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Plan = {
   id: string;
   title: string;
   type: string;
+  description?: string | null;
   startDate: string | null;
   location: string | null;
   status: string;
@@ -85,9 +88,9 @@ export default function PlansScreen() {
     const isAdmin = me?.role === "admin";
     Alert.alert(plan.title, "What do you want to do?", [
       { text: "Cancel", style: "cancel" },
-      { text: "🚪 Leave plan", onPress: () => leavePlan(plan) },
+      { text: "Leave plan", onPress: () => leavePlan(plan) },
       ...(isAdmin
-        ? [{ text: "🗑️ Delete plan", style: "destructive" as const, onPress: () => deletePlan(plan) }]
+        ? [{ text: "Delete plan", style: "destructive" as const, onPress: () => deletePlan(plan) }]
         : []),
     ]);
   };
@@ -114,16 +117,21 @@ export default function PlansScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.orange} />}
     >
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Plans</Text>
-          <Text style={styles.subtitle}>Hey {user?.name?.split(" ")[0]} 👋</Text>
+        <View style={styles.brandRow}>
+          <Image source={require("../../assets/brand/icon.png")} style={styles.brandLogo} />
+          <View>
+            <Text style={styles.title}>Plans</Text>
+            <Text style={styles.subtitle}>
+              Hey {user?.name?.split(" ")[0]}{plans.length > 0 ? ` — ${plans.length} coming up` : ""}
+            </Text>
+          </View>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <TouchableOpacity onPress={() => router.push("/notifications")}>
-            <Text style={{ fontSize: 24 }}>🔔</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/notifications")}>
+            <Ionicons name="notifications-outline" size={20} color={colors.ink} />
             {notifCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{notifCount > 9 ? "9+" : notifCount}</Text>
@@ -131,14 +139,17 @@ export default function PlansScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/create-plan")}>
-            <Text style={styles.addBtnText}>+ New</Text>
+            <Ionicons name="add" size={17} color={colors.onOrange} />
+            <Text style={styles.addBtnText}>New</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {plans.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🗓️</Text>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="calendar-outline" size={40} color={colors.teal} />
+          </View>
           <Text style={styles.emptyText}>No plans yet</Text>
           <Text style={styles.emptySubtext}>Create your first plan and invite your people!</Text>
           <TouchableOpacity style={styles.createBtn} onPress={() => router.push("/create-plan")}>
@@ -148,7 +159,9 @@ export default function PlansScreen() {
       ) : (
         plans.map((plan) => {
           const yes = plan.members.filter((m) => m.rsvp === "yes").length;
+          const total = plan.members.length;
           const unseen = hasUnseen(plan, user?.id);
+          const quick = plan.type === "quick";
           return (
             <TouchableOpacity
               key={plan.id}
@@ -156,25 +169,43 @@ export default function PlansScreen() {
               onPress={() => router.push(`/plan/${plan.id}`)}
               onLongPress={() => planActions(plan)}
             >
+              <View style={[styles.accent, { backgroundColor: quick ? colors.orange : colors.teal }]} />
               {unseen && <View style={styles.unseenDot} />}
               <View style={styles.cardHeader}>
-                <Text style={styles.cardType}>{plan.type === "quick" ? "⚡ Quick Plan" : "🗓️ Plan"}</Text>
-                <Text style={styles.cardCount}>✅ {yes} in</Text>
+                <View style={[styles.chip, { backgroundColor: quick ? colors.orangeSoft : colors.tealSoft }]}>
+                  <Ionicons
+                    name={quick ? "flash" : "calendar-clear-outline"}
+                    size={12}
+                    color={quick ? colors.orange : colors.teal}
+                  />
+                  <Text style={[styles.chipText, { color: quick ? colors.orange : colors.teal }]}>
+                    {quick ? "Quick plan" : "Plan"}
+                  </Text>
+                </View>
+                <Text style={styles.cardCount}>{yes}/{total} in</Text>
               </View>
               <Text style={styles.cardTitle}>{plan.title}</Text>
+              {!!plan.description && (
+                <Text style={styles.cardDesc} numberOfLines={1}>{plan.description}</Text>
+              )}
               <View style={styles.cardMetaRow}>
                 {plan.startDate && (
-                  <Text style={styles.cardMeta}>
-                    📅 {new Date(plan.startDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
-                  </Text>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="calendar-outline" size={13} color={colors.muted} />
+                    <Text style={styles.cardMeta}>
+                      {new Date(plan.startDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                      {" · "}
+                      {new Date(plan.startDate).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    </Text>
+                  </View>
                 )}
-                {plan.location && <Text style={styles.cardMeta}>📍 {plan.location}</Text>}
+                {plan.location && (
+                  <View style={styles.metaItem}>
+                    <Ionicons name="location-outline" size={13} color={colors.muted} />
+                    <Text style={styles.cardMeta} numberOfLines={1}>{plan.location}</Text>
+                  </View>
+                )}
               </View>
-              {plan.modules.length > 0 && (
-                <Text style={styles.cardModules}>
-                  {plan.modules.map((m) => moduleEmoji(m.type)).join(" ")}
-                </Text>
-              )}
             </TouchableOpacity>
           );
         })
@@ -184,36 +215,62 @@ export default function PlansScreen() {
   );
 }
 
-function moduleEmoji(type: string): string {
-  const map: Record<string, string> = {
-    expenses: "💸", checklist: "🛒", activities: "📋", votes: "🗳️",
-    walkietalkie: "🎙️", gallery: "📸", playlist: "🎵", files: "📎", meetup: "📍",
-  };
-  return map[type] ?? "🧩";
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 24, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff" },
-  subtitle: { color: "#94a3b8", fontSize: 15, marginTop: 2 },
-  addBtn: { backgroundColor: "#6366f1", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
-  addBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
-  badge: { position: "absolute", top: -6, right: -8, backgroundColor: "#ef4444", borderRadius: 10, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
-  badgeText: { color: "#ffffff", fontSize: 11, fontWeight: "800" },
-  unseenDot: { position: "absolute", top: 12, right: 12, width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444", zIndex: 1 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 60 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 11 },
+  brandLogo: { width: 40, height: 40, borderRadius: 12, ...shadow.orange },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5 },
+  subtitle: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  iconBtn: {
+    width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  addBtn: {
+    flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: colors.orange,
+    borderRadius: radius.md, paddingHorizontal: 13, paddingVertical: 10, ...shadow.orange,
+  },
+  addBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 14 },
+  badge: {
+    position: "absolute", top: -5, right: -5, backgroundColor: colors.orange, borderRadius: 9,
+    minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 4,
+    borderWidth: 2, borderColor: colors.bg,
+  },
+  badgeText: { color: "#fff", fontSize: 10, fontFamily: font.semi },
+  unseenDot: {
+    position: "absolute", top: 13, right: 13, width: 9, height: 9, borderRadius: 5,
+    backgroundColor: colors.orange, zIndex: 1,
+  },
   empty: { alignItems: "center", marginTop: 80 },
-  emptyIcon: { fontSize: 56 },
-  emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySubtext: { color: "#64748b", fontSize: 15, marginTop: 8, textAlign: "center", paddingHorizontal: 40 },
-  createBtn: { marginTop: 24, backgroundColor: "#6366f1", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14 },
-  createBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 16 },
-  card: { margin: 12, marginTop: 0, backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  cardType: { color: "#6366f1", fontSize: 13, fontWeight: "600" },
-  cardCount: { color: "#22c55e", fontSize: 13, fontWeight: "600" },
-  cardTitle: { color: "#ffffff", fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  cardMetaRow: { flexDirection: "row", gap: 16 },
-  cardMeta: { color: "#94a3b8", fontSize: 14 },
-  cardModules: { fontSize: 16, marginTop: 10 },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySubtext: {
+    color: colors.muted, fontSize: 14, fontFamily: font.bodyMedium, marginTop: 8,
+    textAlign: "center", paddingHorizontal: 40,
+  },
+  createBtn: {
+    marginTop: 24, backgroundColor: colors.orange, borderRadius: radius.md,
+    paddingHorizontal: 24, paddingVertical: 14, ...shadow.orange,
+  },
+  createBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 15 },
+  card: {
+    marginHorizontal: 16, marginBottom: 14, backgroundColor: colors.surface, borderRadius: radius.xl,
+    padding: 16, paddingLeft: 20, borderWidth: 1, borderColor: colors.line, overflow: "hidden", ...shadow.card,
+  },
+  accent: { position: "absolute", left: 0, top: 0, bottom: 0, width: 5 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  chip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+  },
+  chipText: { fontSize: 11.5, fontFamily: font.semi },
+  cardCount: { color: colors.teal, fontSize: 12.5, fontFamily: font.semi },
+  cardTitle: { color: colors.ink, fontSize: 17.5, fontFamily: font.semi, letterSpacing: -0.2, marginBottom: 4 },
+  cardDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 6 },
+  cardMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 2 },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "60%" },
+  cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
 });

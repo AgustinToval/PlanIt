@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors, font } from "../../lib/theme";
 
 export default function TabsLayout() {
   return (
@@ -7,42 +8,50 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#0f172a",
-          borderTopColor: "#1e293b",
+          backgroundColor: colors.surface,
+          borderTopColor: colors.line,
           paddingBottom: 8,
           height: 64,
         },
-        tabBarActiveTintColor: "#6366f1",
-        tabBarInactiveTintColor: "#475569",
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarActiveTintColor: colors.orange,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 11, fontFamily: font.semi },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Plans",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>🗓️</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="groups"
         options={{
           title: "Groups",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>👥</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "people" : "people-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: "Calendar",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>📅</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>👤</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+          ),
         }}
       />
     </Tabs>
