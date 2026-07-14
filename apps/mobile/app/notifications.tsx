@@ -3,7 +3,9 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
+import { colors, font, radius, shadow } from "../lib/theme";
 
 type FriendReq = { id: string; from: { id: string; name: string | null; username: string | null } };
 type GroupInvite = { id: string; group: { id: string; name: string }; invitedBy: string; memberCount: number };
@@ -12,6 +14,15 @@ type PlanInvite = {
   plan: { id: string; title: string; type: string; startDate: string | null; location: string | null };
   invitedBy: string; memberCount: number;
 };
+
+function SectionLabel({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  return (
+    <View style={styles.sectionRow}>
+      <Ionicons name={icon} size={14} color={colors.muted} />
+      <Text style={styles.section}>{text}</Text>
+    </View>
+  );
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -50,32 +61,36 @@ export default function NotificationsScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹ Back</Text>
+        <Ionicons name="chevron-back" size={18} color={colors.teal} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>Notifications</Text>
 
       {total === 0 && (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🔔</Text>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="notifications-outline" size={40} color={colors.teal} />
+          </View>
           <Text style={styles.emptyText}>You're all caught up</Text>
           <Text style={styles.emptySub}>Friend requests and invitations will show up here</Text>
         </View>
       )}
 
       {/* Plan invites */}
-      {planInvites.length > 0 && <Text style={styles.section}>🗓️ Plan invitations</Text>}
+      {planInvites.length > 0 && <SectionLabel icon="calendar-outline" text="Plan invitations" />}
       {planInvites.map((inv) => (
         <View key={inv.id} style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {inv.plan.type === "quick" ? "⚡ " : ""}{inv.plan.title}
-          </Text>
+          <View style={styles.cardTitleRow}>
+            {inv.plan.type === "quick" && <Ionicons name="flash" size={14} color={colors.orange} />}
+            <Text style={styles.cardTitle}>{inv.plan.title}</Text>
+          </View>
           <Text style={styles.cardMeta}>
             {inv.invitedBy} invited you · {inv.memberCount} going
-            {inv.plan.location ? ` · 📍 ${inv.plan.location}` : ""}
+            {inv.plan.location ? ` · ${inv.plan.location}` : ""}
           </Text>
           <View style={styles.actions}>
             <TouchableOpacity style={styles.accept} onPress={() => respondPlan(inv.id, "accept")}>
@@ -89,7 +104,7 @@ export default function NotificationsScreen() {
       ))}
 
       {/* Group invites */}
-      {groupInvites.length > 0 && <Text style={styles.section}>👥 Group invitations</Text>}
+      {groupInvites.length > 0 && <SectionLabel icon="people-outline" text="Group invitations" />}
       {groupInvites.map((inv) => (
         <View key={inv.id} style={styles.card}>
           <Text style={styles.cardTitle}>{inv.group.name}</Text>
@@ -106,7 +121,7 @@ export default function NotificationsScreen() {
       ))}
 
       {/* Friend requests */}
-      {friendReqs.length > 0 && <Text style={styles.section}>🤝 Friend requests</Text>}
+      {friendReqs.length > 0 && <SectionLabel icon="person-add-outline" text="Friend requests" />}
       {friendReqs.map((r) => (
         <View key={r.id} style={styles.card}>
           <Text style={styles.cardTitle}>{r.from.name ?? "?"}</Text>
@@ -127,21 +142,41 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a", padding: 24, paddingTop: 60 },
-  back: { marginBottom: 16 },
-  backText: { color: "#6366f1", fontSize: 17 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff", marginBottom: 20 },
+  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
+  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 12 },
   empty: { alignItems: "center", marginTop: 80 },
-  emptyIcon: { fontSize: 56 },
-  emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySub: { color: "#64748b", fontSize: 14, marginTop: 8, textAlign: "center", paddingHorizontal: 40 },
-  section: { color: "#94a3b8", fontSize: 14, fontWeight: "700", marginTop: 20, marginBottom: 10 },
-  card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 16, marginBottom: 10 },
-  cardTitle: { color: "#ffffff", fontSize: 17, fontWeight: "700" },
-  cardMeta: { color: "#64748b", fontSize: 13, marginTop: 3 },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySub: {
+    color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
+    textAlign: "center", paddingHorizontal: 40,
+  },
+  sectionRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 18, marginBottom: 10 },
+  section: {
+    color: colors.muted, fontSize: 11, fontFamily: font.semi,
+    letterSpacing: 1, textTransform: "uppercase",
+  },
+  card: {
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 15, marginBottom: 10,
+    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  cardTitle: { color: colors.ink, fontSize: 16, fontFamily: font.semi, letterSpacing: -0.2 },
+  cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
   actions: { flexDirection: "row", gap: 10, marginTop: 12 },
-  accept: { flex: 1, backgroundColor: "#6366f1", borderRadius: 12, padding: 12, alignItems: "center" },
-  acceptText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
-  decline: { flex: 1, backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#475569", borderRadius: 12, padding: 12, alignItems: "center" },
-  declineText: { color: "#94a3b8", fontWeight: "700", fontSize: 15 },
+  accept: {
+    flex: 1, backgroundColor: colors.orange, borderRadius: radius.sm, padding: 11,
+    alignItems: "center", ...shadow.orange,
+  },
+  acceptText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 13.5 },
+  decline: {
+    flex: 1, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.sm, padding: 11, alignItems: "center",
+  },
+  declineText: { color: colors.muted, fontFamily: font.semi, fontSize: 13.5 },
 });

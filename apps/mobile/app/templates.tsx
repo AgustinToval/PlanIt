@@ -4,7 +4,9 @@ import {
   Alert, RefreshControl, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
+import { colors, font, radius, shadow } from "../lib/theme";
 
 type Template = {
   id: string;
@@ -74,23 +76,26 @@ export default function TemplatesScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹ Back</Text>
+        <Ionicons name="chevron-back" size={18} color={colors.teal} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>📑 Plan templates</Text>
+      <Text style={styles.title}>Plan templates</Text>
       <Text style={styles.subtitle}>
-        Saved from your plans (⚙️ → Save as template). Use them when creating a new plan.
+        Saved from your plans (settings → Save as template). Use them when creating a new plan.
       </Text>
 
       {templates.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>📑</Text>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="documents-outline" size={40} color={colors.teal} />
+          </View>
           <Text style={styles.emptyText}>No templates yet</Text>
           <Text style={styles.emptySub}>
-            Open a plan → ⚙️ → "Save as template" to reuse its structure later.
+            Open a plan → settings → "Save as template" to reuse its structure later.
           </Text>
         </View>
       ) : (
@@ -99,18 +104,23 @@ export default function TemplatesScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.cardName}>{t.name}</Text>
               <Text style={styles.cardMeta}>
-                {t.data.type === "quick" ? "⚡ Quick" : "🗓️ Full"} ·{" "}
+                {t.data.type === "quick" ? "Quick" : "Full"} ·{" "}
                 {t.data.modules.length} modules · {t.data.checkItems.length} items ·{" "}
                 {t.data.activities.length} activities
               </Text>
-              {t.data.location && <Text style={styles.cardMeta}>📍 {t.data.location}</Text>}
+              {t.data.location && (
+                <View style={styles.locRow}>
+                  <Ionicons name="location-outline" size={12} color={colors.muted} />
+                  <Text style={styles.cardMeta}>{t.data.location}</Text>
+                </View>
+              )}
             </View>
             <View style={styles.actions}>
               <TouchableOpacity style={styles.actionBtn} onPress={() => openRename(t)}>
-                <Text style={styles.actionText}>✏️</Text>
+                <Ionicons name="pencil-outline" size={17} color={colors.teal} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={() => deleteTemplate(t)}>
-                <Text style={styles.actionText}>🗑️</Text>
+                <Ionicons name="trash-outline" size={17} color={colors.danger} />
               </TouchableOpacity>
             </View>
           </View>
@@ -126,7 +136,7 @@ export default function TemplatesScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Rename template</Text>
                 <TouchableOpacity onPress={() => setRenaming(null)}>
-                  <Text style={styles.modalClose}>✕</Text>
+                  <Ionicons name="close" size={22} color={colors.muted} />
                 </TouchableOpacity>
               </View>
               <TextInput
@@ -134,7 +144,7 @@ export default function TemplatesScreen() {
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="Template name"
-                placeholderTextColor="#475569"
+                placeholderTextColor={colors.faint}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={saveRename}
@@ -155,27 +165,48 @@ export default function TemplatesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a", padding: 24, paddingTop: 60 },
-  back: { marginBottom: 16 },
-  backText: { color: "#6366f1", fontSize: 17 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff", marginBottom: 6 },
-  subtitle: { color: "#64748b", fontSize: 14, lineHeight: 20, marginBottom: 20 },
+  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
+  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 6 },
+  subtitle: { color: colors.muted, fontSize: 13.5, fontFamily: font.body, lineHeight: 20, marginBottom: 20 },
   empty: { alignItems: "center", marginTop: 60 },
-  emptyIcon: { fontSize: 56 },
-  emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySub: { color: "#64748b", fontSize: 14, marginTop: 8, textAlign: "center", paddingHorizontal: 20 },
-  card: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 16, padding: 16, marginBottom: 10 },
-  cardName: { color: "#ffffff", fontSize: 17, fontWeight: "700" },
-  cardMeta: { color: "#64748b", fontSize: 13, marginTop: 3 },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySub: {
+    color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
+    textAlign: "center", paddingHorizontal: 20,
+  },
+  card: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.lg, padding: 15, marginBottom: 10,
+    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  cardName: { color: colors.ink, fontSize: 16, fontFamily: font.semi, letterSpacing: -0.2 },
+  cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
+  locRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   actions: { flexDirection: "row", gap: 8, marginLeft: 10 },
-  actionBtn: { backgroundColor: "#0f172a", borderRadius: 12, padding: 10 },
-  actionText: { fontSize: 18 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  actionBtn: {
+    backgroundColor: colors.surface2, borderRadius: radius.sm, padding: 10,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalClose: { color: "#64748b", fontSize: 20 },
-  input: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 16, marginBottom: 14, borderWidth: 1, borderColor: "#334155" },
-  saveBtn: { backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center" },
-  saveText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  input: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: colors.line,
+  },
+  saveBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    alignItems: "center", ...shadow.orange,
+  },
+  saveText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
 });

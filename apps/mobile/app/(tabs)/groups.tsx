@@ -1,8 +1,10 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Group = {
   id: string;
@@ -31,18 +33,24 @@ export default function GroupsScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Your Groups</Text>
+        <View>
+          <Text style={styles.title}>Groups</Text>
+          <Text style={styles.subtitle}>Your people</Text>
+        </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/create-group")}>
-          <Text style={styles.addBtnText}>+ New</Text>
+          <Ionicons name="add" size={17} color={colors.onOrange} />
+          <Text style={styles.addBtnText}>New</Text>
         </TouchableOpacity>
       </View>
 
       {groups.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>👥</Text>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="people-outline" size={40} color={colors.teal} />
+          </View>
           <Text style={styles.emptyText}>No groups yet</Text>
           <Text style={styles.emptySubtext}>Create one and invite your friends</Text>
           <TouchableOpacity style={styles.createBtn} onPress={() => router.push("/create-group")}>
@@ -57,46 +65,74 @@ export default function GroupsScreen() {
           <TouchableOpacity key={group.id} style={styles.card} onPress={() => router.push(`/group/${group.id}`)}>
             {unseen && <View style={styles.unseenDot} />}
             <View style={styles.cardTop}>
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, { backgroundColor: userColor(group.id) }]}>
                 <Text style={styles.avatarText}>{group.name[0]?.toUpperCase()}</Text>
               </View>
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName}>{group.name}</Text>
-                {group.description && <Text style={styles.cardDesc}>{group.description}</Text>}
+                {group.description && <Text style={styles.cardDesc} numberOfLines={1}>{group.description}</Text>}
               </View>
+              <Ionicons name="chevron-forward" size={17} color={colors.faint} />
             </View>
             <View style={styles.cardFooter}>
-              <Text style={styles.cardMeta}>👥 {group.members.length} members</Text>
-              <Text style={styles.cardMeta}>🗓️ {group._count.plans} plans</Text>
+              <View style={styles.metaItem}>
+                <Ionicons name="people-outline" size={13} color={colors.muted} />
+                <Text style={styles.cardMeta}>{group.members.length} members</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Ionicons name="calendar-outline" size={13} color={colors.muted} />
+                <Text style={styles.cardMeta}>{group._count.plans} plans</Text>
+              </View>
             </View>
           </TouchableOpacity>
           );
         })
       )}
+      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 24, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff" },
-  addBtn: { backgroundColor: "#6366f1", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  addBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 60 },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5 },
+  subtitle: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  addBtn: {
+    flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: colors.orange,
+    borderRadius: radius.md, paddingHorizontal: 13, paddingVertical: 10, ...shadow.orange,
+  },
+  addBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 14 },
   empty: { alignItems: "center", marginTop: 80 },
-  emptyIcon: { fontSize: 56 },
-  emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySubtext: { color: "#64748b", fontSize: 15, marginTop: 8 },
-  createBtn: { marginTop: 24, backgroundColor: "#6366f1", borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14 },
-  createBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 16 },
-  card: { margin: 12, marginTop: 0, backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySubtext: { color: colors.muted, fontSize: 14, fontFamily: font.bodyMedium, marginTop: 8 },
+  createBtn: {
+    marginTop: 24, backgroundColor: colors.orange, borderRadius: radius.md,
+    paddingHorizontal: 24, paddingVertical: 14, ...shadow.orange,
+  },
+  createBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 15 },
+  card: {
+    marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.surface, borderRadius: radius.lg,
+    padding: 15, borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
   cardTop: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center", marginRight: 12 },
-  avatarText: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
+  avatar: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  avatarText: { color: "#fff", fontSize: 19, fontFamily: font.title },
   cardInfo: { flex: 1 },
-  cardName: { color: "#ffffff", fontSize: 18, fontWeight: "700" },
-  cardDesc: { color: "#94a3b8", fontSize: 14, marginTop: 2 },
-  cardFooter: { flexDirection: "row", gap: 16 },
-  cardMeta: { color: "#64748b", fontSize: 13 },
-  unseenDot: { position: "absolute", top: 12, right: 12, width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444", zIndex: 1 },
+  cardName: { color: colors.ink, fontSize: 16.5, fontFamily: font.semi, letterSpacing: -0.2 },
+  cardDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  cardFooter: { flexDirection: "row", gap: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
+  unseenDot: {
+    position: "absolute", top: 12, right: 12, width: 9, height: 9, borderRadius: 5,
+    backgroundColor: colors.orange, zIndex: 1,
+  },
 });

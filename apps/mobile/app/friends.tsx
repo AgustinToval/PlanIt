@@ -4,7 +4,9 @@ import {
   Alert, RefreshControl, Modal,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
+import { colors, font, radius, shadow, userColor } from "../lib/theme";
 
 type Friend = { id: string; name: string | null; username: string | null; avatar: string | null };
 type FriendRequest = { id: string; createdAt: string; from: Friend };
@@ -45,9 +47,9 @@ export default function FriendsScreen() {
       setQuery("");
       await load();
       if (res.data.autoAccepted) {
-        Alert.alert("✅ You're now friends", `${res.data.name} had already sent you a request`);
+        Alert.alert("You're now friends", `${res.data.name} had already sent you a request`);
       } else {
-        Alert.alert("📨 Request sent", `Waiting for ${res.data.name ?? q} to accept`);
+        Alert.alert("Request sent", `Waiting for ${res.data.name ?? q} to accept`);
       }
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not send request");
@@ -91,26 +93,30 @@ export default function FriendsScreen() {
     <ScrollView
       style={styles.container}
       keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹ Back</Text>
+        <Ionicons name="chevron-back" size={18} color={colors.teal} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>Friends</Text>
 
       <Text style={styles.label}>Add a friend</Text>
       <View style={styles.addRow}>
-        <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          placeholder="Their email or username"
-          placeholderTextColor="#475569"
-          value={query}
-          onChangeText={setQuery}
-          autoCapitalize="none"
-          onSubmitEditing={addFriend}
-          returnKeyType="done"
-        />
+        <View style={[styles.inputWrap, { flex: 1 }]}>
+          <Ionicons name="search" size={16} color={colors.faint} />
+          <TextInput
+            style={styles.input}
+            placeholder="Their email or username"
+            placeholderTextColor={colors.faint}
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            onSubmitEditing={addFriend}
+            returnKeyType="done"
+          />
+        </View>
         <TouchableOpacity
           style={[styles.addBtn, (!query.trim() || busy) && { opacity: 0.5 }]}
           onPress={addFriend}
@@ -124,11 +130,11 @@ export default function FriendsScreen() {
       {requests.length > 0 && (
         <>
           <Text style={[styles.label, { marginTop: 24 }]}>
-            📨 Friend requests ({requests.length})
+            Friend requests ({requests.length})
           </Text>
           {requests.map((r) => (
             <View key={r.id} style={[styles.friendRow, styles.requestRow]}>
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, { backgroundColor: userColor(r.from.id) }]}>
                 <Text style={styles.avatarText}>{(r.from.name ?? "?")[0]?.toUpperCase()}</Text>
               </View>
               <View style={{ flex: 1 }}>
@@ -139,7 +145,7 @@ export default function FriendsScreen() {
                 <Text style={styles.acceptText}>Accept</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.declineBtn} onPress={() => respond(r, "decline")}>
-                <Text style={styles.declineText}>✕</Text>
+                <Ionicons name="close" size={15} color={colors.muted} />
               </TouchableOpacity>
             </View>
           ))}
@@ -161,14 +167,14 @@ export default function FriendsScreen() {
             onPress={() => openProfile(f)}
             onLongPress={() => removeFriend(f)}
           >
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, { backgroundColor: userColor(f.id) }]}>
               <Text style={styles.avatarText}>{(f.name ?? "?")[0]?.toUpperCase()}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.friendName}>{f.name ?? "?"}</Text>
               {f.username && <Text style={styles.friendMeta}>@{f.username}</Text>}
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Ionicons name="chevron-forward" size={17} color={colors.faint} />
           </TouchableOpacity>
         ))
       )}
@@ -181,39 +187,30 @@ export default function FriendsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Profile</Text>
               <TouchableOpacity onPress={() => setProfile(null)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
             {profile && (
               <>
                 <View style={styles.profileTop}>
-                  <View style={styles.bigAvatar}>
+                  <View style={[styles.bigAvatar, { backgroundColor: userColor(profile.id) }]}>
                     <Text style={styles.bigAvatarText}>{(profile.name ?? "?")[0]?.toUpperCase()}</Text>
                   </View>
                   <Text style={styles.profileName}>{profile.name ?? "?"}</Text>
                   {profile.username && <Text style={styles.profileUsername}>@{profile.username}</Text>}
+                  {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
                 </View>
 
                 <View style={styles.infoBox}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>📧 Email</Text>
-                    <Text style={styles.infoValue}>{profile.email}</Text>
-                  </View>
                   {profile.location && (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>📍 Location</Text>
+                      <Text style={styles.infoLabel}>Location</Text>
                       <Text style={styles.infoValue}>{profile.location}</Text>
                     </View>
                   )}
-                  {profile.bio && (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>💬 Bio</Text>
-                      <Text style={styles.infoValue}>{profile.bio}</Text>
-                    </View>
-                  )}
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>📅 Joined</Text>
+                    <Text style={styles.infoLabel}>Joined</Text>
                     <Text style={styles.infoValue}>
                       {new Date(profile.createdAt).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
                     </Text>
@@ -244,47 +241,70 @@ export default function FriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a", padding: 24, paddingTop: 60 },
-  back: { marginBottom: 16 },
-  backText: { color: "#6366f1", fontSize: 17 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff", marginBottom: 20 },
-  label: { color: "#cbd5e1", fontSize: 14, fontWeight: "600", marginBottom: 8 },
+  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
+  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 20 },
+  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   addRow: { flexDirection: "row", gap: 8 },
-  input: {
-    backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff",
-    fontSize: 15, borderWidth: 1, borderColor: "#334155",
+  inputWrap: {
+    flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.surface,
+    borderRadius: radius.md, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.line,
   },
-  addBtn: { backgroundColor: "#6366f1", borderRadius: 14, paddingHorizontal: 20, justifyContent: "center" },
-  addBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
-  empty: { color: "#64748b", fontSize: 14, lineHeight: 20 },
-  friendRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 12, marginBottom: 8 },
-  requestRow: { borderWidth: 1, borderColor: "#6366f1" },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center", marginRight: 12 },
-  avatarText: { color: "#ffffff", fontWeight: "800", fontSize: 17 },
-  friendName: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
-  friendMeta: { color: "#64748b", fontSize: 13 },
-  chevron: { color: "#475569", fontSize: 20 },
-  acceptBtn: { backgroundColor: "#6366f1", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, marginRight: 6 },
-  acceptText: { color: "#ffffff", fontSize: 13, fontWeight: "700" },
-  declineBtn: { backgroundColor: "#1e293b", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: "#475569" },
-  declineText: { color: "#94a3b8", fontSize: 13, fontWeight: "700" },
-  hint: { color: "#475569", fontSize: 12, textAlign: "center", marginTop: 16, marginBottom: 40 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  input: { flex: 1, paddingVertical: 13, color: colors.ink, fontSize: 14.5, fontFamily: font.bodyMedium },
+  addBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.md, paddingHorizontal: 20,
+    justifyContent: "center", ...shadow.orange,
+  },
+  addBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 14 },
+  empty: { color: colors.muted, fontSize: 13.5, fontFamily: font.body, lineHeight: 20 },
+  friendRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.lg, padding: 12, marginBottom: 9, borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  requestRow: { borderColor: colors.orange },
+  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", marginRight: 12 },
+  avatarText: { color: "#fff", fontFamily: font.title, fontSize: 16 },
+  friendName: { color: colors.ink, fontSize: 15, fontFamily: font.bodySemi },
+  friendMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.body },
+  acceptBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.sm, paddingHorizontal: 14,
+    paddingVertical: 8, marginRight: 6,
+  },
+  acceptText: { color: colors.onOrange, fontSize: 12.5, fontFamily: font.semi },
+  declineBtn: {
+    backgroundColor: colors.surface2, borderRadius: radius.sm, paddingHorizontal: 10,
+    paddingVertical: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  hint: { color: colors.faint, fontSize: 12, fontFamily: font.body, textAlign: "center", marginTop: 16, marginBottom: 40 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalClose: { color: "#64748b", fontSize: 20 },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
   profileTop: { alignItems: "center", marginBottom: 20 },
-  bigAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  bigAvatarText: { color: "#ffffff", fontSize: 32, fontWeight: "800" },
-  profileName: { color: "#ffffff", fontSize: 22, fontWeight: "800" },
-  profileUsername: { color: "#818cf8", fontSize: 15, marginTop: 2 },
-  infoBox: { backgroundColor: "#1e293b", borderRadius: 16, padding: 16, marginBottom: 16 },
+  bigAvatar: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  bigAvatarText: { color: "#fff", fontSize: 30, fontFamily: font.title },
+  profileName: { color: colors.ink, fontSize: 21, fontFamily: font.title, letterSpacing: -0.3 },
+  profileUsername: { color: colors.teal, fontSize: 14, fontFamily: font.bodySemi, marginTop: 2 },
+  profileBio: {
+    color: colors.muted, fontSize: 13.5, fontFamily: font.body, textAlign: "center",
+    marginTop: 8, paddingHorizontal: 24, lineHeight: 20,
+  },
+  infoBox: {
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.line,
+  },
   infoRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 8 },
-  infoLabel: { color: "#94a3b8", fontSize: 14 },
-  infoValue: { color: "#ffffff", fontSize: 14, fontWeight: "600", flexShrink: 1, textAlign: "right" },
+  infoLabel: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium },
+  infoValue: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodySemi, flexShrink: 1, textAlign: "right" },
   statsRow: { flexDirection: "row", gap: 10 },
-  stat: { flex: 1, backgroundColor: "#1e293b", borderRadius: 16, padding: 14, alignItems: "center" },
-  statNum: { color: "#ffffff", fontSize: 22, fontWeight: "800" },
-  statLabel: { color: "#64748b", fontSize: 12, marginTop: 2 },
+  stat: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14,
+    alignItems: "center", borderWidth: 1, borderColor: colors.line,
+  },
+  statNum: { color: colors.ink, fontSize: 21, fontFamily: font.title },
+  statLabel: { color: colors.muted, fontSize: 11.5, fontFamily: font.bodyMedium, marginTop: 2 },
 });
