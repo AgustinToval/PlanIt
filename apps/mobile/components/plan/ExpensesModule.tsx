@@ -4,9 +4,11 @@ import {
   Modal, Alert, RefreshControl, Keyboard, TouchableWithoutFeedback,
   KeyboardAvoidingView, Platform,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Expense = {
   id: string;
@@ -132,7 +134,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
     <View style={{ flex: 1 }}>
       <ScrollView
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
       >
         {/* Balance header */}
         <View style={styles.balanceCard}>
@@ -143,7 +145,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
               ${summary.perPerson.toFixed(2)} each ({members.length} people)
             </Text>
           )}
-          <Text style={[styles.balanceNet, { color: myNet >= 0 ? "#22c55e" : "#f87171" }]}>
+          <Text style={[styles.balanceNet, { color: myNet >= 0 ? colors.teal : colors.danger }]}>
             {myNet > 0 ? `You are owed $${myNet.toFixed(2)}` :
              myNet < 0 ? `You owe $${Math.abs(myNet).toFixed(2)}` :
              "You're all settled ✓"}
@@ -169,15 +171,18 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
         {/* Settlement plan */}
         {summary && summary.transactions.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💡 Settle up</Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="swap-horizontal-outline" size={15} color={colors.ink} />
+              <Text style={styles.sectionTitle}>Settle up</Text>
+            </View>
             {summary.transactions.map((t, i) => (
               <View key={i} style={styles.txRow}>
                 <Text style={styles.txText}>
-                  <Text style={{ fontWeight: "700", color: t.fromId === user?.id ? "#f87171" : "#e2e8f0" }}>
+                  <Text style={{ fontFamily: font.bodyBold, color: t.fromId === user?.id ? colors.danger : colors.ink }}>
                     {t.fromId === user?.id ? "You" : t.from}
                   </Text>
                   {"  →  "}
-                  <Text style={{ fontWeight: "700", color: t.toId === user?.id ? "#22c55e" : "#e2e8f0" }}>
+                  <Text style={{ fontFamily: font.bodyBold, color: t.toId === user?.id ? colors.teal : colors.ink }}>
                     {t.toId === user?.id ? "You" : t.to}
                   </Text>
                 </Text>
@@ -189,7 +194,10 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
 
         {/* Expense list */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Expenses</Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="card-outline" size={15} color={colors.ink} />
+            <Text style={styles.sectionTitle}>Expenses</Text>
+          </View>
           {expenses.length === 0 ? (
             <Text style={styles.empty}>No expenses yet — add the first one</Text>
           ) : (
@@ -210,7 +218,12 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                       </Text>
                     </View>
                     <Text style={styles.expAmount}>${exp.amount.toFixed(2)}</Text>
-                    <Text style={styles.expChevron}>{isOpen ? "▾" : "▸"}</Text>
+                    <Ionicons
+                      name={isOpen ? "chevron-down" : "chevron-forward"}
+                      size={15}
+                      color={colors.muted}
+                      style={{ marginLeft: 10 }}
+                    />
                   </TouchableOpacity>
 
                   {isOpen && (
@@ -225,9 +238,12 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                             onPress={() => !isPayerShare && toggleSettled(exp, s.userId, s.settled)}
                             disabled={isPayerShare || !canToggle}
                           >
-                            <Text style={styles.splitCheck}>
-                              {s.settled ? "✅" : "⬜"}
-                            </Text>
+                            <Ionicons
+                              name={s.settled ? "checkbox" : "square-outline"}
+                              size={18}
+                              color={s.settled ? colors.teal : colors.faint}
+                              style={{ marginRight: 10 }}
+                            />
                             <Text style={[styles.splitName, s.settled && styles.splitSettled]}>
                               {memberName(s.userId)}
                               {isPayerShare ? " (paid the bill)" : ""}
@@ -253,7 +269,10 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
 
       {/* Add button */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)}>
-        <Text style={styles.fabText}>＋ Add expense</Text>
+        <View style={styles.fabRow}>
+          <Ionicons name="add" size={18} color={colors.onOrange} />
+          <Text style={styles.fabText}>Add expense</Text>
+        </View>
       </TouchableOpacity>
 
       {/* Add expense modal */}
@@ -268,7 +287,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>New expense</Text>
                   <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowAdd(false); }}>
-                    <Text style={styles.modalClose}>✕</Text>
+                    <Ionicons name="close" size={22} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
@@ -276,7 +295,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                 <TextInput
                   style={styles.input}
                   placeholder="Firewood, dinner, gas..."
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={colors.faint}
                   value={title}
                   onChangeText={setTitle}
                   returnKeyType="done"
@@ -287,7 +306,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                   <TextInput
                     style={[styles.input, { flex: 1, marginBottom: 0 }]}
                     placeholder="25.50"
-                    placeholderTextColor="#475569"
+                    placeholderTextColor={colors.faint}
                     value={amount}
                     onChangeText={setAmount}
                     keyboardType="decimal-pad"
@@ -303,8 +322,15 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                     style={[styles.sharerRow, styles.everyoneRow, sharers.size === members.length && styles.sharerRowActive]}
                     onPress={() => setSharers(new Set(members.map((m) => m.user.id)))}
                   >
-                    <Text style={[styles.sharerName, { fontWeight: "700" }]}>👥 Everyone</Text>
-                    <Text>{sharers.size === members.length ? "✅" : "⬜"}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                      <Ionicons name="people" size={15} color={colors.teal} />
+                      <Text style={[styles.sharerName, { fontFamily: font.bodyBold }]}>Everyone</Text>
+                    </View>
+                    <Ionicons
+                      name={sharers.size === members.length ? "checkbox" : "square-outline"}
+                      size={19}
+                      color={sharers.size === members.length ? colors.orange : colors.faint}
+                    />
                   </TouchableOpacity>
                   {members.map((m) => {
                     const selected = sharers.has(m.user.id);
@@ -317,7 +343,11 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                         <Text style={styles.sharerName}>
                           {m.user.id === user?.id ? "You" : m.user.name ?? "?"}
                         </Text>
-                        <Text>{selected ? "✅" : "⬜"}</Text>
+                        <Ionicons
+                          name={selected ? "checkbox" : "square-outline"}
+                          size={19}
+                          color={selected ? colors.orange : colors.faint}
+                        />
                       </TouchableOpacity>
                     );
                   })}
@@ -341,51 +371,81 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12 },
-  balanceCard: { backgroundColor: "#1e293b", borderRadius: 16, padding: 20, alignItems: "center", marginBottom: 12 },
-  balanceLabel: { color: "#64748b", fontSize: 13 },
-  balanceTotal: { color: "#ffffff", fontSize: 34, fontWeight: "800", marginVertical: 4 },
-  balanceNet: { fontSize: 15, fontWeight: "700" },
+  balanceCard: {
+    backgroundColor: colors.petrol, borderRadius: radius.lg, padding: 20,
+    alignItems: "center", marginBottom: 12, ...shadow.card,
+  },
+  balanceLabel: { color: "#8FB0C0", fontSize: 12.5, fontFamily: font.bodyMedium },
+  balanceTotal: { color: "#FFFFFF", fontSize: 32, fontFamily: font.title, marginVertical: 4 },
+  balanceNet: { fontSize: 14, fontFamily: font.semi },
   section: { marginBottom: 12 },
-  sectionTitle: { color: "#ffffff", fontSize: 16, fontWeight: "700", marginBottom: 8 },
-  txRow: { flexDirection: "row", justifyContent: "space-between", backgroundColor: "#1e293b", borderRadius: 12, padding: 14, marginBottom: 6 },
-  txText: { color: "#e2e8f0", fontSize: 14 },
-  txAmount: { color: "#ffffff", fontSize: 14, fontWeight: "700" },
-  empty: { color: "#475569", fontSize: 14, textAlign: "center", marginTop: 12 },
-  expRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 12, padding: 14, marginBottom: 6 },
-  expRowOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 },
-  expTitle: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  expMeta: { color: "#64748b", fontSize: 12, marginTop: 2 },
-  expAmount: { color: "#ffffff", fontSize: 16, fontWeight: "800" },
-  expChevron: { color: "#64748b", fontSize: 14, marginLeft: 10 },
-  splitsBox: { backgroundColor: "#172033", borderBottomLeftRadius: 12, borderBottomRightRadius: 12, padding: 12, marginBottom: 6 },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+  sectionTitle: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
+  txRow: {
+    flexDirection: "row", justifyContent: "space-between", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 14, marginBottom: 6, borderWidth: 1, borderColor: colors.line,
+  },
+  txText: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyMedium },
+  txAmount: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyBold },
+  empty: { color: colors.faint, fontSize: 13.5, fontFamily: font.body, textAlign: "center", marginTop: 12 },
+  expRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 14, marginBottom: 6, borderWidth: 1, borderColor: colors.line,
+  },
+  expRowOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0, borderBottomWidth: 0 },
+  expTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  expMeta: { color: colors.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
+  expAmount: { color: colors.ink, fontSize: 15.5, fontFamily: font.title },
+  splitsBox: {
+    backgroundColor: colors.surface2, borderBottomLeftRadius: radius.md, borderBottomRightRadius: radius.md,
+    padding: 12, marginBottom: 6, borderWidth: 1, borderTopWidth: 0, borderColor: colors.line,
+  },
   splitRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  splitCheck: { fontSize: 16, marginRight: 10 },
-  splitName: { flex: 1, color: "#e2e8f0", fontSize: 14 },
-  splitAmount: { color: "#e2e8f0", fontSize: 14, fontWeight: "700" },
-  splitSettled: { color: "#475569", textDecorationLine: "line-through" },
-  splitsHint: { color: "#475569", fontSize: 11, textAlign: "center", marginTop: 6 },
-  perPerson: { color: "#818cf8", fontSize: 14, fontWeight: "600", marginBottom: 4 },
-  modeRow: { flexDirection: "row", gap: 8, marginTop: 14 },
-  modeBtn: { flex: 1, backgroundColor: "#0f172a", borderRadius: 10, paddingVertical: 8, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
-  modeBtnActive: { borderColor: "#6366f1" },
-  modeText: { color: "#64748b", fontSize: 12, fontWeight: "700" },
-  modeTextActive: { color: "#ffffff" },
-  fab: { position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center" },
-  fabText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  splitName: { flex: 1, color: colors.ink, fontSize: 13.5, fontFamily: font.bodyMedium },
+  splitAmount: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyBold },
+  splitSettled: { color: colors.faint, textDecorationLine: "line-through" },
+  splitsHint: { color: colors.faint, fontSize: 11, fontFamily: font.body, textAlign: "center", marginTop: 6 },
+  perPerson: { color: "#7FD1DC", fontSize: 13, fontFamily: font.bodySemi, marginBottom: 4 },
+  modeRow: { flexDirection: "row", gap: 8, marginTop: 14, alignSelf: "stretch" },
+  modeBtn: {
+    flex: 1, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: radius.sm,
+    paddingVertical: 8, alignItems: "center", borderWidth: 1.5, borderColor: "transparent",
+  },
+  modeBtnActive: { borderColor: colors.orange, backgroundColor: "rgba(247,127,0,0.18)" },
+  modeText: { color: "#8FB0C0", fontSize: 11.5, fontFamily: font.semi },
+  modeTextActive: { color: "#FFFFFF" },
+  fab: {
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
+  },
+  fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalClose: { color: "#64748b", fontSize: 20 },
-  label: { color: "#cbd5e1", fontSize: 14, fontWeight: "600", marginBottom: 8 },
-  input: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 16, marginBottom: 14, borderWidth: 1, borderColor: "#334155" },
-  sharerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 12, padding: 12, marginBottom: 6, borderWidth: 2, borderColor: "transparent" },
-  sharerRowActive: { borderColor: "#6366f1" },
-  everyoneRow: { backgroundColor: "#312e81" },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  input: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: colors.line,
+  },
+  sharerRow: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 12, marginBottom: 6,
+    borderWidth: 1.5, borderColor: colors.line,
+  },
+  sharerRowActive: { borderColor: colors.orange },
+  everyoneRow: { backgroundColor: colors.tealSoft },
   amountRow: { flexDirection: "row", gap: 8, marginBottom: 14, alignItems: "center" },
-  doneBtn: { backgroundColor: "#334155", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  doneBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 15 },
-  sharerName: { color: "#e2e8f0", fontSize: 15 },
-  button: { backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 12 },
-  buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  doneBtn: { backgroundColor: colors.teal, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 14 },
+  doneBtnText: { color: "#fff", fontFamily: font.semi, fontSize: 14 },
+  sharerName: { color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium },
+  button: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    alignItems: "center", marginTop: 12, ...shadow.orange,
+  },
+  buttonText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
 });

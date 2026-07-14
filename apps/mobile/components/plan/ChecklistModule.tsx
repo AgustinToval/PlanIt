@@ -3,9 +3,11 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   Alert, RefreshControl, Keyboard, Modal, ActivityIndicator,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Item = {
   id: string;
@@ -159,10 +161,15 @@ export default function ChecklistModule({
             {items.length === 0 ? "Nothing on the list yet" : `${done} / ${items.length} packed`}
           </Text>
           <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
-            <TouchableOpacity onPress={generateWithAi} disabled={aiLoading}>
+            <TouchableOpacity onPress={generateWithAi} disabled={aiLoading} style={styles.aiBtnRow}>
               {aiLoading
-                ? <ActivityIndicator size="small" color="#818cf8" />
-                : <Text style={styles.aiBtn}>✨ AI</Text>}
+                ? <ActivityIndicator size="small" color={colors.orange} />
+                : (
+                  <>
+                    <Ionicons name="sparkles" size={13} color={colors.orange} />
+                    <Text style={styles.aiBtn}>AI</Text>
+                  </>
+                )}
             </TouchableOpacity>
             {items.length > 0 && (
               <TouchableOpacity onPress={() => setHidePacked((v) => !v)}>
@@ -185,7 +192,7 @@ export default function ChecklistModule({
         style={{ flex: 1, paddingHorizontal: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
       >
         {(hidePacked ? items.filter((i) => !i.checked) : items).map((item) => {
           const assignee = nameOf(item.assignedTo);
@@ -197,14 +204,19 @@ export default function ChecklistModule({
               onPress={() => toggleItem(item)}
               onLongPress={() => deleteItem(item)}
             >
-              <Text style={styles.checkbox}>{item.checked ? "✅" : "⬜"}</Text>
+              <Ionicons
+                name={item.checked ? "checkbox" : "square-outline"}
+                size={21}
+                color={item.checked ? colors.teal : colors.faint}
+                style={{ marginRight: 11 }}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.itemTitle, item.checked && styles.itemDone]}>
                   {item.title}
                 </Text>
                 {assignee && (
                   <Text style={styles.itemAssignee}>
-                    {mine ? "🙋 You bring it" : `👤 ${assignee} brings it`}
+                    {mine ? "You bring it" : `${assignee} brings it`}
                   </Text>
                 )}
               </View>
@@ -217,7 +229,7 @@ export default function ChecklistModule({
           );
         })}
         {items.length === 0 && (
-          <Text style={styles.empty}>Add what the group needs to bring or buy 🛒</Text>
+          <Text style={styles.empty}>Add what the group needs to bring or buy</Text>
         )}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -227,7 +239,7 @@ export default function ChecklistModule({
         <TextInput
           style={styles.input}
           placeholder="Tent, ice, sunscreen..."
-          placeholderTextColor="#475569"
+          placeholderTextColor={colors.faint}
           value={newTitle}
           onChangeText={setNewTitle}
           onSubmitEditing={addItem}
@@ -238,7 +250,7 @@ export default function ChecklistModule({
           onPress={() => { addItem(); Keyboard.dismiss(); }}
           disabled={!newTitle.trim()}
         >
-          <Text style={styles.addText}>＋</Text>
+          <Ionicons name="add" size={22} color={colors.onOrange} />
         </TouchableOpacity>
       </View>
 
@@ -247,9 +259,12 @@ export default function ChecklistModule({
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>✨ AI suggestions</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                <Ionicons name="sparkles" size={17} color={colors.orange} />
+                <Text style={styles.modalTitle}>AI suggestions</Text>
+              </View>
               <TouchableOpacity onPress={() => setShowAi(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSub}>Tap to deselect what you don't need</Text>
@@ -268,7 +283,12 @@ export default function ChecklistModule({
                       })
                     }
                   >
-                    <Text style={styles.aiCheck}>{selected ? "✅" : "⬜"}</Text>
+                    <Ionicons
+                      name={selected ? "checkbox" : "square-outline"}
+                      size={19}
+                      color={selected ? colors.teal : colors.faint}
+                      style={{ marginRight: 10 }}
+                    />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.aiTitle}>{item.title}</Text>
                       <Text style={styles.aiCategory}>{item.category}</Text>
@@ -294,36 +314,61 @@ export default function ChecklistModule({
 }
 
 const styles = StyleSheet.create({
-  progressCard: { margin: 12, backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
-  progressText: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
-  hideToggle: { color: "#818cf8", fontSize: 13, fontWeight: "600" },
-  progressBar: { height: 8, backgroundColor: "#0f172a", borderRadius: 4, overflow: "hidden" },
-  progressFill: { height: 8, backgroundColor: "#22c55e", borderRadius: 4 },
-  itemRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 12, marginBottom: 8 },
-  checkbox: { fontSize: 20, marginRight: 12 },
-  itemTitle: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  itemDone: { color: "#475569", textDecorationLine: "line-through" },
-  itemAssignee: { color: "#818cf8", fontSize: 12, marginTop: 2 },
-  claimBtn: { backgroundColor: "#0f172a", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginLeft: 8 },
-  claimBtnActive: { backgroundColor: "#312e81" },
-  claimText: { color: "#94a3b8", fontSize: 12, fontWeight: "700" },
-  claimTextActive: { color: "#c7d2fe" },
-  empty: { color: "#475569", textAlign: "center", marginTop: 40, fontSize: 14 },
-  inputRow: { flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: "#1e293b" },
-  input: { flex: 1, backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 15 },
-  addBtn: { backgroundColor: "#6366f1", borderRadius: 14, width: 50, alignItems: "center", justifyContent: "center" },
-  addText: { color: "#ffffff", fontSize: 22, fontWeight: "700" },
-  aiBtn: { color: "#a78bfa", fontSize: 13, fontWeight: "800" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  progressCard: {
+    margin: 12, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16,
+    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  progressText: { color: colors.ink, fontSize: 14, fontFamily: font.semi },
+  hideToggle: { color: colors.teal, fontSize: 12.5, fontFamily: font.bodySemi },
+  progressBar: { height: 8, backgroundColor: colors.line, borderRadius: 4, overflow: "hidden" },
+  progressFill: { height: 8, backgroundColor: colors.teal, borderRadius: 4 },
+  itemRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  itemTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  itemDone: { color: colors.faint, textDecorationLine: "line-through" },
+  itemAssignee: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },
+  claimBtn: {
+    backgroundColor: colors.surface2, borderRadius: radius.sm, paddingHorizontal: 12,
+    paddingVertical: 8, marginLeft: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  claimBtnActive: { backgroundColor: colors.orangeSoft, borderColor: colors.orange },
+  claimText: { color: colors.muted, fontSize: 12, fontFamily: font.semi },
+  claimTextActive: { color: colors.orange },
+  empty: { color: colors.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
+  inputRow: {
+    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  input: {
+    flex: 1, backgroundColor: colors.surface2, borderRadius: radius.md, padding: 13,
+    color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  addBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.md, width: 48,
+    alignItems: "center", justifyContent: "center", ...shadow.orange,
+  },
+  aiBtnRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  aiBtn: { color: colors.orange, fontSize: 12.5, fontFamily: font.semi },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalClose: { color: "#64748b", fontSize: 20 },
-  modalSub: { color: "#64748b", fontSize: 13, marginBottom: 14 },
-  aiRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 12, padding: 12, marginBottom: 6 },
-  aiCheck: { fontSize: 16, marginRight: 10 },
-  aiTitle: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  aiCategory: { color: "#818cf8", fontSize: 12, marginTop: 1 },
-  aiAddBtn: { backgroundColor: "#7c3aed", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 12 },
-  aiAddText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  modalSub: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 14 },
+  aiRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: colors.line,
+  },
+  aiTitle: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
+  aiCategory: { color: colors.teal, fontSize: 11.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  aiAddBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    alignItems: "center", marginTop: 12, ...shadow.orange,
+  },
+  aiAddText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
 });
