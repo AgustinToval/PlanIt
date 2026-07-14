@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  KeyboardAvoidingView, Platform, Share, Modal, Alert,
+  KeyboardAvoidingView, Platform, Modal, Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { shareInvite } from "../../lib/invite";
+import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Message = {
   id: string;
@@ -136,30 +138,50 @@ export default function GroupScreen() {
     >
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backText}>‹ Back</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backRow}>
+            <Ionicons name="chevron-back" size={18} color={colors.teal} />
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
-          <View style={{ flexDirection: "row", gap: 20 }}>
-            <TouchableOpacity onPress={doShareInvite}>
-              <Text style={styles.inviteText}>+ Invite</Text>
+          <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+            <TouchableOpacity onPress={doShareInvite} style={styles.inviteRow}>
+              <Ionicons name="person-add-outline" size={15} color={colors.teal} />
+              <Text style={styles.inviteText}>Invite</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowSettings(true)}>
-              <Text style={styles.inviteText}>⚙️</Text>
+              <Ionicons name="settings-outline" size={19} color={colors.teal} />
             </TouchableOpacity>
           </View>
         </View>
         <TouchableOpacity onPress={() => setShowMembers((v) => !v)}>
-          <Text style={styles.title}>{group?.name ?? "..."} {isMuted ? "🔕" : ""}</Text>
-          <Text style={styles.meta}>
-            👥 {group?.members.length ?? 0} members — tap to {showMembers ? "hide" : "see"}
-          </Text>
+          <View style={styles.titleRow}>
+            <View style={[styles.groupAvatar, { backgroundColor: userColor(id ?? "g") }]}>
+              <Text style={styles.groupAvatarText}>{group?.name?.[0]?.toUpperCase() ?? "?"}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={styles.title}>{group?.name ?? "..."}</Text>
+                {isMuted && <Ionicons name="notifications-off-outline" size={15} color={colors.faint} />}
+              </View>
+              <Text style={styles.meta}>
+                {group?.members.length ?? 0} members — tap to {showMembers ? "hide" : "see"}
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
         {showMembers && (
           <View style={styles.memberList}>
             {group?.members.map((m) => (
-              <Text key={m.user.id} style={styles.memberItem}>
-                {m.user.name ?? "?"} {m.role === "admin" ? "· 👑" : ""}
-              </Text>
+              <View key={m.user.id} style={styles.memberRow}>
+                <View style={[styles.memberAvatar, { backgroundColor: userColor(m.user.id) }]}>
+                  <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
+                </View>
+                <Text style={styles.memberItem}>{m.user.name ?? "?"}</Text>
+                {m.role === "admin" && (
+                  <View style={styles.adminChip}>
+                    <Text style={styles.adminChipText}>admin</Text>
+                  </View>
+                )}
+              </View>
             ))}
           </View>
         )}
@@ -172,22 +194,30 @@ export default function GroupScreen() {
         style={styles.chat}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 12 }}
+        contentContainerStyle={{ paddingBottom: 12, paddingTop: 10 }}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         renderItem={({ item }) => {
           const mine = item.user.id === user?.id;
+          const color = userColor(item.user.id);
           return (
-            <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-              {!mine && <Text style={styles.bubbleName}>{item.user.name ?? "?"}</Text>}
-              <Text style={styles.bubbleText}>{item.content}</Text>
-              <Text style={styles.bubbleTime}>
-                {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </Text>
+            <View style={[styles.msgRow, mine && styles.msgRowMine]}>
+              {!mine && (
+                <View style={[styles.msgAvatar, { backgroundColor: color }]}>
+                  <Text style={styles.msgAvatarText}>{(item.user.name ?? "?")[0]?.toUpperCase()}</Text>
+                </View>
+              )}
+              <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
+                {!mine && <Text style={[styles.bubbleName, { color }]}>{item.user.name ?? "?"}</Text>}
+                <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.content}</Text>
+                <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
+                  {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </Text>
+              </View>
             </View>
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.emptyChat}>No messages yet — say hi! 👋</Text>
+          <Text style={styles.emptyChat}>No messages yet — say hi!</Text>
         }
       />
 
@@ -195,14 +225,14 @@ export default function GroupScreen() {
         <TextInput
           style={styles.input}
           placeholder="Message..."
-          placeholderTextColor="#475569"
+          placeholderTextColor={colors.faint}
           value={text}
           onChangeText={setText}
           onSubmitEditing={send}
           returnKeyType="send"
         />
         <TouchableOpacity style={styles.sendBtn} onPress={send}>
-          <Text style={styles.sendText}>➤</Text>
+          <Ionicons name="send" size={17} color={colors.onOrange} />
         </TouchableOpacity>
       </View>
 
@@ -213,12 +243,14 @@ export default function GroupScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Group settings</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.settingRow} onPress={toggleMute}>
-              <Text style={styles.settingIcon}>{isMuted ? "🔔" : "🔕"}</Text>
+              <View style={styles.settingIconWrap}>
+                <Ionicons name={isMuted ? "notifications-outline" : "notifications-off-outline"} size={18} color={colors.teal} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.settingText}>{isMuted ? "Unmute" : "Mute"}</Text>
                 <Text style={styles.settingDesc}>
@@ -228,7 +260,9 @@ export default function GroupScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.settingRow} onPress={() => { setShowSettings(false); leaveGroup(); }}>
-              <Text style={styles.settingIcon}>🚪</Text>
+              <View style={styles.settingIconWrap}>
+                <Ionicons name="exit-outline" size={18} color={colors.teal} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.settingText}>Leave group</Text>
                 <Text style={styles.settingDesc}>You can rejoin later with an invite</Text>
@@ -237,9 +271,11 @@ export default function GroupScreen() {
 
             {isAdmin && (
               <TouchableOpacity style={styles.settingRow} onPress={() => { setShowSettings(false); deleteGroup(); }}>
-                <Text style={styles.settingIcon}>🗑️</Text>
+                <View style={[styles.settingIconWrap, { backgroundColor: colors.dangerSoft }]}>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.settingText, { color: "#ef4444" }]}>Delete group</Text>
+                  <Text style={[styles.settingText, { color: colors.danger }]}>Delete group</Text>
                   <Text style={styles.settingDesc}>Deletes the group and chat for everyone</Text>
                 </View>
               </TouchableOpacity>
@@ -252,34 +288,79 @@ export default function GroupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a" },
-  header: { padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: "#1e293b" },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  backText: { color: "#6366f1", fontSize: 17 },
-  inviteText: { color: "#6366f1", fontSize: 16, fontWeight: "600" },
-  title: { fontSize: 22, fontWeight: "800", color: "#ffffff" },
-  meta: { color: "#94a3b8", fontSize: 13, marginTop: 4 },
-  memberList: { marginTop: 12, backgroundColor: "#1e293b", borderRadius: 12, padding: 12 },
-  memberItem: { color: "#cbd5e1", fontSize: 14, paddingVertical: 3 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: {
+    padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  backRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  inviteRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  inviteText: { color: colors.teal, fontSize: 14.5, fontFamily: font.bodySemi },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 11 },
+  groupAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  groupAvatarText: { color: "#fff", fontFamily: font.title, fontSize: 16 },
+  title: { fontSize: 19, fontFamily: font.semi, color: colors.ink, letterSpacing: -0.3 },
+  meta: { color: colors.muted, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },
+  memberList: {
+    marginTop: 12, backgroundColor: colors.surface2, borderRadius: radius.md,
+    padding: 10, borderWidth: 1, borderColor: colors.line,
+  },
+  memberRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 4 },
+  memberAvatar: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  memberAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 11 },
+  memberItem: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyMedium, flex: 1 },
+  adminChip: {
+    backgroundColor: colors.tealSoft, borderRadius: radius.pill,
+    paddingHorizontal: 8, paddingVertical: 2,
+  },
+  adminChipText: { color: colors.teal, fontSize: 10.5, fontFamily: font.semi },
   chat: { flex: 1, paddingHorizontal: 12 },
-  bubble: { borderRadius: 16, padding: 12, marginBottom: 8, maxWidth: "80%" },
-  bubbleMine: { backgroundColor: "#4f46e5", alignSelf: "flex-end" },
-  bubbleOther: { backgroundColor: "#1e293b", alignSelf: "flex-start" },
-  bubbleName: { color: "#818cf8", fontSize: 12, fontWeight: "700", marginBottom: 2 },
-  bubbleText: { color: "#ffffff", fontSize: 15 },
-  bubbleTime: { color: "#94a3b8", fontSize: 10, marginTop: 4, alignSelf: "flex-end" },
-  emptyChat: { color: "#475569", textAlign: "center", marginTop: 32, fontSize: 14 },
-  inputRow: { flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: "#1e293b" },
-  input: { flex: 1, backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 15 },
-  sendBtn: { backgroundColor: "#6366f1", borderRadius: 14, width: 50, alignItems: "center", justifyContent: "center" },
-  sendText: { color: "#ffffff", fontSize: 18 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  msgRow: { flexDirection: "row", alignItems: "flex-end", gap: 7, marginBottom: 8, maxWidth: "84%" },
+  msgRowMine: { alignSelf: "flex-end", flexDirection: "row-reverse" },
+  msgAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  msgAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 11 },
+  bubble: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, flexShrink: 1 },
+  bubbleMine: { backgroundColor: colors.orange, borderBottomRightRadius: 5 },
+  bubbleOther: {
+    backgroundColor: colors.surface, borderBottomLeftRadius: 5,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  bubbleName: { fontSize: 11.5, fontFamily: font.semi, marginBottom: 2 },
+  bubbleText: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodyMedium, lineHeight: 21 },
+  bubbleTextMine: { color: colors.onOrange },
+  bubbleTime: { color: colors.faint, fontSize: 10, fontFamily: font.body, marginTop: 3, alignSelf: "flex-end" },
+  bubbleTimeMine: { color: "rgba(255,255,255,0.75)" },
+  emptyChat: { color: colors.faint, textAlign: "center", marginTop: 32, fontSize: 13.5, fontFamily: font.body },
+  inputRow: {
+    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  input: {
+    flex: 1, backgroundColor: colors.surface2, borderRadius: radius.pill, paddingHorizontal: 16,
+    paddingVertical: 12, color: colors.ink, fontSize: 14.5, fontFamily: font.bodyMedium,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  sendBtn: {
+    backgroundColor: colors.orange, borderRadius: 24, width: 46, height: 46,
+    alignItems: "center", justifyContent: "center", ...shadow.orange,
+  },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalClose: { color: "#64748b", fontSize: 20 },
-  settingRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 16, padding: 16, marginBottom: 10 },
-  settingIcon: { fontSize: 24, marginRight: 14 },
-  settingText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  settingDesc: { color: "#64748b", fontSize: 13, marginTop: 2 },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  settingRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.line,
+  },
+  settingIconWrap: {
+    width: 36, height: 36, borderRadius: 11, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  settingText: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
+  settingDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
 });
