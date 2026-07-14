@@ -9,6 +9,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { shareInvite } from "../../lib/invite";
+import { useChatUx } from "../../hooks/useChatUx";
 import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Message = {
@@ -35,7 +36,10 @@ export default function GroupScreen() {
   const [text, setText] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const listRef = useRef<FlatList>(null);
+  const {
+    listRef, onScroll, onContentSizeChange, scrollToBottom,
+    showDown, typingLabel, notifyTyping, stopTyping,
+  } = useChatUx("group", id, { id: user?.id, name: user?.name });
 
   const myMembership = group?.members.find((m) => m.user.id === user?.id);
   const isAdmin = myMembership?.role === "admin";
@@ -121,8 +125,10 @@ export default function GroupScreen() {
     const content = text.trim();
     if (!content) return;
     setText("");
+    stopTyping();
     try {
       await api.post(`/messages/group/${id}`, { content });
+      scrollToBottom();
     } catch { /* noop */ }
   };
 
@@ -162,8 +168,8 @@ export default function GroupScreen() {
                 <Text style={styles.title}>{group?.name ?? "..."}</Text>
                 {isMuted && <Ionicons name="notifications-off-outline" size={15} color={colors.faint} />}
               </View>
-              <Text style={styles.meta}>
-                {group?.members.length ?? 0} members — tap to {showMembers ? "hide" : "see"}
+              <Text style={[styles.meta, typingLabel ? { color: colors.teal, fontFamily: font.bodySemi } : null]}>
+                {typingLabel ?? `${group?.members.length ?? 0} members — tap to ${showMembers ? "hide" : "see"}`}
               </Text>
             </View>
           </View>
@@ -187,15 +193,18 @@ export default function GroupScreen() {
         )}
       </View>
 
+      <View style={{ flex: 1 }}>
       <FlatList
         ref={listRef}
         data={messages}
         keyExtractor={(m) => m.id}
         style={styles.chat}
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 12, paddingTop: 10 }}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={onContentSizeChange}
+        onScroll={onScroll}
+        scrollEventThrottle={100}
         renderItem={({ item }) => {
           const mine = item.user.id === user?.id;
           const color = userColor(item.user.id);
@@ -221,13 +230,33 @@ export default function GroupScreen() {
         }
       />
 
+      {/* Jump to latest message */}
+      {showDown && (
+        <TouchableOpacity style={styles.downFab} onPress={() => scrollToBottom()}>
+          <Ionicons name="chevron-down" size={20} color={colors.orange} />
+        </TouchableOpacity>
+      )}
+      </View>
+
+      {/* Someone is typing */}
+      {typingLabel && (
+        <View style={styles.typingRow}>
+          <View style={styles.typingDots}>
+            <View style={[styles.typingDot, { opacity: 0.4 }]} />
+            <View style={[styles.typingDot, { opacity: 0.7 }]} />
+            <View style={styles.typingDot} />
+          </View>
+          <Text style={styles.typingText}>{typingLabel}</Text>
+        </View>
+      )}
+
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
           placeholder="Message..."
           placeholderTextColor={colors.faint}
           value={text}
-          onChangeText={setText}
+          onChangeText={(t) => { setText(t); notifyTyping(t); }}
           onSubmitEditing={send}
           returnKeyType="send"
         />
@@ -333,6 +362,18 @@ const styles = StyleSheet.create({
   bubbleTime: { color: colors.faint, fontSize: 10, fontFamily: font.body, marginTop: 3, alignSelf: "flex-end" },
   bubbleTimeMine: { color: "rgba(255,255,255,0.75)" },
   emptyChat: { color: colors.faint, textAlign: "center", marginTop: 32, fontSize: 13.5, fontFamily: font.body },
+  downFab: {
+    position: "absolute", right: 14, bottom: 12, width: 38, height: 38, borderRadius: 19,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line,
+    alignItems: "center", justifyContent: "center", ...shadow.card,
+  },
+  typingRow: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    paddingHorizontal: 16, paddingVertical: 5, backgroundColor: colors.bg,
+  },
+  typingDots: { flexDirection: "row", gap: 3 },
+  typingDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.teal },
+  typingText: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium, fontStyle: "italic" },
   inputRow: {
     flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
     backgroundColor: colors.surface,

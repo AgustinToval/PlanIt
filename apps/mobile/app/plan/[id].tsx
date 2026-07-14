@@ -19,6 +19,7 @@ import FilesModule from "../../components/plan/FilesModule";
 import AvailabilityHeatmap from "../../components/plan/AvailabilityHeatmap";
 import WalkieTalkieModule from "../../components/plan/WalkieTalkieModule";
 import { shareInvite } from "../../lib/invite";
+import { useChatUx } from "../../hooks/useChatUx";
 import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Message = {
@@ -92,7 +93,10 @@ export default function PlanScreen() {
     }
   };
   const [friends, setFriends] = useState<{ id: string; name: string | null }[]>([]);
-  const listRef = useRef<FlatList>(null);
+  const {
+    listRef, onScroll, onContentSizeChange, scrollToBottom,
+    showDown, typingLabel, notifyTyping, stopTyping,
+  } = useChatUx("plan", id, { id: user?.id, name: user?.name });
 
   const myMembership = plan?.members.find((m) => m.user.id === user?.id);
   const myRole = myMembership?.role ?? "member";
@@ -244,8 +248,10 @@ export default function PlanScreen() {
     const content = text.trim();
     if (!content) return;
     setText("");
+    stopTyping();
     try {
       await api.post(`/messages/plan/${id}`, { content });
+      scrollToBottom();
     } catch { /* noop */ }
   };
 
@@ -446,15 +452,18 @@ export default function PlanScreen() {
         </ScrollView>
       ) : activeTab === "chat" ? (
         <>
+          <View style={{ flex: 1 }}>
           <FlatList
             ref={listRef}
             data={messages}
             keyExtractor={(m) => m.id}
             style={styles.chat}
-            keyboardDismissMode="on-drag"
+            keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 12 }}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+            onContentSizeChange={onContentSizeChange}
+            onScroll={onScroll}
+            scrollEventThrottle={100}
             renderItem={({ item }) => {
               const mine = item.user.id === user?.id;
               const color = userColor(item.user.id);
@@ -479,13 +488,32 @@ export default function PlanScreen() {
               <Text style={styles.emptyChat}>No messages yet — say something!</Text>
             }
           />
+          {/* Jump to latest message */}
+          {showDown && (
+            <TouchableOpacity style={styles.downFab} onPress={() => scrollToBottom()}>
+              <Ionicons name="chevron-down" size={20} color={colors.orange} />
+            </TouchableOpacity>
+          )}
+          </View>
+
+          {/* Someone is typing */}
+          {typingLabel && (
+            <View style={styles.typingRow}>
+              <View style={styles.typingDots}>
+                <View style={[styles.typingDot, { opacity: 0.4 }]} />
+                <View style={[styles.typingDot, { opacity: 0.7 }]} />
+                <View style={styles.typingDot} />
+              </View>
+              <Text style={styles.typingText}>{typingLabel}</Text>
+            </View>
+          )}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
               placeholder="Message..."
               placeholderTextColor={colors.faint}
               value={text}
-              onChangeText={setText}
+              onChangeText={(t) => { setText(t); notifyTyping(t); }}
               onSubmitEditing={send}
               returnKeyType="send"
             />
@@ -854,6 +882,18 @@ const styles = StyleSheet.create({
   bubbleTime: { color: colors.faint, fontSize: 10, fontFamily: font.body, marginTop: 3, alignSelf: "flex-end" },
   bubbleTimeMine: { color: "rgba(255,255,255,0.75)" },
   emptyChat: { color: colors.faint, textAlign: "center", marginTop: 32, fontSize: 13.5, fontFamily: font.body },
+  downFab: {
+    position: "absolute", right: 14, bottom: 12, width: 38, height: 38, borderRadius: 19,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line,
+    alignItems: "center", justifyContent: "center", ...shadow.card,
+  },
+  typingRow: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    paddingHorizontal: 16, paddingVertical: 5, backgroundColor: colors.bg,
+  },
+  typingDots: { flexDirection: "row", gap: 3 },
+  typingDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.teal },
+  typingText: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium, fontStyle: "italic" },
   inputRow: {
     flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
     backgroundColor: colors.surface,

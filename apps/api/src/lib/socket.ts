@@ -24,6 +24,13 @@ export function socketHandler(io: Server) {
       socket.leave(`group:${groupId}`);
     });
 
+    // Typing indicator — relayed to everyone else in the room, not persisted.
+    // kind: "plan" | "group"; typing: true while composing, false when stopped.
+    socket.on("typing", (data: { kind: string; roomId: string; userId: string; name: string | null; typing: boolean }) => {
+      const room = data.kind === "group" ? `group:${data.roomId}` : `plan:${data.roomId}`;
+      socket.to(room).emit("typing", data);
+    });
+
     // Plan chat message
     socket.on("message:plan", (data: { planId: string; message: object }) => {
       io.to(`plan:${data.planId}`).emit("message:new", data.message);
