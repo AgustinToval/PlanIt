@@ -3,7 +3,9 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Plan = {
   id: string;
@@ -23,9 +25,15 @@ function ymd(year: number, month: number, day: number): string {
 }
 
 const AVAIL_COLORS: Record<string, string> = {
-  free: "#22c55e",
-  maybe: "#eab308",
-  busy: "#ef4444",
+  free: "#0892A5",
+  maybe: "#F0A72B",
+  busy: "#E05252",
+};
+
+const AVAIL_LABELS: Record<string, string> = {
+  free: "Free",
+  maybe: "Maybe",
+  busy: "Busy",
 };
 
 const CYCLE: Record<string, string> = {
@@ -132,24 +140,26 @@ export default function CalendarScreen() {
           style={[styles.modeBtn, mode === "plans" && styles.modeBtnActive]}
           onPress={() => setMode("plans")}
         >
-          <Text style={[styles.modeText, mode === "plans" && styles.modeTextActive]}>🗓️ My plans</Text>
+          <Ionicons name="calendar-outline" size={14} color={mode === "plans" ? colors.onOrange : colors.muted} />
+          <Text style={[styles.modeText, mode === "plans" && styles.modeTextActive]}>My plans</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeBtn, mode === "availability" && styles.modeBtnActive]}
           onPress={() => { setSelectedDay(null); setMode("availability"); }}
         >
-          <Text style={[styles.modeText, mode === "availability" && styles.modeTextActive]}>🟢 My availability</Text>
+          <Ionicons name="time-outline" size={14} color={mode === "availability" ? colors.onOrange : colors.muted} />
+          <Text style={[styles.modeText, mode === "availability" && styles.modeTextActive]}>My availability</Text>
         </TouchableOpacity>
       </View>
 
       {/* Month nav */}
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-          <Text style={styles.navText}>‹</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.teal} />
         </TouchableOpacity>
         <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-          <Text style={styles.navText}>›</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.teal} />
         </TouchableOpacity>
       </View>
 
@@ -177,12 +187,16 @@ export default function CalendarScreen() {
                 isToday && styles.cellToday,
                 isSelected && styles.cellSelected,
                 mode === "availability" && availStatus
-                  ? { backgroundColor: `${AVAIL_COLORS[availStatus]}33`, borderColor: AVAIL_COLORS[availStatus], borderWidth: 1.5 }
+                  ? { backgroundColor: `${AVAIL_COLORS[availStatus]}22`, borderColor: AVAIL_COLORS[availStatus], borderWidth: 1.5 }
                   : null,
               ]}
               onPress={() => onDayPress(key)}
             >
-              <Text style={[styles.cellText, isToday && styles.cellTextToday]}>{day}</Text>
+              <Text style={[
+                styles.cellText,
+                isToday && styles.cellTextToday,
+                isSelected && styles.cellTextSelected,
+              ]}>{day}</Text>
               {mode === "plans" && hasPlans && <View style={styles.planDot} />}
               {mode === "availability" && availStatus && (
                 <View style={[styles.availDot, { backgroundColor: AVAIL_COLORS[availStatus] }]} />
@@ -196,14 +210,25 @@ export default function CalendarScreen() {
       {mode === "availability" ? (
         <View style={styles.legend}>
           <Text style={styles.legendText}>Tap a day to cycle:</Text>
-          <Text style={styles.legendText}>🟢 Free → 🟡 Maybe → 🔴 Busy → clear</Text>
+          <View style={styles.legendRow}>
+            {(["free", "maybe", "busy"] as const).map((s) => (
+              <View key={s} style={styles.legendItem}>
+                <View style={[styles.legendSwatch, { backgroundColor: AVAIL_COLORS[s] }]} />
+                <Text style={styles.legendText}>{AVAIL_LABELS[s]}</Text>
+              </View>
+            ))}
+            <Text style={styles.legendText}>→ clear</Text>
+          </View>
           <Text style={styles.legendHint}>
             Your friends' plans can use this to find the best date for everyone.
           </Text>
         </View>
       ) : (
         <View style={styles.legend}>
-          <Text style={styles.legendText}>● Days with plans — tap to see them</Text>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendSwatch, { backgroundColor: colors.orange }]} />
+            <Text style={styles.legendText}>Days with plans — tap to see them</Text>
+          </View>
         </View>
       )}
 
@@ -218,13 +243,18 @@ export default function CalendarScreen() {
           ) : (
             dayPlans.map((p) => (
               <TouchableOpacity key={p.id} style={styles.dayPlan} onPress={() => router.push(`/plan/${p.id}`)}>
-                <Text style={styles.dayPlanTitle}>
-                  {p.type === "quick" ? "⚡ " : "🗓️ "}{p.title}
-                </Text>
+                <View style={styles.dayPlanTitleRow}>
+                  <Ionicons
+                    name={p.type === "quick" ? "flash" : "calendar-clear-outline"}
+                    size={14}
+                    color={p.type === "quick" ? colors.orange : colors.teal}
+                  />
+                  <Text style={styles.dayPlanTitle}>{p.title}</Text>
+                </View>
                 {p.startDate && (
                   <Text style={styles.dayPlanMeta}>
-                    🕐 {new Date(p.startDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    {p.location ? `  ·  📍 ${p.location}` : ""}
+                    {new Date(p.startDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {p.location ? `  ·  ${p.location}` : ""}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -238,37 +268,57 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a" },
-  header: { padding: 24, paddingTop: 60, paddingBottom: 12 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff" },
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: { padding: 20, paddingTop: 60, paddingBottom: 12 },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5 },
   modeRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 14 },
-  modeBtn: { flex: 1, backgroundColor: "#1e293b", borderRadius: 12, paddingVertical: 10, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
-  modeBtnActive: { borderColor: "#6366f1", backgroundColor: "#312e81" },
-  modeText: { color: "#94a3b8", fontSize: 13, fontWeight: "700" },
-  modeTextActive: { color: "#ffffff" },
-  monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, marginBottom: 10 },
-  navBtn: { backgroundColor: "#1e293b", borderRadius: 12, width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  navText: { color: "#6366f1", fontSize: 22, fontWeight: "700" },
-  monthTitle: { color: "#ffffff", fontSize: 18, fontWeight: "800" },
+  modeBtn: {
+    flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6,
+    backgroundColor: colors.surface, borderRadius: radius.md, paddingVertical: 10,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  modeBtnActive: { backgroundColor: colors.orange, borderColor: colors.orange, ...shadow.orange },
+  modeText: { color: colors.muted, fontSize: 12.5, fontFamily: font.semi },
+  modeTextActive: { color: colors.onOrange },
+  monthNav: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, marginBottom: 10,
+  },
+  navBtn: {
+    backgroundColor: colors.surface, borderRadius: radius.md, width: 40, height: 40,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.line,
+  },
+  monthTitle: { color: colors.ink, fontSize: 17, fontFamily: font.semi, letterSpacing: -0.2 },
   weekRow: { flexDirection: "row", paddingHorizontal: 12, marginBottom: 4 },
-  weekday: { flex: 1, textAlign: "center", color: "#475569", fontSize: 12, fontWeight: "700" },
+  weekday: { flex: 1, textAlign: "center", color: colors.faint, fontSize: 11, fontFamily: font.semi },
   grid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12 },
   cell: {
     width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
-  cellToday: { backgroundColor: "#1e293b" },
-  cellSelected: { backgroundColor: "#312e81" },
-  cellText: { color: "#e2e8f0", fontSize: 15 },
-  cellTextToday: { fontWeight: "800", color: "#818cf8" },
-  planDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#6366f1", marginTop: 3 },
+  cellToday: { backgroundColor: colors.tealSoft },
+  cellSelected: { backgroundColor: colors.orange },
+  cellText: { color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium },
+  cellTextToday: { fontFamily: font.bodyBold, color: colors.teal },
+  cellTextSelected: { color: colors.onOrange, fontFamily: font.bodyBold },
+  planDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.orange, marginTop: 3 },
   availDot: { width: 6, height: 6, borderRadius: 3, marginTop: 3 },
-  legend: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, margin: 16, alignItems: "center" },
-  legendText: { color: "#94a3b8", fontSize: 13, marginBottom: 2 },
-  legendHint: { color: "#475569", fontSize: 12, marginTop: 6, textAlign: "center" },
-  dayTitle: { color: "#ffffff", fontSize: 17, fontWeight: "800", marginBottom: 10 },
-  dayEmpty: { color: "#475569", fontSize: 14 },
-  dayPlan: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, marginBottom: 8 },
-  dayPlanTitle: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
-  dayPlanMeta: { color: "#94a3b8", fontSize: 13, marginTop: 3 },
+  legend: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, margin: 16,
+    alignItems: "center", borderWidth: 1, borderColor: colors.line,
+  },
+  legendRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 6 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendSwatch: { width: 10, height: 10, borderRadius: 3 },
+  legendText: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
+  legendHint: { color: colors.faint, fontSize: 12, fontFamily: font.body, marginTop: 8, textAlign: "center" },
+  dayTitle: { color: colors.ink, fontSize: 16, fontFamily: font.semi, marginBottom: 10, letterSpacing: -0.2 },
+  dayEmpty: { color: colors.faint, fontSize: 13.5, fontFamily: font.body },
+  dayPlan: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+  },
+  dayPlanTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dayPlanTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  dayPlanMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
 });

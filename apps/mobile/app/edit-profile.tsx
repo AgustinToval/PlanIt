@@ -5,8 +5,10 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import { useAuthStore } from "../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../lib/theme";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -23,7 +25,18 @@ export default function EditProfileScreen() {
   const [newPw, setNewPw] = useState("");
   const [changingPw, setChangingPw] = useState(false);
 
-  const pickAvatar = async () => {
+  const applyPicked = (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+    const asset = result.assets[0];
+    const dataUrl = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
+    if (dataUrl.length > 2_000_000) {
+      Alert.alert("Too large", "That image is too big — try a smaller one.");
+      return;
+    }
+    setAvatar(dataUrl);
+  };
+
+  const pickFromLibrary = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert("Permission needed", "Allow photo access to set a profile picture.");
@@ -36,14 +49,30 @@ export default function EditProfileScreen() {
       allowsEditing: true,
       aspect: [1, 1],
     });
-    if (result.canceled || !result.assets?.[0]?.base64) return;
-    const asset = result.assets[0];
-    const dataUrl = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
-    if (dataUrl.length > 2_000_000) {
-      Alert.alert("Too large", "That image is too big — try a smaller one.");
+    applyPicked(result);
+  };
+
+  const takePhoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow camera access to take a profile picture.");
       return;
     }
-    setAvatar(dataUrl);
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.4,
+      base64: true,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    applyPicked(result);
+  };
+
+  const pickAvatar = () => {
+    Alert.alert("Profile photo", "How do you want to add it?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Take a photo", onPress: takePhoto },
+      { text: "Choose from gallery", onPress: pickFromLibrary },
+    ]);
   };
 
   const save = async () => {
@@ -57,7 +86,7 @@ export default function EditProfileScreen() {
         avatar: avatar ?? undefined,
       });
       setUser(res.data);
-      Alert.alert("✅ Saved", "Your profile was updated.");
+      Alert.alert("Saved", "Your profile was updated.");
       router.back();
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not save profile");
@@ -73,7 +102,7 @@ export default function EditProfileScreen() {
       await api.post("/users/me/password", { current: currentPw, next: newPw });
       setCurrentPw("");
       setNewPw("");
-      Alert.alert("✅ Password changed");
+      Alert.alert("Password changed");
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not change password");
     } finally {
@@ -85,7 +114,8 @@ export default function EditProfileScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹ Back</Text>
+        <Ionicons name="chevron-back" size={18} color={colors.teal} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>Edit Profile</Text>
@@ -99,24 +129,27 @@ export default function EditProfileScreen() {
             <Text style={styles.avatarLetter}>{(name || "?")[0]?.toUpperCase()}</Text>
           </View>
         )}
-        <Text style={styles.avatarHint}>📷 Tap to change photo</Text>
+        <View style={styles.avatarHintRow}>
+          <Ionicons name="camera-outline" size={14} color={colors.teal} />
+          <Text style={styles.avatarHint}>Tap to change photo</Text>
+        </View>
       </TouchableOpacity>
 
       <Text style={styles.label}>Name</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName}
-        placeholder="Your name" placeholderTextColor="#475569" />
+        placeholder="Your name" placeholderTextColor={colors.faint} />
 
       <Text style={styles.label}>Username</Text>
       <TextInput style={styles.input} value={username} onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_\.]/g, ""))}
-        placeholder="username" placeholderTextColor="#475569" autoCapitalize="none" />
+        placeholder="username" placeholderTextColor={colors.faint} autoCapitalize="none" />
 
       <Text style={styles.label}>Bio</Text>
       <TextInput style={[styles.input, { height: 70 }]} value={bio} onChangeText={setBio}
-        placeholder="Something about you" placeholderTextColor="#475569" multiline textAlignVertical="top" />
+        placeholder="Something about you" placeholderTextColor={colors.faint} multiline textAlignVertical="top" />
 
       <Text style={styles.label}>Location</Text>
       <TextInput style={styles.input} value={location} onChangeText={setLocation}
-        placeholder="Buenos Aires" placeholderTextColor="#475569" />
+        placeholder="Buenos Aires" placeholderTextColor={colors.faint} />
 
       <TouchableOpacity style={[styles.button, saving && { opacity: 0.5 }]} onPress={save} disabled={saving}>
         {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Save changes</Text>}
@@ -124,15 +157,18 @@ export default function EditProfileScreen() {
 
       {/* Change password */}
       <View style={styles.divider} />
-      <Text style={styles.sectionTitle}>🔒 Change password</Text>
+      <View style={styles.sectionTitleRow}>
+        <Ionicons name="lock-closed-outline" size={16} color={colors.ink} />
+        <Text style={styles.sectionTitle}>Change password</Text>
+      </View>
 
       <Text style={styles.label}>Current password</Text>
       <TextInput style={styles.input} value={currentPw} onChangeText={setCurrentPw}
-        placeholder="Your current password" placeholderTextColor="#475569" secureTextEntry autoCapitalize="none" />
+        placeholder="Your current password" placeholderTextColor={colors.faint} secureTextEntry autoCapitalize="none" />
 
       <Text style={styles.label}>New password</Text>
       <TextInput style={styles.input} value={newPw} onChangeText={setNewPw}
-        placeholder="At least 8 characters" placeholderTextColor="#475569" secureTextEntry autoCapitalize="none" />
+        placeholder="At least 8 characters" placeholderTextColor={colors.faint} secureTextEntry autoCapitalize="none" />
 
       <TouchableOpacity
         style={[styles.buttonOutline, (!currentPw || newPw.length < 8 || changingPw) && { opacity: 0.5 }]}
@@ -149,24 +185,34 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a", padding: 24, paddingTop: 60 },
-  back: { marginBottom: 16 },
-  backText: { color: "#6366f1", fontSize: 17 },
-  title: { fontSize: 28, fontWeight: "800", color: "#ffffff", marginBottom: 20 },
+  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+  back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
+  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 20 },
   avatarWrap: { alignItems: "center", marginBottom: 24 },
   avatar: { width: 110, height: 110, borderRadius: 55 },
-  avatarPlaceholder: { backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center" },
-  avatarLetter: { color: "#ffffff", fontSize: 44, fontWeight: "800" },
-  avatarHint: { color: "#818cf8", fontSize: 13, marginTop: 10, fontWeight: "600" },
-  label: { color: "#cbd5e1", fontSize: 14, fontWeight: "600", marginBottom: 8 },
-  input: {
-    backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff",
-    fontSize: 15, marginBottom: 16, borderWidth: 1, borderColor: "#334155",
+  avatarPlaceholder: {
+    backgroundColor: colors.orange, alignItems: "center", justifyContent: "center", ...shadow.orange,
   },
-  button: { backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 4 },
-  buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  divider: { height: 1, backgroundColor: "#1e293b", marginVertical: 28 },
-  sectionTitle: { color: "#ffffff", fontSize: 18, fontWeight: "800", marginBottom: 16 },
-  buttonOutline: { borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 2, borderColor: "#6366f1" },
-  buttonOutlineText: { color: "#6366f1", fontSize: 16, fontWeight: "700" },
+  avatarLetter: { color: "#fff", fontSize: 42, fontFamily: font.title },
+  avatarHintRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 10 },
+  avatarHint: { color: colors.teal, fontSize: 12.5, fontFamily: font.bodySemi },
+  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  input: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
+    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: colors.line,
+  },
+  button: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    alignItems: "center", marginTop: 4, ...shadow.orange,
+  },
+  buttonText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  divider: { height: 1, backgroundColor: colors.line, marginVertical: 28 },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 16 },
+  sectionTitle: { color: colors.ink, fontSize: 17, fontFamily: font.semi, letterSpacing: -0.2 },
+  buttonOutline: {
+    borderRadius: radius.lg, padding: 15, alignItems: "center",
+    borderWidth: 1.5, borderColor: colors.teal, backgroundColor: colors.surface,
+  },
+  buttonOutlineText: { color: colors.teal, fontSize: 15, fontFamily: font.semi },
 });
