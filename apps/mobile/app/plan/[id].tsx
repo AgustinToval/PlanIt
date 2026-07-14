@@ -66,7 +66,8 @@ export default function PlanScreen() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
-  const [activeTab, setActiveTab] = useState<string>("chat");
+  // null = module grid (home of the plan); a string = that module is open
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [showAddModule, setShowAddModule] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -110,13 +111,13 @@ export default function PlanScreen() {
     return !seenAt || new Date(at) > new Date(seenAt);
   };
 
-  // Mark the active tab as seen whenever it changes (or activity arrives on it)
+  // Mark the open module as seen whenever it changes (or activity arrives on it)
   useEffect(() => {
-    if (!plan) return;
+    if (!plan || !activeTab) return;
     const now = new Date().toISOString();
     setSeenLocal((prev) => ({ ...prev, [activeTab]: now }));
     api.post(`/plans/${id}/seen`, { module: activeTab }).catch(() => {});
-  }, [activeTab, plan?.moduleActivity?.[activeTab]]);
+  }, [activeTab, activeTab ? plan?.moduleActivity?.[activeTab] : null]);
 
   const setRole = async (targetUserId: string, role: "helper" | "member") => {
     try {
@@ -278,7 +279,7 @@ export default function PlanScreen() {
           onPress: async () => {
             try {
               await api.delete(`/plans/${id}/modules/${type}`);
-              setActiveTab("chat");
+              setActiveTab(null);
               await load();
             } catch { /* noop */ }
           },
@@ -344,72 +345,106 @@ export default function PlanScreen() {
         </View>
       </View>
 
-      {/* RSVP */}
-      <View style={styles.rsvpRow}>
-        {([
-          { v: "yes", label: "I'm in", icon: "checkmark-circle-outline" as ModIcon, color: colors.teal },
-          { v: "maybe", label: "Maybe", icon: "help-circle-outline" as ModIcon, color: "#F0A72B" },
-          { v: "no", label: "Can't", icon: "close-circle-outline" as ModIcon, color: colors.danger },
-        ]).map(({ v, label, icon, color }) => {
-          const active = myRsvp === v;
-          return (
-            <TouchableOpacity
-              key={v}
-              style={[styles.rsvpBtn, active && { borderColor: color, backgroundColor: `${color}18` }]}
-              onPress={() => rsvp(v)}
-            >
-              <Ionicons name={icon} size={15} color={active ? color : colors.muted} />
-              <Text style={[styles.rsvpText, active && { color: colors.ink }]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Module tabs */}
-      <View style={styles.tabBarWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "chat" && styles.tabActive]}
-            onPress={() => setActiveTab("chat")}
-          >
-            <Ionicons
-              name="chatbubble-outline"
-              size={13}
-              color={activeTab === "chat" ? colors.onOrange : colors.muted}
-            />
-            <Text style={[styles.tabText, activeTab === "chat" && styles.tabTextActive]}>Chat</Text>
-            {isUnseen("chat") && <View style={styles.tabDot} />}
-          </TouchableOpacity>
-          {enabledModules.map((m) => {
-            const info = MODULE_CATALOG.find((c) => c.type === m.type);
-            const active = activeTab === m.type;
+      {/* RSVP — only on the module grid */}
+      {activeTab === null && (
+        <View style={styles.rsvpRow}>
+          {([
+            { v: "yes", label: "I'm in", icon: "checkmark-circle-outline" as ModIcon, color: colors.teal },
+            { v: "maybe", label: "Maybe", icon: "help-circle-outline" as ModIcon, color: "#F0A72B" },
+            { v: "no", label: "Can't", icon: "close-circle-outline" as ModIcon, color: colors.danger },
+          ]).map(({ v, label, icon, color }) => {
+            const active = myRsvp === v;
             return (
               <TouchableOpacity
-                key={m.type}
-                style={[styles.tab, active && styles.tabActive]}
-                onPress={() => setActiveTab(m.type)}
-                onLongPress={canManage ? () => removeModule(m.type) : undefined}
+                key={v}
+                style={[styles.rsvpBtn, active && { borderColor: color, backgroundColor: `${color}18` }]}
+                onPress={() => rsvp(v)}
               >
-                <Ionicons
-                  name={info?.icon ?? "cube-outline"}
-                  size={13}
-                  color={active ? colors.onOrange : colors.muted}
-                />
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>{info?.name}</Text>
-                {isUnseen(m.type) && <View style={styles.tabDot} />}
+                <Ionicons name={icon} size={15} color={active ? color : colors.muted} />
+                <Text style={[styles.rsvpText, active && { color: colors.ink }]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
-          {canManage && (
-            <TouchableOpacity style={styles.tabAdd} onPress={() => setShowAddModule(true)}>
-              <Ionicons name="add" size={19} color={colors.onOrange} />
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-      </View>
+        </View>
+      )}
+
+      {/* Back-to-modules bar when a module is open */}
+      {activeTab !== null && (
+        <View style={styles.moduleBar}>
+          <TouchableOpacity onPress={() => setActiveTab(null)} style={styles.moduleBarBack}>
+            <Ionicons name="chevron-back" size={16} color={colors.teal} />
+            <Ionicons name="grid-outline" size={14} color={colors.teal} />
+            <Text style={styles.moduleBarBackText}>Modules</Text>
+          </TouchableOpacity>
+          <Text style={styles.moduleBarTitle}>
+            {activeTab === "chat" ? "Chat" : MODULE_CATALOG.find((c) => c.type === activeTab)?.name ?? ""}
+          </Text>
+          <View style={{ width: 92 }} />
+        </View>
+      )}
 
       {/* Content */}
-      {activeTab === "chat" ? (
+      {activeTab === null ? (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.gridWrap}>
+          <Text style={styles.gridLabel}>Modules</Text>
+          <View style={styles.grid}>
+            {/* Chat is always first */}
+            <TouchableOpacity style={styles.gridCard} onPress={() => setActiveTab("chat")}>
+              {isUnseen("chat") && <View style={styles.gridDot} />}
+              <View style={[styles.gridIcon, { backgroundColor: colors.orange }]}>
+                <Ionicons name="chatbubble-outline" size={17} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.gridName}>Chat</Text>
+                <Text style={[styles.gridSub, isUnseen("chat") && styles.gridSubNew]} numberOfLines={1}>
+                  {isUnseen("chat") ? "New messages" : "Group chat"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {enabledModules.map((m, i) => {
+              const info = MODULE_CATALOG.find((c) => c.type === m.type);
+              const accent = [colors.teal, colors.petrol, colors.orange][i % 3];
+              const unseen = isUnseen(m.type);
+              return (
+                <TouchableOpacity
+                  key={m.type}
+                  style={styles.gridCard}
+                  onPress={() => setActiveTab(m.type)}
+                  onLongPress={canManage ? () => removeModule(m.type) : undefined}
+                >
+                  {unseen && <View style={styles.gridDot} />}
+                  <View style={[styles.gridIcon, { backgroundColor: accent }]}>
+                    <Ionicons name={info?.icon ?? "cube-outline"} size={17} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.gridName} numberOfLines={1}>{info?.name}</Text>
+                    <Text style={[styles.gridSub, unseen && styles.gridSubNew]} numberOfLines={1}>
+                      {unseen ? "New activity" : info?.desc}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {canManage && (
+              <TouchableOpacity style={[styles.gridCard, styles.gridAddCard]} onPress={() => setShowAddModule(true)}>
+                <View style={[styles.gridIcon, { backgroundColor: colors.orangeSoft }]}>
+                  <Ionicons name="add" size={19} color={colors.orange} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.gridName, { color: colors.orange }]}>Add module</Text>
+                  <Text style={styles.gridSub} numberOfLines={1}>Expand this plan</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+          {canManage && enabledModules.length > 0 && (
+            <Text style={styles.gridHint}>Long-press a module to remove it</Text>
+          )}
+          <View style={{ height: 30 }} />
+        </ScrollView>
+      ) : activeTab === "chat" ? (
         <>
           <FlatList
             ref={listRef}
@@ -770,24 +805,38 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: colors.line,
   },
   rsvpText: { color: colors.muted, fontSize: 12.5, fontFamily: font.semi },
-  tabBarWrap: { borderBottomWidth: 1, borderBottomColor: colors.line },
-  tabBar: { paddingHorizontal: 12, paddingBottom: 10, gap: 8, alignItems: "center" },
-  tab: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: colors.surface, borderRadius: radius.pill,
-    paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: colors.line,
+  moduleBar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.surface,
   },
-  tabActive: { backgroundColor: colors.orange, borderColor: colors.orange, ...shadow.orange },
-  tabText: { color: colors.muted, fontSize: 12.5, fontFamily: font.semi },
-  tabTextActive: { color: colors.onOrange },
-  tabAdd: {
-    backgroundColor: colors.orange, borderRadius: radius.pill, width: 34, height: 34,
-    alignItems: "center", justifyContent: "center", ...shadow.orange,
+  moduleBarBack: { flexDirection: "row", alignItems: "center", gap: 4, width: 92 },
+  moduleBarBackText: { color: colors.teal, fontSize: 13.5, fontFamily: font.bodySemi },
+  moduleBarTitle: { color: colors.ink, fontSize: 15, fontFamily: font.semi, letterSpacing: -0.2 },
+  gridWrap: { padding: 14, paddingTop: 4 },
+  gridLabel: {
+    fontSize: 11, fontFamily: font.semi, letterSpacing: 1, textTransform: "uppercase",
+    color: colors.muted, marginBottom: 10, marginLeft: 4,
   },
-  tabDot: {
-    position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: 4,
-    backgroundColor: colors.orange, borderWidth: 1.5, borderColor: colors.surface,
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  gridCard: {
+    width: "48.5%", flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 13,
+    marginBottom: 10, borderWidth: 1, borderColor: colors.line, ...shadow.card,
   },
+  gridAddCard: { borderStyle: "dashed", borderColor: colors.orange, shadowOpacity: 0, elevation: 0 },
+  gridIcon: {
+    width: 36, height: 36, borderRadius: 11,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  gridName: { color: colors.ink, fontSize: 13, fontFamily: font.semi, letterSpacing: -0.1 },
+  gridSub: { color: colors.muted, fontSize: 10.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  gridSubNew: { color: colors.orange, fontFamily: font.bodySemi },
+  gridDot: {
+    position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: 4,
+    backgroundColor: colors.orange, zIndex: 1,
+  },
+  gridHint: { color: colors.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 6 },
   chat: { flex: 1, paddingHorizontal: 12, paddingTop: 8 },
   msgRow: { flexDirection: "row", alignItems: "flex-end", gap: 7, marginBottom: 8, maxWidth: "84%" },
   msgRowMine: { alignSelf: "flex-end", flexDirection: "row-reverse" },
