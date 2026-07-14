@@ -24,7 +24,7 @@ export default function MeetupMap({ members }: { members: MapMember[] }) {
             coordinate={{ latitude: m.lat, longitude: m.lng }}
             title={m.name}
             description={m.statusLabel}
-            pinColor={m.isMe ? "#6366f1" : "#ef4444"}
+            pinColor={m.isMe ? "#F77F00" : "#0892A5"}
           />
         ))}
       </MapView>
