@@ -4,10 +4,12 @@ import {
   Platform, Alert,
 } from "react-native";
 import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import MeetupMap from "./MeetupMap"; // resolves to .native.tsx on phone, .tsx on web
+import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Member = {
   rsvp: string;
@@ -19,14 +21,17 @@ type Member = {
   user: { id: string; name: string | null };
 };
 
-const STATUSES = [
-  { key: "home", emoji: "🏠", label: "Not left yet" },
-  { key: "onway", emoji: "🚗", label: "On my way" },
-  { key: "there", emoji: "✅", label: "I'm there" },
-] as const;
+type StatusIcon = "home-outline" | "car-outline" | "checkmark-circle-outline" | "ellipse-outline";
+
+const STATUSES: { key: string; icon: StatusIcon; label: string; color: string }[] = [
+  { key: "home", icon: "home-outline", label: "Not left yet", color: "#5E7688" },
+  { key: "onway", icon: "car-outline", label: "On my way", color: "#F77F00" },
+  { key: "there", icon: "checkmark-circle-outline", label: "I'm there", color: "#0892A5" },
+];
 
 function statusInfo(key: string | undefined) {
-  return STATUSES.find((s) => s.key === key) ?? { key: "none", emoji: "⚪", label: "No status" };
+  return STATUSES.find((s) => s.key === key)
+    ?? { key: "none", icon: "ellipse-outline" as StatusIcon, label: "No status", color: "#8FA6B5" };
 }
 
 // Locations older than 10 minutes are considered stale
@@ -143,14 +148,15 @@ export default function MeetupModule({ planId }: { planId: string }) {
   return (
     <ScrollView
       style={{ flex: 1, padding: 12 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
     >
       {/* Live map (native) / notice (web) */}
       {located.length > 0 ? (
         <MeetupMap members={mapMembers} />
       ) : (
         <View style={styles.mapEmpty}>
-          <Text style={styles.mapEmptyText}>🗺️ No one is sharing location yet</Text>
+          <Ionicons name="map-outline" size={22} color={colors.faint} />
+          <Text style={styles.mapEmptyText}>No one is sharing location yet</Text>
         </View>
       )}
 
@@ -159,32 +165,40 @@ export default function MeetupModule({ planId }: { planId: string }) {
         style={[styles.shareBtn, sharing && styles.shareBtnActive]}
         onPress={sharing ? stopSharing : startSharing}
       >
+        <Ionicons
+          name={sharing ? "stop-circle-outline" : "location-outline"}
+          size={17}
+          color="#fff"
+        />
         <Text style={styles.shareBtnText}>
-          {sharing ? "🔴 Stop sharing my location" : "📍 Share my live location"}
+          {sharing ? "Stop sharing my location" : "Share my live location"}
         </Text>
       </TouchableOpacity>
 
       {/* My status */}
       <Text style={styles.sectionTitle}>Your status</Text>
       <View style={styles.statusRow}>
-        {STATUSES.map((s) => (
-          <TouchableOpacity
-            key={s.key}
-            style={[styles.statusBtn, myStatus === s.key && styles.statusBtnActive]}
-            onPress={() => setStatus(s.key)}
-          >
-            <Text style={styles.statusEmoji}>{s.emoji}</Text>
-            <Text style={[styles.statusLabel, myStatus === s.key && styles.statusLabelActive]}>
-              {s.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {STATUSES.map((s) => {
+          const active = myStatus === s.key;
+          return (
+            <TouchableOpacity
+              key={s.key}
+              style={[styles.statusBtn, active && { borderColor: s.color, backgroundColor: `${s.color}18` }]}
+              onPress={() => setStatus(s.key)}
+            >
+              <Ionicons name={s.icon} size={22} color={active ? s.color : colors.faint} style={{ marginBottom: 6 }} />
+              <Text style={[styles.statusLabel, active && { color: colors.ink }]}>
+                {s.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Summary */}
       <View style={styles.summary}>
         <Text style={styles.summaryText}>
-          ✅ {there} there · 🚗 {onway} on the way · 📍 {located.length} sharing location
+          {there} there · {onway} on the way · {located.length} sharing location
         </Text>
       </View>
 
@@ -196,12 +210,20 @@ export default function MeetupModule({ planId }: { planId: string }) {
         const hasLoc = m.lat != null && isFresh(m.locationAt);
         return (
           <View key={m.user.id} style={styles.memberRow}>
-            <Text style={styles.memberEmoji}>{info.emoji}</Text>
+            <View style={[styles.memberAvatar, { backgroundColor: userColor(m.user.id) }]}>
+              <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>{isMe ? "You" : m.user.name ?? "?"}</Text>
-              {hasLoc && <Text style={styles.memberLoc}>📍 sharing live location</Text>}
+              {hasLoc && (
+                <View style={styles.memberLocRow}>
+                  <Ionicons name="location" size={11} color={colors.teal} />
+                  <Text style={styles.memberLoc}>sharing live location</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.memberStatus}>{info.label}</Text>
+            <Ionicons name={info.icon} size={16} color={info.color} style={{ marginRight: 6 }} />
+            <Text style={[styles.memberStatus, { color: info.color }]}>{info.label}</Text>
           </View>
         );
       })}
@@ -211,28 +233,43 @@ export default function MeetupModule({ planId }: { planId: string }) {
 }
 
 const styles = StyleSheet.create({
-  mapWrap: { borderRadius: 16, overflow: "hidden", marginBottom: 12 },
+  mapWrap: { borderRadius: radius.lg, overflow: "hidden", marginBottom: 12 },
   map: { width: "100%", height: 260 },
-  mapEmpty: { backgroundColor: "#1e293b", borderRadius: 16, padding: 24, alignItems: "center", marginBottom: 12 },
-  mapEmptyText: { color: "#64748b", fontSize: 14 },
-  shareBtn: { backgroundColor: "#312e81", borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 16 },
-  shareBtnActive: { backgroundColor: "#450a0a" },
-  shareBtnText: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
-  sectionTitle: { color: "#94a3b8", fontSize: 14, fontWeight: "700", marginBottom: 10, marginTop: 8 },
+  mapEmpty: {
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 24,
+    alignItems: "center", marginBottom: 12, gap: 6, borderWidth: 1, borderColor: colors.line,
+  },
+  mapEmptyText: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium },
+  shareBtn: {
+    flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7,
+    backgroundColor: colors.teal, borderRadius: radius.md, padding: 14,
+    marginBottom: 16, ...shadow.card,
+  },
+  shareBtnActive: { backgroundColor: colors.danger },
+  shareBtnText: { color: "#fff", fontSize: 14, fontFamily: font.semi },
+  sectionTitle: {
+    color: colors.muted, fontSize: 11, fontFamily: font.semi, letterSpacing: 1,
+    textTransform: "uppercase", marginBottom: 10, marginTop: 8,
+  },
   statusRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   statusBtn: {
-    flex: 1, backgroundColor: "#1e293b", borderRadius: 16, padding: 14,
-    alignItems: "center", borderWidth: 2, borderColor: "transparent",
+    flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14,
+    alignItems: "center", borderWidth: 1.5, borderColor: colors.line,
   },
-  statusBtnActive: { borderColor: "#6366f1", backgroundColor: "#312e81" },
-  statusEmoji: { fontSize: 26, marginBottom: 6 },
-  statusLabel: { color: "#94a3b8", fontSize: 12, fontWeight: "600", textAlign: "center" },
-  statusLabelActive: { color: "#ffffff" },
-  summary: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 16 },
-  summaryText: { color: "#e2e8f0", fontSize: 13, fontWeight: "600" },
-  memberRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 14, marginBottom: 8 },
-  memberEmoji: { fontSize: 20, marginRight: 12 },
-  memberName: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  memberLoc: { color: "#22c55e", fontSize: 11, marginTop: 2 },
-  memberStatus: { color: "#64748b", fontSize: 13 },
+  statusLabel: { color: colors.muted, fontSize: 11.5, fontFamily: font.semi, textAlign: "center" },
+  summary: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14,
+    alignItems: "center", marginBottom: 16, borderWidth: 1, borderColor: colors.line,
+  },
+  summaryText: { color: colors.ink, fontSize: 12.5, fontFamily: font.bodySemi },
+  memberRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  memberAvatar: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", marginRight: 11 },
+  memberAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 13 },
+  memberName: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
+  memberLocRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  memberLoc: { color: colors.teal, fontSize: 11, fontFamily: font.bodyMedium },
+  memberStatus: { fontSize: 12, fontFamily: font.bodySemi },
 });

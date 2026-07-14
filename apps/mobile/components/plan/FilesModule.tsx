@@ -6,9 +6,11 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type PlanFile = {
   id: string;
@@ -19,14 +21,14 @@ type PlanFile = {
   createdAt: string;
 };
 
-function fileEmoji(mime: string): string {
-  if (mime.startsWith("image/")) return "🖼️";
-  if (mime.includes("pdf")) return "📄";
-  if (mime.includes("word") || mime.includes("document")) return "📝";
-  if (mime.includes("sheet") || mime.includes("excel")) return "📊";
-  if (mime.startsWith("video/")) return "🎬";
-  if (mime.startsWith("audio/")) return "🎧";
-  return "📎";
+function fileIcon(mime: string): keyof typeof Ionicons.glyphMap {
+  if (mime.startsWith("image/")) return "image-outline";
+  if (mime.includes("pdf")) return "document-text-outline";
+  if (mime.includes("word") || mime.includes("document")) return "create-outline";
+  if (mime.includes("sheet") || mime.includes("excel")) return "grid-outline";
+  if (mime.startsWith("video/")) return "videocam-outline";
+  if (mime.startsWith("audio/")) return "headset-outline";
+  return "attach-outline";
 }
 
 function sizeLabel(bytes: number): string {
@@ -160,11 +162,14 @@ export default function FilesModule({
       style={{ flex: 1, padding: 12 }}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
     >
       {/* Shared notes */}
       <View style={styles.notesHeader}>
-        <Text style={styles.sectionTitle}>📝 Shared notes</Text>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="create-outline" size={16} color={colors.ink} />
+          <Text style={styles.sectionTitle}>Shared notes</Text>
+        </View>
         <Text style={styles.saveState}>
           {notes === savedNotes ? "saved ✓" : "saving..."}
         </Text>
@@ -172,7 +177,7 @@ export default function FilesModule({
       <TextInput
         style={styles.notesInput}
         placeholder="Meeting point, what to bring, reservation numbers..."
-        placeholderTextColor="#475569"
+        placeholderTextColor={colors.faint}
         value={notes}
         onChangeText={onNotesChange}
         multiline
@@ -181,11 +186,19 @@ export default function FilesModule({
 
       {/* Files */}
       <View style={styles.filesHeader}>
-        <Text style={styles.sectionTitle}>📎 Files ({files.length})</Text>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="attach-outline" size={16} color={colors.ink} />
+          <Text style={styles.sectionTitle}>Files ({files.length})</Text>
+        </View>
         <TouchableOpacity style={styles.addBtn} onPress={pickAndUpload} disabled={uploading}>
           {uploading
             ? <ActivityIndicator color="#ffffff" size="small" />
-            : <Text style={styles.addBtnText}>＋ Add</Text>}
+            : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                <Ionicons name="add" size={15} color={colors.onOrange} />
+                <Text style={styles.addBtnText}>Add</Text>
+              </View>
+            )}
         </TouchableOpacity>
       </View>
 
@@ -199,7 +212,9 @@ export default function FilesModule({
             onPress={() => openFile(f)}
             onLongPress={() => deleteFile(f)}
           >
-            <Text style={styles.fileEmoji}>{fileEmoji(f.mime)}</Text>
+            <View style={styles.fileIconWrap}>
+              <Ionicons name={fileIcon(f.mime)} size={18} color={colors.teal} />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
               <Text style={styles.fileMeta}>
@@ -207,8 +222,8 @@ export default function FilesModule({
               </Text>
             </View>
             {opening === f.id
-              ? <ActivityIndicator color="#6366f1" size="small" />
-              : <Text style={styles.fileChevron}>›</Text>}
+              ? <ActivityIndicator color={colors.orange} size="small" />
+              : <Ionicons name="chevron-forward" size={17} color={colors.faint} />}
           </TouchableOpacity>
         ))
       )}
@@ -219,22 +234,31 @@ export default function FilesModule({
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  sectionTitle: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
   notesHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  saveState: { color: "#475569", fontSize: 12 },
+  saveState: { color: colors.faint, fontSize: 11.5, fontFamily: font.bodyMedium },
   notesInput: {
-    backgroundColor: "#1e293b", borderRadius: 16, padding: 16, color: "#ffffff",
-    fontSize: 15, minHeight: 140, marginBottom: 24, borderWidth: 1, borderColor: "#334155",
-    lineHeight: 22,
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, color: colors.ink,
+    fontSize: 14, fontFamily: font.bodyMedium, minHeight: 140, marginBottom: 24,
+    borderWidth: 1, borderColor: colors.line, lineHeight: 22,
   },
   filesHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  addBtn: { backgroundColor: "#6366f1", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, minWidth: 64, alignItems: "center" },
-  addBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 14 },
-  empty: { color: "#475569", fontSize: 14, textAlign: "center", marginVertical: 20 },
-  fileRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 14, marginBottom: 8 },
-  fileEmoji: { fontSize: 24, marginRight: 12 },
-  fileName: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
-  fileMeta: { color: "#64748b", fontSize: 12, marginTop: 2 },
-  fileChevron: { color: "#475569", fontSize: 20 },
-  hint: { color: "#475569", fontSize: 12, textAlign: "center", marginTop: 12 },
+  addBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.md, paddingHorizontal: 14,
+    paddingVertical: 8, minWidth: 64, alignItems: "center", ...shadow.orange,
+  },
+  addBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 13 },
+  empty: { color: colors.faint, fontSize: 13.5, fontFamily: font.body, textAlign: "center", marginVertical: 20 },
+  fileRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  fileIconWrap: {
+    width: 38, height: 38, borderRadius: 12, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  fileName: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
+  fileMeta: { color: colors.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
+  hint: { color: colors.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 12 },
 });
