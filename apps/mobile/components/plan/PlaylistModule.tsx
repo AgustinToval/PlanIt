@@ -4,9 +4,11 @@ import {
   Alert, RefreshControl, Modal, Linking, KeyboardAvoidingView, Platform,
   Keyboard, TouchableWithoutFeedback,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
+import { colors, font, radius, shadow } from "../../lib/theme";
 
 type Song = {
   id: string;
@@ -106,11 +108,13 @@ export default function PlaylistModule({
         style={{ flex: 1, padding: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
       >
         {songs.length === 0 && (
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🎵</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="musical-notes-outline" size={38} color={colors.teal} />
+            </View>
             <Text style={styles.emptyText}>No songs yet</Text>
             <Text style={styles.emptySub}>Paste a Spotify or YouTube Music link to start the vibe</Text>
           </View>
@@ -124,7 +128,7 @@ export default function PlaylistModule({
               onLongPress={() => deleteSong(song)}
             >
               <View style={styles.songTitleRow}>
-                <Text style={styles.sourceIcon}>{song.source === "spotify" ? "🟢" : "🔴"}</Text>
+                <View style={[styles.sourceDot, { backgroundColor: song.source === "spotify" ? "#1DB954" : "#E05252" }]} />
                 <Text style={styles.songTitle} numberOfLines={1}>{song.title}</Text>
               </View>
               {song.artist ? <Text style={styles.songArtist}>{song.artist}</Text> : null}
@@ -134,12 +138,12 @@ export default function PlaylistModule({
             </TouchableOpacity>
 
             <View style={styles.voteBox}>
-              <TouchableOpacity onPress={() => vote(song, 1)}>
-                <Text style={[styles.arrow, song.myVote === 1 && styles.arrowUp]}>▲</Text>
+              <TouchableOpacity onPress={() => vote(song, 1)} style={{ padding: 2 }}>
+                <Ionicons name="chevron-up" size={18} color={song.myVote === 1 ? colors.teal : colors.faint} />
               </TouchableOpacity>
               <Text style={styles.score}>{song.score}</Text>
-              <TouchableOpacity onPress={() => vote(song, -1)}>
-                <Text style={[styles.arrow, song.myVote === -1 && styles.arrowDown]}>▼</Text>
+              <TouchableOpacity onPress={() => vote(song, -1)} style={{ padding: 2 }}>
+                <Ionicons name="chevron-down" size={18} color={song.myVote === -1 ? colors.danger : colors.faint} />
               </TouchableOpacity>
             </View>
           </View>
@@ -148,7 +152,10 @@ export default function PlaylistModule({
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)}>
-        <Text style={styles.fabText}>＋ Add song</Text>
+        <View style={styles.fabRow}>
+          <Ionicons name="add" size={18} color={colors.onOrange} />
+          <Text style={styles.fabText}>Add song</Text>
+        </View>
       </TouchableOpacity>
 
       {/* Add song modal */}
@@ -160,7 +167,7 @@ export default function PlaylistModule({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add a song</Text>
               <TouchableOpacity onPress={() => setShowAdd(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
@@ -168,7 +175,7 @@ export default function PlaylistModule({
             <TextInput
               style={styles.input}
               placeholder="https://open.spotify.com/track/..."
-              placeholderTextColor="#475569"
+              placeholderTextColor={colors.faint}
               value={url}
               onChangeText={setUrl}
               autoCapitalize="none"
@@ -179,7 +186,7 @@ export default function PlaylistModule({
             <TextInput
               style={styles.input}
               placeholder="Blinding Lights"
-              placeholderTextColor="#475569"
+              placeholderTextColor={colors.faint}
               value={title}
               onChangeText={setTitle}
             />
@@ -188,13 +195,13 @@ export default function PlaylistModule({
             <TextInput
               style={styles.input}
               placeholder="The Weeknd"
-              placeholderTextColor="#475569"
+              placeholderTextColor={colors.faint}
               value={artist}
               onChangeText={setArtist}
             />
 
             <Text style={styles.hint}>
-              💡 In Spotify or YouTube Music: tap Share → Copy link, then paste it here.
+              In Spotify or YouTube Music: tap Share → Copy link, then paste it here.
             </Text>
 
             <TouchableOpacity
@@ -215,31 +222,49 @@ export default function PlaylistModule({
 
 const styles = StyleSheet.create({
   empty: { alignItems: "center", marginTop: 70 },
-  emptyIcon: { fontSize: 56 },
-  emptyText: { color: "#ffffff", fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySub: { color: "#64748b", fontSize: 14, marginTop: 8, textAlign: "center", paddingHorizontal: 30 },
-  songRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1e293b", borderRadius: 14, padding: 12, marginBottom: 8 },
-  rank: { color: "#475569", fontSize: 14, fontWeight: "800", width: 22 },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySub: {
+    color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
+    textAlign: "center", paddingHorizontal: 30,
+  },
+  songRow: {
+    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  rank: { color: colors.faint, fontSize: 13, fontFamily: font.bodyBold, width: 22 },
   songTitleRow: { flexDirection: "row", alignItems: "center" },
-  sourceIcon: { fontSize: 10, marginRight: 6 },
-  songTitle: { color: "#ffffff", fontSize: 15, fontWeight: "600", flex: 1 },
-  songArtist: { color: "#94a3b8", fontSize: 13, marginTop: 1 },
-  songSource: { color: "#475569", fontSize: 11, marginTop: 2 },
+  sourceDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
+  songTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi, flex: 1 },
+  songArtist: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  songSource: { color: colors.faint, fontSize: 11, fontFamily: font.body, marginTop: 2 },
   voteBox: { alignItems: "center", marginLeft: 8, width: 40 },
-  arrow: { color: "#475569", fontSize: 16, paddingVertical: 2 },
-  arrowUp: { color: "#22c55e" },
-  arrowDown: { color: "#f87171" },
-  score: { color: "#ffffff", fontSize: 14, fontWeight: "800", paddingVertical: 2 },
-  fab: { position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center" },
-  fabText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modal: { backgroundColor: "#0f172a", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  score: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyBold, paddingVertical: 2 },
+  fab: {
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
+  },
+  fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
+  modal: {
+    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 40,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
-  modalClose: { color: "#64748b", fontSize: 20 },
-  label: { color: "#cbd5e1", fontSize: 14, fontWeight: "600", marginBottom: 8 },
-  input: { backgroundColor: "#1e293b", borderRadius: 14, padding: 14, color: "#ffffff", fontSize: 15, marginBottom: 12, borderWidth: 1, borderColor: "#334155" },
-  hint: { color: "#64748b", fontSize: 12, marginBottom: 14, lineHeight: 17 },
-  button: { backgroundColor: "#6366f1", borderRadius: 16, padding: 16, alignItems: "center" },
-  buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  input: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
+    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 12, borderWidth: 1, borderColor: colors.line,
+  },
+  hint: { color: colors.muted, fontSize: 12, fontFamily: font.body, marginBottom: 14, lineHeight: 17 },
+  button: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    alignItems: "center", ...shadow.orange,
+  },
+  buttonText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
 });
