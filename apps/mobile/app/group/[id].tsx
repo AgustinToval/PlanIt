@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  KeyboardAvoidingView, Platform, Modal, Alert, Image,
+  KeyboardAvoidingView, Platform, Modal, Alert, Image, ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,6 +44,9 @@ export default function GroupScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [showInvite, setShowInvite] = useState(false);
+  const [friends, setFriends] = useState<{ id: string; name: string | null; username?: string | null }[]>([]);
+  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
   const {
     listRef, onScroll, onContentSizeChange, scrollToBottom,
     showDown, typingLabel, notifyTyping, stopTyping,
@@ -168,6 +171,24 @@ export default function GroupScreen() {
     shareInvite("group", group.name, group.inviteCode);
   };
 
+  // Invite modal: app friends + share link
+  const openInvite = async () => {
+    setShowInvite(true);
+    try {
+      const res = await api.get("/friends");
+      setFriends(res.data);
+    } catch { /* noop */ }
+  };
+
+  const inviteFriend = async (friendId: string) => {
+    try {
+      await api.post(`/groups/${id}/invite`, { memberIds: [friendId] });
+      setInvitedIds((prev) => new Set(prev).add(friendId));
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not invite");
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -180,7 +201,7 @@ export default function GroupScreen() {
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
-            <TouchableOpacity onPress={doShareInvite} style={styles.inviteRow}>
+            <TouchableOpacity onPress={openInvite} style={styles.inviteRow}>
               <Ionicons name="person-add-outline" size={15} color={colors.teal} />
               <Text style={styles.inviteText}>Invite</Text>
             </TouchableOpacity>
@@ -312,6 +333,65 @@ export default function GroupScreen() {
       </View>
 
       {/* Tapped-user profile */}
+      {/* Invite modal: app friends + share link */}
+      <Modal visible={showInvite} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Invite to {group?.name ?? "group"}</Text>
+              <TouchableOpacity onPress={() => setShowInvite(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.shareLinkBtn}
+              onPress={() => { setShowInvite(false); doShareInvite(); }}
+            >
+              <Ionicons name="link-outline" size={16} color={colors.onOrange} />
+              <Text style={styles.shareLinkText}>Share invite link</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.inviteSectionTitle}>Your friends</Text>
+            <ScrollView style={{ maxHeight: 340 }}>
+              {(() => {
+                const notInGroup = friends.filter(
+                  (f) => !group?.members.some((m) => m.user.id === f.id)
+                );
+                if (friends.length === 0) {
+                  return <Text style={styles.inviteHint}>Add friends from Profile → Friends to invite them here.</Text>;
+                }
+                if (notInGroup.length === 0) {
+                  return <Text style={styles.inviteHint}>All your friends are already in this group.</Text>;
+                }
+                return notInGroup.map((f) => (
+                  <View key={f.id} style={styles.inviteFriendRow}>
+                    <View style={[styles.memberAvatar, { backgroundColor: userColor(f.id) }]}>
+                      <Text style={styles.memberAvatarText}>{(f.name ?? "?")[0]?.toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.inviteFriendName}>{f.name ?? "?"}</Text>
+                      {f.username && <Text style={styles.inviteFriendMeta}>@{f.username}</Text>}
+                    </View>
+                    {invitedIds.has(f.id) ? (
+                      <View style={styles.invitedTagRow}>
+                        <Ionicons name="checkmark" size={13} color={colors.teal} />
+                        <Text style={styles.invitedTag}>Invited</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={styles.inviteBtn} onPress={() => inviteFriend(f.id)}>
+                        <Text style={styles.inviteBtnText}>Invite</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ));
+              })()}
+            </ScrollView>
+            <Text style={styles.inviteHint}>They'll get a notification asking to join.</Text>
+          </View>
+        </View>
+      </Modal>
+
       <UserProfileSheet userId={profileUserId} onClose={() => setProfileUserId(null)} />
 
       {/* Settings modal */}
@@ -390,6 +470,30 @@ const styles = StyleSheet.create({
   backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
   inviteRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   inviteText: { color: colors.teal, fontSize: 14.5, fontFamily: font.bodySemi },
+  shareLinkBtn: {
+    flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7,
+    backgroundColor: colors.orange, borderRadius: radius.md, padding: 13,
+    marginBottom: 14, ...shadow.orange,
+  },
+  shareLinkText: { color: colors.onOrange, fontSize: 14, fontFamily: font.semi },
+  inviteSectionTitle: {
+    color: colors.muted, fontSize: 11, fontFamily: font.semi, letterSpacing: 1,
+    textTransform: "uppercase", marginBottom: 8,
+  },
+  inviteFriendRow: {
+    flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+  },
+  inviteFriendName: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  inviteFriendMeta: { color: colors.muted, fontSize: 12, fontFamily: font.body },
+  invitedTagRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  invitedTag: { color: colors.teal, fontSize: 12.5, fontFamily: font.semi },
+  inviteHint: { color: colors.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", paddingVertical: 10 },
+  inviteBtn: {
+    backgroundColor: colors.tealSoft, borderRadius: radius.sm,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  inviteBtnText: { color: colors.teal, fontSize: 12.5, fontFamily: font.semi },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 11 },
   groupAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   groupAvatarImg: { width: 42, height: 42, borderRadius: 21 },
