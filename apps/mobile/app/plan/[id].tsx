@@ -20,6 +20,7 @@ import AvailabilityHeatmap from "../../components/plan/AvailabilityHeatmap";
 import WalkieTalkieModule from "../../components/plan/WalkieTalkieModule";
 import { shareInvite } from "../../lib/invite";
 import { useChatUx } from "../../hooks/useChatUx";
+import UserProfileSheet from "../../components/UserProfileSheet";
 import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Message = {
@@ -36,6 +37,7 @@ type Plan = {
   id: string;
   title: string;
   type: string;
+  description?: string | null;
   location: string | null;
   startDate: string | null;
   inviteCode: string;
@@ -77,6 +79,7 @@ export default function PlanScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showDates, setShowDates] = useState(false);
   const [showAi, setShowAi] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -149,6 +152,63 @@ export default function PlanScreen() {
       setInvitedIds((prev) => new Set(prev).add(friendId));
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not invite");
+    }
+  };
+
+  // ---- Edit plan (admin/helper) ----
+  const [showEdit, setShowEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editDate, setEditDate] = useState(""); // DD/MM
+  const [editTime, setEditTime] = useState(""); // HH:MM
+  const [editDesc, setEditDesc] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEdit = () => {
+    if (!plan) return;
+    setEditTitle(plan.title);
+    setEditLocation(plan.location ?? "");
+    setEditDesc(plan.description ?? "");
+    if (plan.startDate) {
+      const d = new Date(plan.startDate);
+      setEditDate(`${d.getDate()}/${d.getMonth() + 1}`);
+      setEditTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+    } else {
+      setEditDate("");
+      setEditTime("");
+    }
+    setShowSettings(false);
+    setShowEdit(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editTitle.trim()) return;
+    setSavingEdit(true);
+    try {
+      let startDate: string | undefined;
+      const dm = editDate.trim().match(/^(\d{1,2})\/(\d{1,2})$/); // DD/MM
+      if (dm) {
+        const day = dm[1]!.padStart(2, "0");
+        const month = dm[2]!.padStart(2, "0");
+        const now = new Date();
+        let year = now.getFullYear();
+        const candidate = new Date(`${year}-${month}-${day}T23:59:59`);
+        if (candidate.getTime() < now.getTime()) year += 1;
+        const hhmm = /^\d{1,2}:\d{2}$/.test(editTime.trim()) ? editTime.trim().padStart(5, "0") : "00:00";
+        startDate = `${year}-${month}-${day}T${hhmm}:00`;
+      }
+      await api.patch(`/plans/${id}`, {
+        title: editTitle.trim(),
+        description: editDesc.trim() || undefined,
+        location: editLocation.trim() || undefined,
+        ...(startDate ? { startDate } : {}),
+      });
+      setShowEdit(false);
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not update the plan");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -473,12 +533,18 @@ export default function PlanScreen() {
               return (
                 <View style={[styles.msgRow, mine && styles.msgRowMine]}>
                   {!mine && (
-                    <View style={[styles.msgAvatar, { backgroundColor: color }]}>
-                      <Text style={styles.msgAvatarText}>{chatName(item.user)[0]?.toUpperCase()}</Text>
-                    </View>
+                    <TouchableOpacity onPress={() => setProfileUserId(item.user.id)}>
+                      <View style={[styles.msgAvatar, { backgroundColor: color }]}>
+                        <Text style={styles.msgAvatarText}>{chatName(item.user)[0]?.toUpperCase()}</Text>
+                      </View>
+                    </TouchableOpacity>
                   )}
                   <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-                    {!mine && <Text style={[styles.bubbleName, { color }]}>{chatName(item.user)}</Text>}
+                    {!mine && (
+                      <TouchableOpacity onPress={() => setProfileUserId(item.user.id)}>
+                        <Text style={[styles.bubbleName, { color }]}>{chatName(item.user)}</Text>
+                      </TouchableOpacity>
+                    )}
                     <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.content}</Text>
                     <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
                       {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -592,17 +658,22 @@ export default function PlanScreen() {
                   : colors.faint;
                 return (
                   <View key={m.user.id} style={styles.memberRow}>
-                    <View style={[styles.memberAvatar, { backgroundColor: userColor(m.user.id) }]}>
-                      <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.memberName}>
-                        {isMe ? "You" : m.user.name ?? "?"}
-                      </Text>
-                      {m.role !== "member" && (
-                        <Text style={styles.memberRole}>{m.role === "admin" ? "Admin" : "Helper"}</Text>
-                      )}
-                    </View>
+                    <TouchableOpacity
+                      style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+                      onPress={() => { setShowMembers(false); setProfileUserId(m.user.id); }}
+                    >
+                      <View style={[styles.memberAvatar, { backgroundColor: userColor(m.user.id) }]}>
+                        <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.memberName}>
+                          {isMe ? "You" : m.user.name ?? "?"}
+                        </Text>
+                        {m.role !== "member" && (
+                          <Text style={styles.memberRole}>{m.role === "admin" ? "Admin" : "Helper"}</Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
                     <Ionicons name={rsvpIcon} size={18} color={rsvpColor} style={{ marginRight: 8 }} />
                     {isAdmin && !isMe && m.role !== "admin" && (
                       <TouchableOpacity
@@ -737,6 +808,18 @@ export default function PlanScreen() {
               </TouchableOpacity>
             </View>
 
+            {canManage && (
+              <TouchableOpacity style={styles.settingRow} onPress={openEdit}>
+                <View style={styles.settingIconWrap}>
+                  <Ionicons name="pencil-outline" size={18} color={colors.teal} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingText}>Edit plan</Text>
+                  <Text style={styles.settingDesc}>Title, date, location and description</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity style={styles.settingRow} onPress={saveTemplate}>
               <View style={styles.settingIconWrap}>
                 <Ionicons name="documents-outline" size={18} color={colors.teal} />
@@ -772,6 +855,90 @@ export default function PlanScreen() {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Tapped-user profile */}
+      <UserProfileSheet userId={profileUserId} onClose={() => setProfileUserId(null)} />
+
+      {/* Edit plan modal */}
+      <Modal visible={showEdit} animationType="slide" transparent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modal, { maxHeight: "88%" }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit plan</Text>
+              <TouchableOpacity onPress={() => setShowEdit(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <Text style={styles.editLabel}>Title</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editTitle}
+                onChangeText={setEditTitle}
+                placeholder="Plan title"
+                placeholderTextColor={colors.faint}
+              />
+
+              <Text style={styles.editLabel}>Location</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editLocation}
+                onChangeText={setEditLocation}
+                placeholder="The park"
+                placeholderTextColor={colors.faint}
+              />
+
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.editLabel}>Date — DD/MM</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editDate}
+                    onChangeText={setEditDate}
+                    placeholder="18/07"
+                    placeholderTextColor={colors.faint}
+                    autoCapitalize="none"
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.editLabel}>Time — HH:MM</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editTime}
+                    onChangeText={setEditTime}
+                    placeholder="18:00"
+                    placeholderTextColor={colors.faint}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.editLabel}>Description</Text>
+              <TextInput
+                style={[styles.editInput, { height: 80 }]}
+                value={editDesc}
+                onChangeText={setEditDesc}
+                placeholder="Bring your boots!"
+                placeholderTextColor={colors.faint}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <TouchableOpacity
+                style={[styles.editSaveBtn, (!editTitle.trim() || savingEdit) && { opacity: 0.5 }]}
+                onPress={saveEdit}
+                disabled={!editTitle.trim() || savingEdit}
+              >
+                <Text style={styles.editSaveText}>{savingEdit ? "..." : "Save changes"}</Text>
+              </TouchableOpacity>
+              <View style={{ height: 12 }} />
+            </ScrollView>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Add module modal */}
@@ -987,4 +1154,14 @@ const styles = StyleSheet.create({
   },
   settingText: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
   settingDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  editLabel: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  editInput: {
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
+    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: colors.line,
+  },
+  editSaveBtn: {
+    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    alignItems: "center", marginTop: 4, ...shadow.orange,
+  },
+  editSaveText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
 });

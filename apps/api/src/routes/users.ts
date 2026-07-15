@@ -120,6 +120,73 @@ router.get("/search", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/users/profile/:id — public profile of someone you can actually see:
+// a friend, or a person who shares a plan or group with you. Includes the
+// friendship state so the UI knows which action to offer. Never exposes email.
+router.get("/profile/:id", authMiddleware, async (req: Request, res: Response) => {
+  const targetId = String(req.params["id"]);
+  try {
+    if (targetId === req.userId) {
+      // own profile: reuse the public shape
+      const me = await prisma.user.findUnique({
+        where: { id: targetId },
+        select: {
+          id: true, name: true, username: true, tag: true, avatar: true,
+          bio: true, location: true, createdAt: true,
+          _count: { select: { planMembers: true, groupMembers: true, photos: true } },
+        },
+      });
+      return res.json({ ...me, friendship: "self" });
+    }
+
+    const [friendship, sharedPlan, sharedGroup] = await Promise.all([
+      prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { userId: req.userId, friendId: targetId },
+            { userId: targetId, friendId: req.userId },
+          ],
+        },
+      }),
+      prisma.planMember.findFirst({
+        where: {
+          userId: targetId, status: "member",
+          plan: { members: { some: { userId: req.userId, status: "member" } } },
+        },
+      }),
+      prisma.groupMember.findFirst({
+        where: {
+          userId: targetId, status: "member",
+          group: { members: { some: { userId: req.userId, status: "member" } } },
+        },
+      }),
+    ]);
+
+    if (!friendship && !sharedPlan && !sharedGroup) {
+      return res.status(403).json({ error: "You can only view people you share a plan, group or friendship with" });
+    }
+
+    const profile = await prisma.user.findUnique({
+      where: { id: targetId },
+      select: {
+        id: true, name: true, username: true, tag: true, avatar: true,
+        bio: true, location: true, createdAt: true,
+        _count: { select: { planMembers: true, groupMembers: true, photos: true } },
+      },
+    });
+    if (!profile) return res.status(404).json({ error: "User not found" });
+
+    const state =
+      !friendship ? "none" :
+      friendship.status === "accepted" ? "friends" :
+      friendship.userId === req.userId ? "sent" : "incoming";
+
+    res.json({ ...profile, friendship: state });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+
 // GET user by username (public profile) — first match; disambiguate with ?tag=
 router.get("/:username", authMiddleware, async (req: Request, res: Response) => {
   const username = String(req.params["username"]);

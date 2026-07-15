@@ -10,6 +10,7 @@ import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { shareInvite } from "../../lib/invite";
 import { useChatUx } from "../../hooks/useChatUx";
+import UserProfileSheet from "../../components/UserProfileSheet";
 import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 
 type Message = {
@@ -39,6 +40,7 @@ export default function GroupScreen() {
   const [text, setText] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const {
     listRef, onScroll, onContentSizeChange, scrollToBottom,
     showDown, typingLabel, notifyTyping, stopTyping,
@@ -180,7 +182,11 @@ export default function GroupScreen() {
         {showMembers && (
           <View style={styles.memberList}>
             {group?.members.map((m) => (
-              <View key={m.user.id} style={styles.memberRow}>
+              <TouchableOpacity
+                key={m.user.id}
+                style={styles.memberRow}
+                onPress={() => setProfileUserId(m.user.id)}
+              >
                 <View style={[styles.memberAvatar, { backgroundColor: userColor(m.user.id) }]}>
                   <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
                 </View>
@@ -190,7 +196,8 @@ export default function GroupScreen() {
                     <Text style={styles.adminChipText}>admin</Text>
                   </View>
                 )}
-              </View>
+                <Ionicons name="chevron-forward" size={14} color={colors.faint} />
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -214,12 +221,18 @@ export default function GroupScreen() {
           return (
             <View style={[styles.msgRow, mine && styles.msgRowMine]}>
               {!mine && (
-                <View style={[styles.msgAvatar, { backgroundColor: color }]}>
-                  <Text style={styles.msgAvatarText}>{chatName(item.user)[0]?.toUpperCase()}</Text>
-                </View>
+                <TouchableOpacity onPress={() => setProfileUserId(item.user.id)}>
+                  <View style={[styles.msgAvatar, { backgroundColor: color }]}>
+                    <Text style={styles.msgAvatarText}>{chatName(item.user)[0]?.toUpperCase()}</Text>
+                  </View>
+                </TouchableOpacity>
               )}
               <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-                {!mine && <Text style={[styles.bubbleName, { color }]}>{chatName(item.user)}</Text>}
+                {!mine && (
+                  <TouchableOpacity onPress={() => setProfileUserId(item.user.id)}>
+                    <Text style={[styles.bubbleName, { color }]}>{chatName(item.user)}</Text>
+                  </TouchableOpacity>
+                )}
                 <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.content}</Text>
                 <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
                   {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -267,6 +280,9 @@ export default function GroupScreen() {
           <Ionicons name="send" size={17} color={colors.onOrange} />
         </TouchableOpacity>
       </View>
+
+      {/* Tapped-user profile */}
+      <UserProfileSheet userId={profileUserId} onClose={() => setProfileUserId(null)} />
 
       {/* Settings modal */}
       <Modal visible={showSettings} animationType="slide" transparent>

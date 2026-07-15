@@ -18,16 +18,35 @@ export function randomTag(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 }
 
-// POST /api/auth/register — email + password signup
+// POST /api/auth/register — email + password signup. Username is REQUIRED:
+// everyone starts with their username#tag identity already created.
 router.post("/register", async (req: Request, res: Response) => {
-  const { email, name, password } = req.body as { email?: string; name?: string; password?: string };
+  const { email, name, password, username } = req.body as {
+    email?: string; name?: string; password?: string; username?: string;
+  };
   if (!email || !/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ error: "Valid email is required" });
   if (!password || password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
   if (!name?.trim()) return res.status(400).json({ error: "Name is required" });
 
+  const cleanUsername = username?.trim().toLowerCase() ?? "";
+  if (!/^[a-z0-9_.]{3,20}$/.test(cleanUsername)) {
+    return res.status(400).json({ error: "Username must be 3-20 characters (letters, numbers, _ or .)" });
+  }
+
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
     const hash = await bcrypt.hash(password, 10);
+
+    // Pick a tag that doesn't collide with this username
+    let tag = randomTag();
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const clash = await prisma.user.findFirst({
+        where: { username: cleanUsername, tag },
+        select: { id: true },
+      });
+      if (!clash) break;
+      tag = randomTag();
+    }
 
     if (existing) {
       if (existing.password) {
@@ -36,13 +55,13 @@ router.post("/register", async (req: Request, res: Response) => {
       // Account created before passwords existed (dev login era): claim it.
       const user = await prisma.user.update({
         where: { id: existing.id },
-        data: { password: hash, name: existing.name ?? name.trim() },
+        data: { password: hash, name: existing.name ?? name.trim(), username: cleanUsername, tag },
       });
       return res.json({ token: issueToken(user.id), user: sanitize(user) });
     }
 
     const user = await prisma.user.create({
-      data: { email, name: name.trim(), password: hash, tag: randomTag() },
+      data: { email, name: name.trim(), password: hash, username: cleanUsername, tag },
     });
     res.status(201).json({ token: issueToken(user.id), user: sanitize(user) });
   } catch (e) {

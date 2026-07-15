@@ -23,8 +23,10 @@ Pedidos del 2026-07-14. Orden de trabajo acordado: **remake visual primero**, de
 - [x] Username ÚNICO con código `#` (ej: agus#4821) asignado al crear la cuenta. (2026-07-15: par username+tag único estilo Discord; el chat muestra el username SIN el #tag)
 - [x] Buscar amigos por username → resultados en vivo con foto y username#código. (2026-07-15: GET /users/search + UI en Friends)
 - [x] Privacidad: el mail de cada usuario lo ve SOLO el dueño de la cuenta. (2026-07-15: eliminado de perfiles y búsqueda)
-- [ ] Perfil público tocable: clic en el nombre de alguien en el chat o en la lista de miembros (plan o grupo) → ver su perfil (foto, username#, descripción) + botón "Agregar como amigo".
-- [ ] Agregar amigos desde dentro de un plan/grupo (no solo por link).
+- [x] Perfil público tocable: clic en nombre/avatar en el chat o miembros (plan y grupo) → perfil con foto, username#, bio + botón "Add friend". (2026-07-15: GET /users/profile/:id con gate de privacidad — solo gente que compartís plan/grupo/amistad)
+- [x] Agregar amigos desde dentro de un plan/grupo. (2026-07-15: via el perfil tocable)
+- [x] Username OBLIGATORIO al registrarse — todos entran con su username#código ya creado. (2026-07-15)
+- [x] Editar datos de un plan ya creado (título, fecha, hora, ubicación, descripción) — admin/helper, desde settings del plan. (2026-07-15: el PATCH ya existía; se agregó la UI)
 - [ ] Grupos: poder agregar amigos de la app una vez creado el grupo (como en planes) → le llega notificación preguntando si quiere unirse.
 
 ## D. Chat UX (estilo WhatsApp)

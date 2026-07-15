@@ -10,18 +10,20 @@ export default function SignInScreen() {
   const { signIn, signUp, loading, error, clearError } = useAuthStore();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const emailOk = /\S+@\S+\.\S+/.test(email);
+  const usernameOk = /^[a-z0-9_.]{3,20}$/.test(username);
   const canSubmit =
     emailOk &&
     password.length >= (mode === "register" ? 8 : 1) &&
-    (mode === "login" || name.trim().length > 0);
+    (mode === "login" || (name.trim().length > 0 && usernameOk));
 
   const submit = () => {
     if (mode === "login") signIn(email.trim(), password);
-    else signUp(name.trim(), email.trim(), password);
+    else signUp(name.trim(), username, email.trim(), password);
   };
 
   const switchMode = () => {
@@ -57,6 +59,20 @@ export default function SignInScreen() {
                 onChangeText={setName}
                 autoCapitalize="words"
               />
+
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="agus"
+                placeholderTextColor={colors.faint}
+                value={username}
+                onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.usernameHint}>
+                You'll get a unique code like {username || "agus"}#4821 so friends can find you.
+              </Text>
             </>
           )}
 
@@ -119,6 +135,10 @@ const styles = StyleSheet.create({
     textAlign: "center", marginTop: 10, lineHeight: 23,
   },
   label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  usernameHint: {
+    color: colors.faint, fontSize: 12, fontFamily: font.body,
+    marginTop: -10, marginBottom: 16,
+  },
   input: {
     backgroundColor: colors.surface, borderRadius: radius.md, padding: 16, color: colors.ink,
     fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: colors.line,
