@@ -176,7 +176,7 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
         checkItems: true,
         expenses: { include: { splits: true, payer: { select: { id: true, name: true } } } },
         messages: {
-          include: { user: { select: { id: true, name: true, avatar: true } } },
+          include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
           take: 100,
           orderBy: { createdAt: "asc" },
         },

@@ -15,7 +15,7 @@ router.get("/plan/:planId", authMiddleware, async (req: Request, res: Response) 
         planId,
         plan: { members: { some: { userId: req.userId, status: "member" } } },
       },
-      include: { user: { select: { id: true, name: true, avatar: true } } },
+      include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
       orderBy: { createdAt: "asc" },
       take: 100,
     });
@@ -34,7 +34,7 @@ router.get("/group/:groupId", authMiddleware, async (req: Request, res: Response
         groupId,
         group: { members: { some: { userId: req.userId, status: "member" } } },
       },
-      include: { user: { select: { id: true, name: true, avatar: true } } },
+      include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
       orderBy: { createdAt: "asc" },
       take: 100,
     });
@@ -58,7 +58,7 @@ router.post("/group/:groupId", authMiddleware, async (req: Request, res: Respons
 
     const message = await prisma.message.create({
       data: { content: content.trim(), groupId, userId: req.userId! },
-      include: { user: { select: { id: true, name: true, avatar: true } } },
+      include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
     });
 
     io.to(`group:${groupId}`).emit("message:new", message);
@@ -83,7 +83,7 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
 
     const message = await prisma.message.create({
       data: { content: content.trim(), planId, userId: req.userId! },
-      include: { user: { select: { id: true, name: true, avatar: true } } },
+      include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
     });
 
     io.to(`plan:${planId}`).emit("message:new", message);

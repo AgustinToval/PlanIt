@@ -11,7 +11,10 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   password      String?   // bcrypt hash; null for OAuth-only accounts
-  username      String?   @unique
+  // Discord-style identity: username + 4-digit tag, unique as a PAIR
+  // (two people can both be "agus" with different tags: agus#4821, agus#0193)
+  username      String?
+  tag           String    @default("0000")
   name          String?
   avatar        String?
   bio           String?
@@ -33,6 +36,8 @@ model User {
   templates     PlanTemplate[]
   availability  Availability[]
   voiceClips    VoiceClip[]
+
+  @@unique([username, tag])
 }
 
 model PlanTemplate {

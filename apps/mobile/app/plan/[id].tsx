@@ -26,8 +26,11 @@ type Message = {
   id: string;
   content: string;
   createdAt: string;
-  user: { id: string; name: string | null };
+  user: { id: string; name: string | null; username?: string | null };
 };
+
+// Chat shows the username (without the #tag); falls back to the display name
+const chatName = (u: Message["user"]) => u.username ?? u.name ?? "?";
 
 type Plan = {
   id: string;
@@ -471,11 +474,11 @@ export default function PlanScreen() {
                 <View style={[styles.msgRow, mine && styles.msgRowMine]}>
                   {!mine && (
                     <View style={[styles.msgAvatar, { backgroundColor: color }]}>
-                      <Text style={styles.msgAvatarText}>{(item.user.name ?? "?")[0]?.toUpperCase()}</Text>
+                      <Text style={styles.msgAvatarText}>{chatName(item.user)[0]?.toUpperCase()}</Text>
                     </View>
                   )}
                   <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-                    {!mine && <Text style={[styles.bubbleName, { color }]}>{item.user.name ?? "?"}</Text>}
+                    {!mine && <Text style={[styles.bubbleName, { color }]}>{chatName(item.user)}</Text>}
                     <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.content}</Text>
                     <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
                       {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -846,10 +849,10 @@ const styles = StyleSheet.create({
     fontSize: 11, fontFamily: font.semi, letterSpacing: 1, textTransform: "uppercase",
     color: colors.muted, marginBottom: 10, marginLeft: 4,
   },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  grid: {},
   gridCard: {
-    width: "48.5%", flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 13,
+    width: "100%", flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14,
     marginBottom: 10, borderWidth: 1, borderColor: colors.line, ...shadow.card,
   },
   gridAddCard: { borderStyle: "dashed", borderColor: colors.orange, shadowOpacity: 0, elevation: 0 },

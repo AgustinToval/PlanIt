@@ -1,20 +1,28 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, RefreshControl, Modal,
+  Alert, RefreshControl, Modal, Image,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import { colors, font, radius, shadow, userColor } from "../lib/theme";
 
-type Friend = { id: string; name: string | null; username: string | null; avatar: string | null };
+type Friend = { id: string; name: string | null; username: string | null; tag?: string; avatar: string | null };
 type FriendRequest = { id: string; createdAt: string; from: Friend };
+type SearchResult = {
+  id: string; name: string | null; username: string | null; tag: string;
+  avatar: string | null; bio: string | null;
+};
 type Profile = {
-  id: string; name: string | null; username: string | null; email: string;
+  id: string; name: string | null; username: string | null; tag?: string;
   bio: string | null; location: string | null; createdAt: string;
   _count: { planMembers: number; groupMembers: number; photos: number };
 };
+
+// "@username#1234" display helper
+const handleOf = (u: { username: string | null; tag?: string }) =>
+  u.username ? `@${u.username}${u.tag ? `#${u.tag}` : ""}` : null;
 
 export default function FriendsScreen() {
   const router = useRouter();
@@ -24,6 +32,10 @@ export default function FriendsScreen() {
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = async () => {
     try {
@@ -38,18 +50,37 @@ export default function FriendsScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
-  const addFriend = async () => {
-    const q = query.trim();
-    if (!q) return;
+  // Live search while typing (debounced)
+  const onQueryChange = (text: string) => {
+    setQuery(text);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const q = text.trim();
+    if (q.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
+        setResults(res.data);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+  };
+
+  const addFriendById = async (target: SearchResult) => {
     setBusy(true);
     try {
-      const res = await api.post("/friends", { query: q });
-      setQuery("");
+      const res = await api.post("/friends", { userId: target.id });
+      setSentIds((prev) => new Set(prev).add(target.id));
       await load();
       if (res.data.autoAccepted) {
         Alert.alert("You're now friends", `${res.data.name} had already sent you a request`);
-      } else {
-        Alert.alert("Request sent", `Waiting for ${res.data.name ?? q} to accept`);
       }
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not send request");
@@ -103,28 +134,69 @@ export default function FriendsScreen() {
       <Text style={styles.title}>Friends</Text>
 
       <Text style={styles.label}>Add a friend</Text>
-      <View style={styles.addRow}>
-        <View style={[styles.inputWrap, { flex: 1 }]}>
-          <Ionicons name="search" size={16} color={colors.faint} />
-          <TextInput
-            style={styles.input}
-            placeholder="Their email or username"
-            placeholderTextColor={colors.faint}
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="none"
-            onSubmitEditing={addFriend}
-            returnKeyType="done"
-          />
-        </View>
-        <TouchableOpacity
-          style={[styles.addBtn, (!query.trim() || busy) && { opacity: 0.5 }]}
-          onPress={addFriend}
-          disabled={!query.trim() || busy}
-        >
-          <Text style={styles.addBtnText}>Add</Text>
-        </TouchableOpacity>
+      <View style={styles.inputWrap}>
+        <Ionicons name="search" size={16} color={colors.faint} />
+        <TextInput
+          style={styles.input}
+          placeholder="Search by username (or email)"
+          placeholderTextColor={colors.faint}
+          value={query}
+          onChangeText={onQueryChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {query.length > 0 && (
+          <TouchableOpacity onPress={() => onQueryChange("")}>
+            <Ionicons name="close-circle" size={17} color={colors.faint} />
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Live search results */}
+      {query.trim().length >= 2 && (
+        <View style={{ marginTop: 10 }}>
+          {searching && results.length === 0 ? (
+            <Text style={styles.empty}>Searching…</Text>
+          ) : results.length === 0 ? (
+            <Text style={styles.empty}>No one found — check the username or try their email.</Text>
+          ) : (
+            results.map((r) => {
+              const alreadyFriend = friends.some((f) => f.id === r.id);
+              const sent = sentIds.has(r.id);
+              return (
+                <View key={r.id} style={styles.friendRow}>
+                  {r.avatar ? (
+                    <Image source={{ uri: r.avatar }} style={styles.avatarImg} />
+                  ) : (
+                    <View style={[styles.avatar, { backgroundColor: userColor(r.id) }]}>
+                      <Text style={styles.avatarText}>{(r.name ?? r.username ?? "?")[0]?.toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.friendName}>{r.name ?? r.username ?? "?"}</Text>
+                    {handleOf(r) && <Text style={styles.friendMeta}>{handleOf(r)}</Text>}
+                    {r.bio ? <Text style={styles.friendMeta} numberOfLines={1}>{r.bio}</Text> : null}
+                  </View>
+                  {alreadyFriend ? (
+                    <Text style={styles.sentTag}>Friends ✓</Text>
+                  ) : sent ? (
+                    <Text style={styles.sentTag}>Sent ✓</Text>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.acceptBtn, busy && { opacity: 0.5 }]}
+                      onPress={() => addFriendById(r)}
+                      disabled={busy}
+                    >
+                      <Text style={styles.acceptText}>Add</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })
+          )}
+        </View>
+      )}
 
       {/* Incoming requests */}
       {requests.length > 0 && (
@@ -139,7 +211,7 @@ export default function FriendsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.friendName}>{r.from.name ?? "?"}</Text>
-                {r.from.username && <Text style={styles.friendMeta}>@{r.from.username}</Text>}
+                {handleOf(r.from) && <Text style={styles.friendMeta}>{handleOf(r.from)}</Text>}
               </View>
               <TouchableOpacity style={styles.acceptBtn} onPress={() => respond(r, "accept")}>
                 <Text style={styles.acceptText}>Accept</Text>
@@ -172,7 +244,7 @@ export default function FriendsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.friendName}>{f.name ?? "?"}</Text>
-              {f.username && <Text style={styles.friendMeta}>@{f.username}</Text>}
+              {handleOf(f) && <Text style={styles.friendMeta}>{handleOf(f)}</Text>}
             </View>
             <Ionicons name="chevron-forward" size={17} color={colors.faint} />
           </TouchableOpacity>
@@ -198,7 +270,7 @@ export default function FriendsScreen() {
                     <Text style={styles.bigAvatarText}>{(profile.name ?? "?")[0]?.toUpperCase()}</Text>
                   </View>
                   <Text style={styles.profileName}>{profile.name ?? "?"}</Text>
-                  {profile.username && <Text style={styles.profileUsername}>@{profile.username}</Text>}
+                  {handleOf(profile) && <Text style={styles.profileUsername}>{handleOf(profile)}</Text>}
                   {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
                 </View>
 
@@ -264,7 +336,9 @@ const styles = StyleSheet.create({
   },
   requestRow: { borderColor: colors.orange },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", marginRight: 12 },
+  avatarImg: { width: 42, height: 42, borderRadius: 21, marginRight: 12 },
   avatarText: { color: "#fff", fontFamily: font.title, fontSize: 16 },
+  sentTag: { color: colors.teal, fontSize: 12.5, fontFamily: font.semi, marginRight: 4 },
   friendName: { color: colors.ink, fontSize: 15, fontFamily: font.bodySemi },
   friendMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.body },
   acceptBtn: {

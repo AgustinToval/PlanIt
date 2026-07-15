@@ -40,7 +40,12 @@ export default function ProfileScreen() {
           </View>
         )}
         <Text style={styles.name}>{user?.name ?? "Unknown"}</Text>
-        {user?.username && <Text style={styles.username}>@{user.username}</Text>}
+        {user?.username && (
+          <Text style={styles.username}>
+            @{user.username}
+            {user.tag ? <Text style={styles.usernameTag}>#{user.tag}</Text> : null}
+          </Text>
+        )}
         <Text style={styles.email}>{user?.email ?? ""}</Text>
         {user?.bio && <Text style={styles.bio}>{user.bio}</Text>}
         {user?.location && (
@@ -85,6 +90,7 @@ const styles = StyleSheet.create({
   avatarText: { color: "#fff", fontSize: 34, fontFamily: font.title },
   name: { color: colors.ink, fontSize: 21, fontFamily: font.title, letterSpacing: -0.3 },
   username: { color: colors.teal, fontSize: 14, fontFamily: font.bodySemi, marginTop: 2 },
+  usernameTag: { color: colors.faint, fontFamily: font.bodyMedium },
   email: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 4 },
   bio: {
     color: colors.muted, fontSize: 13.5, fontFamily: font.body, marginTop: 8,

@@ -4,7 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
-const publicUser = { id: true, name: true, username: true, avatar: true } as const;
+const publicUser = { id: true, name: true, username: true, tag: true, avatar: true } as const;
 
 // GET /api/friends — my accepted friends
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
@@ -43,17 +43,27 @@ router.get("/requests", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/friends — send a friend request by email or username
+// POST /api/friends — send a friend request.
+// Preferred: { userId } (from search results). Legacy: { query } as email,
+// username, or "username#1234".
 router.post("/", authMiddleware, async (req: Request, res: Response) => {
-  const { query } = req.body as { query?: string };
+  const { query, userId } = req.body as { query?: string; userId?: string };
   const q = query?.trim();
-  if (!q) return res.status(400).json({ error: "Enter an email or username" });
+  if (!q && !userId) return res.status(400).json({ error: "Enter an email or username" });
 
   try {
-    const target = await prisma.user.findFirst({
-      where: { OR: [{ email: q }, { username: q }] },
-      select: publicUser,
-    });
+    let target = null;
+    if (userId) {
+      target = await prisma.user.findUnique({ where: { id: userId }, select: publicUser });
+    } else if (q) {
+      const tagMatch = q.match(/^(.+)#(\d{4})$/);
+      target = await prisma.user.findFirst({
+        where: tagMatch
+          ? { username: tagMatch[1]!.toLowerCase(), tag: tagMatch[2]! }
+          : { OR: [{ email: q }, { username: q.toLowerCase() }] },
+        select: publicUser,
+      });
+    }
     if (!target) return res.status(404).json({ error: "No user found with that email or username" });
     if (target.id === req.userId) return res.status(400).json({ error: "That's you 🙃" });
 
@@ -129,10 +139,11 @@ router.get("/:friendId/profile", authMiddleware, async (req: Request, res: Respo
     });
     if (!friendship) return res.status(403).json({ error: "You can only view friends' profiles" });
 
+    // Privacy: email is never exposed — only the account owner can see it.
     const profile = await prisma.user.findUnique({
       where: { id: friendId },
       select: {
-        id: true, name: true, username: true, email: true, avatar: true,
+        id: true, name: true, username: true, tag: true, avatar: true,
         bio: true, location: true, createdAt: true,
         _count: { select: { planMembers: true, groupMembers: true, photos: true } },
       },

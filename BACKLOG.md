@@ -20,9 +20,9 @@ Pedidos del 2026-07-14. Orden de trabajo acordado: **remake visual primero**, de
 - [ ] Se creó `.env` en apps/mobile (URL del API en Render). No commitear.
 
 ## C. Social: perfiles, usernames, amigos
-- [ ] Username ÚNICO con código `#` (ej: agus#4821) asignado al crear la cuenta.
-- [ ] Buscar amigos por username (hoy solo funciona por mail) → mostrar resultados coincidentes con foto y username#código.
-- [ ] Privacidad: el mail de cada usuario lo ve SOLO el dueño de la cuenta. Nunca otros.
+- [x] Username ÚNICO con código `#` (ej: agus#4821) asignado al crear la cuenta. (2026-07-15: par username+tag único estilo Discord; el chat muestra el username SIN el #tag)
+- [x] Buscar amigos por username → resultados en vivo con foto y username#código. (2026-07-15: GET /users/search + UI en Friends)
+- [x] Privacidad: el mail de cada usuario lo ve SOLO el dueño de la cuenta. (2026-07-15: eliminado de perfiles y búsqueda)
 - [ ] Perfil público tocable: clic en el nombre de alguien en el chat o en la lista de miembros (plan o grupo) → ver su perfil (foto, username#, descripción) + botón "Agregar como amigo".
 - [ ] Agregar amigos desde dentro de un plan/grupo (no solo por link).
 - [ ] Grupos: poder agregar amigos de la app una vez creado el grupo (como en planes) → le llega notificación preguntando si quiere unirse.

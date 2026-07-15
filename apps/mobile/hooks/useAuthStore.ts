@@ -7,6 +7,7 @@ type User = {
   email: string;
   avatar: string | null;
   username: string | null;
+  tag?: string; // 4-digit discriminator: agus#4821
   bio?: string | null;
   location?: string | null;
 };

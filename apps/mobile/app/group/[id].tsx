@@ -16,8 +16,11 @@ type Message = {
   id: string;
   content: string;
   createdAt: string;
-  user: { id: string; name: string | null };
+  user: { id: string; name: string | null; username?: string | null };
 };
+
+// Chat shows the username (without the #tag); falls back to the display name
+const chatName = (u: Message["user"]) => u.username ?? u.name ?? "?";
 
 type Group = {
   id: string;
@@ -212,11 +215,11 @@ export default function GroupScreen() {
             <View style={[styles.msgRow, mine && styles.msgRowMine]}>
               {!mine && (
                 <View style={[styles.msgAvatar, { backgroundColor: color }]}>
-                  <Text style={styles.msgAvatarText}>{(item.user.name ?? "?")[0]?.toUpperCase()}</Text>
+                  <Text style={styles.msgAvatarText}>{chatName(item.user)[0]?.toUpperCase()}</Text>
                 </View>
               )}
               <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-                {!mine && <Text style={[styles.bubbleName, { color }]}>{item.user.name ?? "?"}</Text>}
+                {!mine && <Text style={[styles.bubbleName, { color }]}>{chatName(item.user)}</Text>}
                 <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.content}</Text>
                 <Text style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
                   {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

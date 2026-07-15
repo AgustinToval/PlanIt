@@ -14,6 +14,10 @@ function sanitize(user: { password?: string | null } & Record<string, unknown>) 
   return safe;
 }
 
+export function randomTag(): string {
+  return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+}
+
 // POST /api/auth/register — email + password signup
 router.post("/register", async (req: Request, res: Response) => {
   const { email, name, password } = req.body as { email?: string; name?: string; password?: string };
@@ -38,7 +42,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     const user = await prisma.user.create({
-      data: { email, name: name.trim(), password: hash },
+      data: { email, name: name.trim(), password: hash, tag: randomTag() },
     });
     res.status(201).json({ token: issueToken(user.id), user: sanitize(user) });
   } catch (e) {
