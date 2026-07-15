@@ -49,8 +49,8 @@ Pedidos del 2026-07-14. Orden de trabajo acordado: **remake visual primero**, de
 
 ## G. Perfil / Configuración
 - [ ] Edit profile → "tap to change photo": sacar foto con cámara O elegir de galería.
-- [ ] Configuración dentro de Perfil: modo oscuro / modo claro.
-- [ ] Configuración: cambiar idioma a Español (i18n ES/EN).
+- [~] Configuración dentro de Perfil: modo oscuro / modo claro. (2026-07-15: toggle + paleta dark listos; pantallas principales convertidas — quedan pantallas secundarias y módulos por convertir a tema dinámico)
+- [~] Configuración: cambiar idioma a Español. (2026-07-15: infra i18n + selector EN/ES; traducidas tabs, Plans, Groups, Calendar, Profile, Sign-in — quedan pantallas secundarias y módulos)
 
 ## H. Playlist
 - [ ] Conectar el módulo playlist directo al servicio de cada uno (Spotify / YouTube Music). Spotify OAuth requiere build nativo.

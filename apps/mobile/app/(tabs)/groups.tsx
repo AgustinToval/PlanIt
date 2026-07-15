@@ -1,10 +1,11 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow, userColor } from "../../lib/theme";
+import { useTheme, useT } from "../../hooks/useSettings";
+import { font, radius, shadow, userColor, Palette } from "../../lib/theme";
 
 type Group = {
   id: string;
@@ -19,6 +20,9 @@ type Group = {
 export default function GroupsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const c = useTheme();
+  const t = useT();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -34,28 +38,28 @@ export default function GroupsScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Groups</Text>
-          <Text style={styles.subtitle}>Your people</Text>
+          <Text style={styles.title}>{t("groups.title")}</Text>
+          <Text style={styles.subtitle}>{t("groups.sub")}</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/create-group")}>
-          <Ionicons name="add" size={17} color={colors.onOrange} />
-          <Text style={styles.addBtnText}>New</Text>
+          <Ionicons name="add" size={17} color={c.onOrange} />
+          <Text style={styles.addBtnText}>{t("groups.new")}</Text>
         </TouchableOpacity>
       </View>
 
       {groups.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="people-outline" size={40} color={colors.teal} />
+            <Ionicons name="people-outline" size={40} color={c.teal} />
           </View>
-          <Text style={styles.emptyText}>No groups yet</Text>
-          <Text style={styles.emptySubtext}>Create one and invite your friends</Text>
+          <Text style={styles.emptyText}>{t("groups.emptyTitle")}</Text>
+          <Text style={styles.emptySubtext}>{t("groups.emptySub")}</Text>
           <TouchableOpacity style={styles.createBtn} onPress={() => router.push("/create-group")}>
-            <Text style={styles.createBtnText}>Create a Group</Text>
+            <Text style={styles.createBtnText}>{t("groups.create")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -77,16 +81,16 @@ export default function GroupsScreen() {
                 <Text style={styles.cardName}>{group.name}</Text>
                 {group.description && <Text style={styles.cardDesc} numberOfLines={1}>{group.description}</Text>}
               </View>
-              <Ionicons name="chevron-forward" size={17} color={colors.faint} />
+              <Ionicons name="chevron-forward" size={17} color={c.faint} />
             </View>
             <View style={styles.cardFooter}>
               <View style={styles.metaItem}>
-                <Ionicons name="people-outline" size={13} color={colors.muted} />
-                <Text style={styles.cardMeta}>{group.members.length} members</Text>
+                <Ionicons name="people-outline" size={13} color={c.muted} />
+                <Text style={styles.cardMeta}>{group.members.length} {t("groups.members")}</Text>
               </View>
               <View style={styles.metaItem}>
-                <Ionicons name="calendar-outline" size={13} color={colors.muted} />
-                <Text style={styles.cardMeta}>{group._count.plans} plans</Text>
+                <Ionicons name="calendar-outline" size={13} color={c.muted} />
+                <Text style={styles.cardMeta}>{group._count.plans} {t("groups.plans")}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -98,31 +102,31 @@ export default function GroupsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 60 },
-  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5 },
-  subtitle: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  title: { fontSize: 25, fontFamily: font.title, color: c.ink, letterSpacing: -0.5 },
+  subtitle: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
   addBtn: {
-    flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: colors.orange,
+    flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: c.orange,
     borderRadius: radius.md, paddingHorizontal: 13, paddingVertical: 10, ...shadow.orange,
   },
-  addBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 14 },
+  addBtnText: { color: c.onOrange, fontFamily: font.semi, fontSize: 14 },
   empty: { alignItems: "center", marginTop: 80 },
   emptyIconWrap: {
-    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    width: 84, height: 84, borderRadius: 26, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
-  emptySubtext: { color: colors.muted, fontSize: 14, fontFamily: font.bodyMedium, marginTop: 8 },
+  emptyText: { color: c.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySubtext: { color: c.muted, fontSize: 14, fontFamily: font.bodyMedium, marginTop: 8 },
   createBtn: {
-    marginTop: 24, backgroundColor: colors.orange, borderRadius: radius.md,
+    marginTop: 24, backgroundColor: c.orange, borderRadius: radius.md,
     paddingHorizontal: 24, paddingVertical: 14, ...shadow.orange,
   },
-  createBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 15 },
+  createBtnText: { color: c.onOrange, fontFamily: font.semi, fontSize: 15 },
   card: {
-    marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.surface, borderRadius: radius.lg,
-    padding: 15, borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    marginHorizontal: 16, marginBottom: 12, backgroundColor: c.surface, borderRadius: radius.lg,
+    padding: 15, borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
   cardTop: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   avatar: {
@@ -132,13 +136,13 @@ const styles = StyleSheet.create({
   avatarImg: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
   avatarText: { color: "#fff", fontSize: 19, fontFamily: font.title },
   cardInfo: { flex: 1 },
-  cardName: { color: colors.ink, fontSize: 16.5, fontFamily: font.semi, letterSpacing: -0.2 },
-  cardDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
-  cardFooter: { flexDirection: "row", gap: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line },
+  cardName: { color: c.ink, fontSize: 16.5, fontFamily: font.semi, letterSpacing: -0.2 },
+  cardDesc: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  cardFooter: { flexDirection: "row", gap: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.line },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
+  cardMeta: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
   unseenDot: {
     position: "absolute", top: 12, right: 12, width: 9, height: 9, borderRadius: 5,
-    backgroundColor: colors.orange, zIndex: 1,
+    backgroundColor: c.orange, zIndex: 1,
   },
 });

@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   KeyboardAvoidingView, Platform, ScrollView,
 } from "react-native";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { useTheme, useT } from "../../hooks/useSettings";
+import { font, radius, shadow, Palette } from "../../lib/theme";
 
 export default function SignInScreen() {
   const { signIn, signUp, loading, error, clearError } = useAuthStore();
+  const c = useTheme();
+  const t = useT();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -40,58 +44,56 @@ export default function SignInScreen() {
         <View style={styles.hero}>
           <Image source={require("../../assets/brand/icon.png")} style={styles.logo} />
           <Text style={styles.title}>
-            Plan<Text style={{ color: colors.orange }}>It</Text>
+            Plan<Text style={{ color: c.orange }}>It</Text>
           </Text>
-          <Text style={styles.subtitle}>
-            Plan anything with your people.{"\n"}All in one place.
-          </Text>
+          <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
         </View>
 
         <View>
           {mode === "register" && (
             <>
-              <Text style={styles.label}>Your name</Text>
+              <Text style={styles.label}>{t("auth.yourName")}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Agustin"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
               />
 
-              <Text style={styles.label}>Username</Text>
+              <Text style={styles.label}>{t("auth.username")}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="agus"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
                 value={username}
-                onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                onChangeText={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               <Text style={styles.usernameHint}>
-                You'll get a unique code like {username || "agus"}#4821 so friends can find you.
+                {t("auth.usernameHint1")} {username || "agus"}#4821 {t("auth.usernameHint2")}
               </Text>
             </>
           )}
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t("auth.email")}</Text>
           <TextInput
             style={styles.input}
             placeholder="you@email.com"
-            placeholderTextColor={colors.faint}
+            placeholderTextColor={c.faint}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
           />
 
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t("auth.password")}</Text>
           <TextInput
             style={styles.input}
-            placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
-            placeholderTextColor={colors.faint}
+            placeholder={mode === "register" ? t("auth.pwPlaceholderNew") : t("auth.pwPlaceholder")}
+            placeholderTextColor={c.faint}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -106,51 +108,49 @@ export default function SignInScreen() {
             disabled={!canSubmit || loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? "..." : mode === "login" ? "Log In" : "Create Account"}
+              {loading ? "..." : mode === "login" ? t("auth.logIn") : t("auth.createAccount")}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={switchMode} style={styles.switchBtn}>
             <Text style={styles.switchText}>
-              {mode === "login"
-                ? "New here? Create an account"
-                : "Already have an account? Log in"}
+              {mode === "login" ? t("auth.switchToRegister") : t("auth.switchToLogin")}
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.hint}>Google Sign-In coming with the app store release</Text>
+          <Text style={styles.hint}>{t("auth.googleSoon")}</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: colors.bg, padding: 32, justifyContent: "center" },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { flexGrow: 1, backgroundColor: c.bg, padding: 32, justifyContent: "center" },
   hero: { alignItems: "center", marginBottom: 36 },
   logo: { width: 84, height: 84, borderRadius: 22, marginBottom: 16, ...shadow.orange },
-  title: { fontSize: 40, fontFamily: font.title, color: colors.ink, letterSpacing: -1 },
+  title: { fontSize: 40, fontFamily: font.title, color: c.ink, letterSpacing: -1 },
   subtitle: {
-    fontSize: 15, fontFamily: font.bodyMedium, color: colors.muted,
+    fontSize: 15, fontFamily: font.bodyMedium, color: c.muted,
     textAlign: "center", marginTop: 10, lineHeight: 23,
   },
-  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  label: { color: c.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   usernameHint: {
-    color: colors.faint, fontSize: 12, fontFamily: font.body,
+    color: c.faint, fontSize: 12, fontFamily: font.body,
     marginTop: -10, marginBottom: 16,
   },
   input: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 16, color: colors.ink,
-    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 16, color: c.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: c.line,
   },
-  error: { color: colors.danger, fontSize: 13, fontFamily: font.bodyMedium, marginBottom: 12, textAlign: "center" },
+  error: { color: c.danger, fontSize: 13, fontFamily: font.bodyMedium, marginBottom: 12, textAlign: "center" },
   button: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 17,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 17,
     alignItems: "center", marginTop: 4, ...shadow.orange,
   },
   buttonDisabled: { backgroundColor: "#F7BF87", shadowOpacity: 0 },
-  buttonText: { color: colors.onOrange, fontSize: 16, fontFamily: font.semi },
+  buttonText: { color: c.onOrange, fontSize: 16, fontFamily: font.semi },
   switchBtn: { marginTop: 18, alignItems: "center" },
-  switchText: { color: colors.teal, fontSize: 14, fontFamily: font.bodySemi },
-  hint: { color: colors.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", marginTop: 20 },
+  switchText: { color: c.teal, fontSize: 14, fontFamily: font.bodySemi },
+  hint: { color: c.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", marginTop: 20 },
 });

@@ -7,6 +7,7 @@ import {
   Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 import { useAuthStore } from "../hooks/useAuthStore";
+import { useSettings, useTheme } from "../hooks/useSettings";
 import { colors, font } from "../lib/theme";
 
 // Branded splash: petrol background, pulsing P-pin logo, then fades out.
@@ -42,6 +43,8 @@ function Splash({ onDone }: { onDone: () => void }) {
 
 export default function RootLayout() {
   const { token, loadToken } = useAuthStore();
+  const { loaded: settingsLoaded, load: loadSettings, theme } = useSettings();
+  const c = useTheme();
   const [splashDone, setSplashDone] = useState(false);
   const [fontsLoaded] = useFonts({
     Poppins_600SemiBold, Poppins_700Bold,
@@ -50,9 +53,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     loadToken();
+    loadSettings();
   }, []);
 
-  if (!fontsLoaded || !splashDone) {
+  if (!fontsLoaded || !splashDone || !settingsLoaded) {
     return (
       <>
         <StatusBar style="light" />
@@ -67,8 +71,8 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
         <Stack.Protected guard={!!token}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="group/[id]" />

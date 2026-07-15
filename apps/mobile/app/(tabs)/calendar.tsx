@@ -5,7 +5,8 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { useSettings, useTheme, useT } from "../../hooks/useSettings";
+import { font, radius, shadow, Palette } from "../../lib/theme";
 
 type Plan = {
   id: string;
@@ -17,8 +18,14 @@ type Plan = {
 
 type AvailEntry = { date: string; status: string };
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+const MONTHS: Record<string, string[]> = {
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  es: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+};
+const WEEKDAYS: Record<string, string[]> = {
+  en: ["M", "T", "W", "T", "F", "S", "S"],
+  es: ["L", "M", "X", "J", "V", "S", "D"],
+};
 
 function ymd(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -30,12 +37,6 @@ const AVAIL_COLORS: Record<string, string> = {
   busy: "#E05252",
 };
 
-const AVAIL_LABELS: Record<string, string> = {
-  free: "Free",
-  maybe: "Maybe",
-  busy: "Busy",
-};
-
 const CYCLE: Record<string, string> = {
   none: "free",
   free: "maybe",
@@ -45,6 +46,11 @@ const CYCLE: Record<string, string> = {
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const c = useTheme();
+  const t = useT();
+  const lang = useSettings((s) => s.lang);
+  const locale = lang === "es" ? "es-ES" : "en-GB";
+  const styles = useMemo(() => makeStyles(c), [c]);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth()); // 0-based
@@ -52,6 +58,12 @@ export default function CalendarScreen() {
   const [avail, setAvail] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<"plans" | "availability">("plans");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const AVAIL_LABELS: Record<string, string> = {
+    free: t("cal.free"),
+    maybe: t("cal.maybe"),
+    busy: t("cal.busy"),
+  };
 
   const monthStart = ymd(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -131,7 +143,7 @@ export default function CalendarScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Calendar</Text>
+        <Text style={styles.title}>{t("cal.title")}</Text>
       </View>
 
       {/* Mode toggle */}
@@ -140,32 +152,32 @@ export default function CalendarScreen() {
           style={[styles.modeBtn, mode === "plans" && styles.modeBtnActive]}
           onPress={() => setMode("plans")}
         >
-          <Ionicons name="calendar-outline" size={14} color={mode === "plans" ? colors.onOrange : colors.muted} />
-          <Text style={[styles.modeText, mode === "plans" && styles.modeTextActive]}>My plans</Text>
+          <Ionicons name="calendar-outline" size={14} color={mode === "plans" ? c.onOrange : c.muted} />
+          <Text style={[styles.modeText, mode === "plans" && styles.modeTextActive]}>{t("cal.myPlans")}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeBtn, mode === "availability" && styles.modeBtnActive]}
           onPress={() => { setSelectedDay(null); setMode("availability"); }}
         >
-          <Ionicons name="time-outline" size={14} color={mode === "availability" ? colors.onOrange : colors.muted} />
-          <Text style={[styles.modeText, mode === "availability" && styles.modeTextActive]}>My availability</Text>
+          <Ionicons name="time-outline" size={14} color={mode === "availability" ? c.onOrange : c.muted} />
+          <Text style={[styles.modeText, mode === "availability" && styles.modeTextActive]}>{t("cal.myAvail")}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Month nav */}
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-          <Ionicons name="chevron-back" size={20} color={colors.teal} />
+          <Ionicons name="chevron-back" size={20} color={c.teal} />
         </TouchableOpacity>
-        <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
+        <Text style={styles.monthTitle}>{MONTHS[lang]![month]} {year}</Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-          <Ionicons name="chevron-forward" size={20} color={colors.teal} />
+          <Ionicons name="chevron-forward" size={20} color={c.teal} />
         </TouchableOpacity>
       </View>
 
       {/* Weekday header */}
       <View style={styles.weekRow}>
-        {WEEKDAYS.map((w, i) => (
+        {WEEKDAYS[lang]!.map((w, i) => (
           <Text key={i} style={styles.weekday}>{w}</Text>
         ))}
       </View>
@@ -209,7 +221,7 @@ export default function CalendarScreen() {
       {/* Legend / helper */}
       {mode === "availability" ? (
         <View style={styles.legend}>
-          <Text style={styles.legendText}>Tap a day to cycle:</Text>
+          <Text style={styles.legendText}>{t("cal.tapCycle")}</Text>
           <View style={styles.legendRow}>
             {(["free", "maybe", "busy"] as const).map((s) => (
               <View key={s} style={styles.legendItem}>
@@ -217,17 +229,15 @@ export default function CalendarScreen() {
                 <Text style={styles.legendText}>{AVAIL_LABELS[s]}</Text>
               </View>
             ))}
-            <Text style={styles.legendText}>→ clear</Text>
+            <Text style={styles.legendText}>{t("cal.clear")}</Text>
           </View>
-          <Text style={styles.legendHint}>
-            Your friends' plans can use this to find the best date for everyone.
-          </Text>
+          <Text style={styles.legendHint}>{t("cal.availHint")}</Text>
         </View>
       ) : (
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendSwatch, { backgroundColor: colors.orange }]} />
-            <Text style={styles.legendText}>Days with plans — tap to see them</Text>
+            <View style={[styles.legendSwatch, { backgroundColor: c.orange }]} />
+            <Text style={styles.legendText}>{t("cal.daysWithPlans")}</Text>
           </View>
         </View>
       )}
@@ -236,10 +246,10 @@ export default function CalendarScreen() {
       {mode === "plans" && selectedDay && (
         <View style={{ paddingHorizontal: 16 }}>
           <Text style={styles.dayTitle}>
-            {new Date(`${selectedDay}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+            {new Date(`${selectedDay}T12:00:00`).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
           </Text>
           {dayPlans.length === 0 ? (
-            <Text style={styles.dayEmpty}>No plans this day</Text>
+            <Text style={styles.dayEmpty}>{t("cal.noPlansDay")}</Text>
           ) : (
             dayPlans.map((p) => (
               <TouchableOpacity key={p.id} style={styles.dayPlan} onPress={() => router.push(`/plan/${p.id}`)}>
@@ -247,7 +257,7 @@ export default function CalendarScreen() {
                   <Ionicons
                     name={p.type === "quick" ? "flash" : "calendar-clear-outline"}
                     size={14}
-                    color={p.type === "quick" ? colors.orange : colors.teal}
+                    color={p.type === "quick" ? c.orange : c.teal}
                   />
                   <Text style={styles.dayPlanTitle}>{p.title}</Text>
                 </View>
@@ -267,58 +277,58 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg },
   header: { padding: 20, paddingTop: 60, paddingBottom: 12 },
-  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5 },
+  title: { fontSize: 25, fontFamily: font.title, color: c.ink, letterSpacing: -0.5 },
   modeRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 14 },
   modeBtn: {
     flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6,
-    backgroundColor: colors.surface, borderRadius: radius.md, paddingVertical: 10,
-    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, paddingVertical: 10,
+    borderWidth: 1, borderColor: c.line,
   },
-  modeBtnActive: { backgroundColor: colors.orange, borderColor: colors.orange, ...shadow.orange },
-  modeText: { color: colors.muted, fontSize: 12.5, fontFamily: font.semi },
-  modeTextActive: { color: colors.onOrange },
+  modeBtnActive: { backgroundColor: c.orange, borderColor: c.orange, ...shadow.orange },
+  modeText: { color: c.muted, fontSize: 12.5, fontFamily: font.semi },
+  modeTextActive: { color: c.onOrange },
   monthNav: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, marginBottom: 10,
   },
   navBtn: {
-    backgroundColor: colors.surface, borderRadius: radius.md, width: 40, height: 40,
-    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, width: 40, height: 40,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.line,
   },
-  monthTitle: { color: colors.ink, fontSize: 17, fontFamily: font.semi, letterSpacing: -0.2 },
+  monthTitle: { color: c.ink, fontSize: 17, fontFamily: font.semi, letterSpacing: -0.2 },
   weekRow: { flexDirection: "row", paddingHorizontal: 12, marginBottom: 4 },
-  weekday: { flex: 1, textAlign: "center", color: colors.faint, fontSize: 11, fontFamily: font.semi },
+  weekday: { flex: 1, textAlign: "center", color: c.faint, fontSize: 11, fontFamily: font.semi },
   grid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 12 },
   cell: {
     width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center",
     borderRadius: radius.md,
   },
-  cellToday: { backgroundColor: colors.tealSoft },
-  cellSelected: { backgroundColor: colors.orange },
-  cellText: { color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium },
-  cellTextToday: { fontFamily: font.bodyBold, color: colors.teal },
-  cellTextSelected: { color: colors.onOrange, fontFamily: font.bodyBold },
-  planDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.orange, marginTop: 3 },
+  cellToday: { backgroundColor: c.tealSoft },
+  cellSelected: { backgroundColor: c.orange },
+  cellText: { color: c.ink, fontSize: 14, fontFamily: font.bodyMedium },
+  cellTextToday: { fontFamily: font.bodyBold, color: c.teal },
+  cellTextSelected: { color: c.onOrange, fontFamily: font.bodyBold },
+  planDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.orange, marginTop: 3 },
   availDot: { width: 6, height: 6, borderRadius: 3, marginTop: 3 },
   legend: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, margin: 16,
-    alignItems: "center", borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, margin: 16,
+    alignItems: "center", borderWidth: 1, borderColor: c.line,
   },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 6 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendSwatch: { width: 10, height: 10, borderRadius: 3 },
-  legendText: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
-  legendHint: { color: colors.faint, fontSize: 12, fontFamily: font.body, marginTop: 8, textAlign: "center" },
-  dayTitle: { color: colors.ink, fontSize: 16, fontFamily: font.semi, marginBottom: 10, letterSpacing: -0.2 },
-  dayEmpty: { color: colors.faint, fontSize: 13.5, fontFamily: font.body },
+  legendText: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
+  legendHint: { color: c.faint, fontSize: 12, fontFamily: font.body, marginTop: 8, textAlign: "center" },
+  dayTitle: { color: c.ink, fontSize: 16, fontFamily: font.semi, marginBottom: 10, letterSpacing: -0.2 },
+  dayEmpty: { color: c.faint, fontSize: 13.5, fontFamily: font.body },
   dayPlan: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginBottom: 8,
-    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
   dayPlanTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dayPlanTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
-  dayPlanMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
+  dayPlanTitle: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  dayPlanMeta: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
 });

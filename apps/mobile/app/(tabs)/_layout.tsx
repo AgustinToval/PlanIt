@@ -1,27 +1,32 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, font } from "../../lib/theme";
+import { useTheme, useT } from "../../hooks/useSettings";
+import { font } from "../../lib/theme";
 
 export default function TabsLayout() {
+  const c = useTheme();
+  const t = useT();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.line,
+          backgroundColor: c.surface,
+          borderTopColor: c.line,
           paddingBottom: 8,
           height: 64,
         },
-        tabBarActiveTintColor: colors.orange,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarActiveTintColor: c.orange,
+        tabBarInactiveTintColor: c.muted,
         tabBarLabelStyle: { fontSize: 11, fontFamily: font.semi },
+        sceneStyle: { backgroundColor: c.bg },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Plans",
+          title: t("tabs.plans"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
           ),
@@ -30,7 +35,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="groups"
         options={{
-          title: "Groups",
+          title: t("tabs.groups"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "people" : "people-outline"} size={22} color={color} />
           ),
@@ -39,7 +44,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: "Calendar",
+          title: t("tabs.calendar"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "calendar" : "calendar-outline"} size={22} color={color} />
           ),
@@ -48,7 +53,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("tabs.profile"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
           ),

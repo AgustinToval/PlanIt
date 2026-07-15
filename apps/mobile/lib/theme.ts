@@ -1,8 +1,12 @@
 // PlanIt design system — official brand identity.
 // Palette: orange #F77F00 · petrol #0B3954 · teal #0892A5 · ice #E8F1F2
 // Type: Poppins (titles) + Montserrat (body). Icons: Ionicons (no emojis).
+//
+// Theming: `lightColors` / `darkColors` share the same shape (Palette).
+// Screens converted to dynamic theming use `useTheme()` from hooks/useSettings;
+// the legacy `colors` export (= light) remains for not-yet-converted screens.
 
-export const colors = {
+const light = {
   // brand
   orange: "#F77F00",
   orangePress: "#DE6F00",
@@ -32,7 +36,29 @@ export const colors = {
   // scrims (over plan banners)
   scrimTop: "rgba(11, 57, 84, 0.18)",
   scrimBottom: "rgba(7, 32, 48, 0.78)",
-} as const;
+};
+
+export type Palette = { [K in keyof typeof light]: string };
+
+export const lightColors: Palette = light;
+
+// Dark theme: deep petrol surfaces, ice text, same brand accents
+export const darkColors: Palette = {
+  ...light,
+  orangeSoft: "rgba(247, 127, 0, 0.20)",
+  tealSoft: "rgba(8, 146, 165, 0.22)",
+  bg: "#092635",
+  surface: "#0F3650",
+  surface2: "#0C3046",
+  line: "#1C4560",
+  ink: "#E8F1F2",
+  muted: "#8FB0C0",
+  faint: "#5E7A8C",
+  dangerSoft: "rgba(224, 82, 82, 0.20)",
+};
+
+// Legacy static palette (light) — used by screens not yet converted to useTheme()
+export const colors: Palette = light;
 
 export const font = {
   // Poppins — titles & UI chrome
