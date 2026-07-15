@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  KeyboardAvoidingView, Platform, Modal, Alert,
+  KeyboardAvoidingView, Platform, Modal, Alert, Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { api } from "../../lib/api";
+import { compressToDataUrl } from "../../lib/images";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { shareInvite } from "../../lib/invite";
@@ -26,6 +28,7 @@ const chatName = (u: Message["user"]) => u.username ?? u.name ?? "?";
 type Group = {
   id: string;
   name: string;
+  photo?: string | null;
   description: string | null;
   inviteCode: string;
   members: { role: string; muted?: boolean; user: { id: string; name: string | null } }[];
@@ -49,6 +52,29 @@ export default function GroupScreen() {
   const myMembership = group?.members.find((m) => m.user.id === user?.id);
   const isAdmin = myMembership?.role === "admin";
   const isMuted = !!myMembership?.muted;
+
+  // Group profile photo (admin): 1:1 crop with native zoom, compressed
+  const pickGroupPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow photo access to set a group photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    try {
+      const dataUrl = await compressToDataUrl(result.assets[0].uri, 512, 0.6);
+      await api.patch(`/groups/${id}`, { photo: dataUrl });
+      setShowSettings(false);
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not set the group photo");
+    }
+  };
 
   const toggleMute = async () => {
     try {
@@ -165,9 +191,13 @@ export default function GroupScreen() {
         </View>
         <TouchableOpacity onPress={() => setShowMembers((v) => !v)}>
           <View style={styles.titleRow}>
-            <View style={[styles.groupAvatar, { backgroundColor: userColor(id ?? "g") }]}>
-              <Text style={styles.groupAvatarText}>{group?.name?.[0]?.toUpperCase() ?? "?"}</Text>
-            </View>
+            {group?.photo ? (
+              <Image source={{ uri: group.photo }} style={styles.groupAvatarImg} />
+            ) : (
+              <View style={[styles.groupAvatar, { backgroundColor: userColor(id ?? "g") }]}>
+                <Text style={styles.groupAvatarText}>{group?.name?.[0]?.toUpperCase() ?? "?"}</Text>
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <Text style={styles.title}>{group?.name ?? "..."}</Text>
@@ -295,6 +325,20 @@ export default function GroupScreen() {
               </TouchableOpacity>
             </View>
 
+            {isAdmin && (
+              <TouchableOpacity style={styles.settingRow} onPress={pickGroupPhoto}>
+                <View style={styles.settingIconWrap}>
+                  <Ionicons name="image-outline" size={18} color={colors.teal} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingText}>
+                    {group?.photo ? "Change group photo" : "Add group photo"}
+                  </Text>
+                  <Text style={styles.settingDesc}>Shown in the groups list and this chat</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity style={styles.settingRow} onPress={toggleMute}>
               <View style={styles.settingIconWrap}>
                 <Ionicons name={isMuted ? "notifications-outline" : "notifications-off-outline"} size={18} color={colors.teal} />
@@ -348,6 +392,7 @@ const styles = StyleSheet.create({
   inviteText: { color: colors.teal, fontSize: 14.5, fontFamily: font.bodySemi },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 11 },
   groupAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  groupAvatarImg: { width: 42, height: 42, borderRadius: 21 },
   groupAvatarText: { color: "#fff", fontFamily: font.title, fontSize: 16 },
   title: { fontSize: 19, fontFamily: font.semi, color: colors.ink, letterSpacing: -0.3 },
   meta: { color: colors.muted, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },

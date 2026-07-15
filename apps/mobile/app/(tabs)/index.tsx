@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Image, ImageBackground } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { api } from "../../lib/api";
 import { colors, font, radius, shadow } from "../../lib/theme";
@@ -11,6 +12,7 @@ type Plan = {
   title: string;
   type: string;
   description?: string | null;
+  bannerImage?: string | null;
   startDate: string | null;
   location: string | null;
   status: string;
@@ -162,6 +164,65 @@ export default function PlansScreen() {
           const total = plan.members.length;
           const unseen = hasUnseen(plan, user?.id);
           const quick = plan.type === "quick";
+
+          // Card with a banner photo: dark scrim keeps the info readable
+          if (plan.bannerImage) {
+            return (
+              <TouchableOpacity
+                key={plan.id}
+                style={styles.bannerCard}
+                onPress={() => router.push(`/plan/${plan.id}`)}
+                onLongPress={() => planActions(plan)}
+              >
+                <ImageBackground
+                  source={{ uri: plan.bannerImage }}
+                  style={styles.bannerBg}
+                  imageStyle={{ borderRadius: 22 }}
+                >
+                  <LinearGradient
+                    colors={["rgba(11,57,84,0.20)", "rgba(7,32,48,0.82)"]}
+                    style={styles.bannerScrim}
+                  >
+                    {unseen && <View style={styles.unseenDot} />}
+                    <View style={styles.cardHeader}>
+                      <View style={styles.bannerChip}>
+                        <Ionicons
+                          name={quick ? "flash" : "calendar-clear-outline"}
+                          size={12}
+                          color="#FFFFFF"
+                        />
+                        <Text style={styles.bannerChipText}>{quick ? "Quick plan" : "Plan"}</Text>
+                      </View>
+                      <Text style={styles.bannerCount}>{yes}/{total} in</Text>
+                    </View>
+                    <Text style={styles.bannerTitle}>{plan.title}</Text>
+                    {!!plan.description && (
+                      <Text style={styles.bannerDesc} numberOfLines={1}>{plan.description}</Text>
+                    )}
+                    <View style={styles.cardMetaRow}>
+                      {plan.startDate && (
+                        <View style={styles.metaItem}>
+                          <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.9)" />
+                          <Text style={styles.bannerMeta}>
+                            {new Date(plan.startDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                            {" · "}
+                            {new Date(plan.startDate).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                          </Text>
+                        </View>
+                      )}
+                      {plan.location && (
+                        <View style={styles.metaItem}>
+                          <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.9)" />
+                          <Text style={styles.bannerMeta} numberOfLines={1}>{plan.location}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+                </ImageBackground>
+              </TouchableOpacity>
+            );
+          }
+
           return (
             <TouchableOpacity
               key={plan.id}
@@ -273,4 +334,24 @@ const styles = StyleSheet.create({
   cardMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 2 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "60%" },
   cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
+  // Banner (photo) cards — white text over a dark petrol scrim
+  bannerCard: {
+    marginHorizontal: 16, marginBottom: 14, borderRadius: 22,
+    overflow: "hidden", ...shadow.card,
+  },
+  bannerBg: { width: "100%" },
+  bannerScrim: { padding: 16, minHeight: 150, justifyContent: "flex-end", borderRadius: 22 },
+  bannerChip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+    backgroundColor: "rgba(255,255,255,0.22)",
+  },
+  bannerChipText: { fontSize: 11.5, fontFamily: font.semi, color: "#FFFFFF" },
+  bannerCount: { color: "#FFFFFF", fontSize: 12.5, fontFamily: font.semi },
+  bannerTitle: {
+    color: "#FFFFFF", fontSize: 18.5, fontFamily: font.title, letterSpacing: -0.2,
+    marginBottom: 4, textShadowColor: "rgba(0,0,0,0.35)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6,
+  },
+  bannerDesc: { color: "rgba(255,255,255,0.88)", fontSize: 12.5, fontFamily: font.body, marginBottom: 6 },
+  bannerMeta: { color: "rgba(255,255,255,0.92)", fontSize: 12.5, fontFamily: font.bodyMedium },
 });

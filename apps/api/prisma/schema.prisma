@@ -122,6 +122,7 @@ model Plan {
   id          String    @id @default(cuid())
   title       String
   description String?
+  bannerImage String?   // compressed data-URL shown behind the plan card
   type        String    @default("full") // full | quick
   status      String    @default("upcoming") // upcoming | active | completed
   startDate   DateTime?

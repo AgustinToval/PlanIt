@@ -68,16 +68,23 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
       include: { user: { select: { id: true, name: true } } },
     });
 
-    // Keep only the last 30 clips per plan to bound storage
+    // Bound storage: keep only the last 30 clips per plan, and nothing older
+    // than 48h (walkie audio is ephemeral by nature).
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
     const old = await prisma.voiceClip.findMany({
       where: { planId },
       orderBy: { createdAt: "desc" },
       skip: 30,
       select: { id: true },
     });
-    if (old.length) {
-      await prisma.voiceClip.deleteMany({ where: { id: { in: old.map((c) => c.id) } } });
-    }
+    await prisma.voiceClip.deleteMany({
+      where: {
+        OR: [
+          ...(old.length ? [{ id: { in: old.map((c) => c.id) } }] : []),
+          { planId, createdAt: { lt: cutoff } },
+        ],
+      },
+    });
 
     // Notify everyone (metadata only — clients fetch the audio to play it)
     io.to(`plan:${planId}`).emit("voice:new", {

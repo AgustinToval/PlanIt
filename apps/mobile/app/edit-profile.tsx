@@ -7,6 +7,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
+import { compressToDataUrl } from "../lib/images";
 import { useAuthStore } from "../hooks/useAuthStore";
 import { colors, font, radius, shadow } from "../lib/theme";
 
@@ -25,15 +26,15 @@ export default function EditProfileScreen() {
   const [newPw, setNewPw] = useState("");
   const [changingPw, setChangingPw] = useState(false);
 
-  const applyPicked = (result: ImagePicker.ImagePickerResult) => {
-    if (result.canceled || !result.assets?.[0]?.base64) return;
-    const asset = result.assets[0];
-    const dataUrl = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
-    if (dataUrl.length > 2_000_000) {
-      Alert.alert("Too large", "That image is too big — try a smaller one.");
-      return;
+  const applyPicked = async (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    try {
+      // resize + JPEG re-encode: avatars end up ~30-80 KB
+      const dataUrl = await compressToDataUrl(result.assets[0].uri, 512, 0.6);
+      setAvatar(dataUrl);
+    } catch {
+      Alert.alert("Error", "Could not process that image.");
     }
-    setAvatar(dataUrl);
   };
 
   const pickFromLibrary = async () => {
@@ -44,12 +45,10 @@ export default function EditProfileScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.4,
-      base64: true,
       allowsEditing: true,
       aspect: [1, 1],
     });
-    applyPicked(result);
+    await applyPicked(result);
   };
 
   const takePhoto = async () => {
@@ -59,12 +58,10 @@ export default function EditProfileScreen() {
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
-      quality: 0.4,
-      base64: true,
       allowsEditing: true,
       aspect: [1, 1],
     });
-    applyPicked(result);
+    await applyPicked(result);
   };
 
   const pickAvatar = () => {

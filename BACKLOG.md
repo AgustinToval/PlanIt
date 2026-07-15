@@ -6,14 +6,15 @@ Pedidos del 2026-07-14. Orden de trabajo acordado: **remake visual primero**, de
 - [ ] Theme central (`apps/mobile/lib/theme.ts`): paleta de marca (#F77F00 / #0B3954 / #0892A5 / #E8F1F2), Poppins + Montserrat, espaciado, sombras.
 - [ ] Eliminar emojis innecesarios en toda la app → íconos de línea (SVG).
 - [ ] Pantalla Plans: cards SIN emojis de módulos. Mostrar solo: tipo (quick/plan), título, fecha/hora, ubicación, descripción (si hay), "X in / Y miembros".
-- [ ] Banner de plan: admin/helper puede subir imagen desde config del plan → aparece de fondo en la card (rectángulo redondeado, foto oscurecida para legibilidad). Al elegir la foto: recortar / zoom con preview de cómo queda.
-- [ ] Foto de perfil de grupo (circular, sin banner).
+- [x] Banner de plan: admin/helper sube imagen desde settings → fondo de la card con scrim oscuro (texto blanco legible). Crop 16:9 nativo con zoom/preview. (2026-07-15)
+- [x] Foto de perfil de grupo (circular): admin desde settings del grupo; se ve en la lista y en el chat. (2026-07-15)
 - [ ] Splash animado con el logo P-pin al abrir la app (antes del login).
 - [ ] Migrar pantalla por pantalla al theme nuevo.
 
 ## B. Almacenamiento / Render (1 GB — optimizar)
 - [ ] Hoy TODO va como base64 a Postgres (avatares, galería, archivos, audios walkie). Con 1 GB eso se agota rápido.
-- [ ] Comprimir imágenes en el cliente antes de subir (resize ~1080px + JPEG ~70%) con expo-image-manipulator.
+- [x] Comprimir imágenes en el cliente antes de subir (expo-image-manipulator). (2026-07-15: avatares 512px, galería 1280px, banners 1200px — ~10x más chico)
+- [x] TTL de audios walkie: máx 30 clips por plan Y nada más viejo que 48 h. (2026-07-15)
 - [ ] Fotos del módulo Gallery: guardarlas LOCALMENTE en el celular de cada uno (no en el server). El server solo coordina metadata/quién compartió.
 - [ ] Límite de tamaño por archivo + limpieza de audios walkie viejos (TTL).
 - [ ] Evaluar mover binarios a un storage gratuito (p.ej. Cloudinary free tier) si no alcanza.

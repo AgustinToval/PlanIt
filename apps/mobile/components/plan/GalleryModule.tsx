@@ -9,6 +9,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
+import { compressToDataUrl } from "../../lib/images";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { colors, font, radius, shadow } from "../../lib/theme";
@@ -59,22 +60,14 @@ export default function GalleryModule({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
-      base64: true,
       allowsMultipleSelection: false,
     });
-    if (result.canceled || !result.assets?.[0]?.base64) return;
-
-    const asset = result.assets[0];
-    const mime = asset.mimeType ?? "image/jpeg";
-    const dataUrl = `data:${mime};base64,${asset.base64}`;
-    if (dataUrl.length > 7_000_000) {
-      Alert.alert("Too large", "That photo is too big — try a smaller one.");
-      return;
-    }
+    if (result.canceled || !result.assets?.[0]?.uri) return;
 
     setUploading(true);
     try {
+      // resize + JPEG re-encode before upload (~10x smaller than raw photos)
+      const dataUrl = await compressToDataUrl(result.assets[0].uri, 1280, 0.55);
       await api.post(`/gallery/plan/${planId}`, { url: dataUrl });
       await load();
     } catch (e: any) {

@@ -5,7 +5,9 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { api } from "../../lib/api";
+import { compressToDataUrl } from "../../lib/images";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import ExpensesModule from "../../components/plan/ExpensesModule";
@@ -38,6 +40,7 @@ type Plan = {
   title: string;
   type: string;
   description?: string | null;
+  bannerImage?: string | null;
   location: string | null;
   startDate: string | null;
   inviteCode: string;
@@ -153,6 +156,51 @@ export default function PlanScreen() {
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not invite");
     }
+  };
+
+  // ---- Banner photo (admin/helper) ----
+  const pickBanner = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow photo access to set a banner.");
+      return;
+    }
+    // 16:9 crop with native zoom/preview, then compressed to ~100-200 KB
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    try {
+      const dataUrl = await compressToDataUrl(result.assets[0].uri, 1200, 0.6);
+      await api.patch(`/plans/${id}`, { bannerImage: dataUrl });
+      setShowSettings(false);
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "Could not set the banner");
+    }
+  };
+
+  const bannerAction = () => {
+    if (!plan?.bannerImage) {
+      pickBanner();
+      return;
+    }
+    Alert.alert("Plan banner", "What do you want to do?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Change photo", onPress: pickBanner },
+      {
+        text: "Remove banner", style: "destructive",
+        onPress: async () => {
+          try {
+            await api.patch(`/plans/${id}`, { bannerImage: null });
+            setShowSettings(false);
+            await load();
+          } catch { /* noop */ }
+        },
+      },
+    ]);
   };
 
   // ---- Edit plan (admin/helper) ----
@@ -816,6 +864,20 @@ export default function PlanScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.settingText}>Edit plan</Text>
                   <Text style={styles.settingDesc}>Title, date, location and description</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {canManage && (
+              <TouchableOpacity style={styles.settingRow} onPress={bannerAction}>
+                <View style={styles.settingIconWrap}>
+                  <Ionicons name="image-outline" size={18} color={colors.teal} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingText}>
+                    {plan?.bannerImage ? "Change banner photo" : "Add banner photo"}
+                  </Text>
+                  <Text style={styles.settingDesc}>Shown behind this plan's card in Plans</Text>
                 </View>
               </TouchableOpacity>
             )}

@@ -247,9 +247,9 @@ router.post("/:id/invite", authMiddleware, async (req: Request, res: Response) =
 // PATCH update plan (admin/helper only)
 router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params["id"]);
-  const { title, description, startDate, endDate, location, status } = req.body as {
+  const { title, description, startDate, endDate, location, status, bannerImage } = req.body as {
     title?: string; description?: string; startDate?: string;
-    endDate?: string; location?: string; status?: string;
+    endDate?: string; location?: string; status?: string; bannerImage?: string | null;
   };
   try {
     const membership = await getPlanMembership(req.userId!, id);
@@ -257,11 +257,16 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
     if (!canManage(membership.role)) {
       return res.status(403).json({ error: "Only the plan admin or helpers can edit the plan" });
     }
+    if (typeof bannerImage === "string" && bannerImage.length > 1_500_000) {
+      return res.status(400).json({ error: "Banner image is too large" });
+    }
 
     const plan = await prisma.plan.update({
       where: { id },
       data: {
         title, description, location, status,
+        // null clears the banner; undefined leaves it untouched
+        ...(bannerImage !== undefined ? { bannerImage } : {}),
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
       },

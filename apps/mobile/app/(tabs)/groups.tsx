@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,7 @@ import { colors, font, radius, shadow, userColor } from "../../lib/theme";
 type Group = {
   id: string;
   name: string;
+  photo?: string | null;
   description: string | null;
   lastActivityAt: string;
   _count: { plans: number };
@@ -65,9 +66,13 @@ export default function GroupsScreen() {
           <TouchableOpacity key={group.id} style={styles.card} onPress={() => router.push(`/group/${group.id}`)}>
             {unseen && <View style={styles.unseenDot} />}
             <View style={styles.cardTop}>
-              <View style={[styles.avatar, { backgroundColor: userColor(group.id) }]}>
-                <Text style={styles.avatarText}>{group.name[0]?.toUpperCase()}</Text>
-              </View>
+              {group.photo ? (
+                <Image source={{ uri: group.photo }} style={styles.avatarImg} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: userColor(group.id) }]}>
+                  <Text style={styles.avatarText}>{group.name[0]?.toUpperCase()}</Text>
+                </View>
+              )}
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName}>{group.name}</Text>
                 {group.description && <Text style={styles.cardDesc} numberOfLines={1}>{group.description}</Text>}
@@ -124,6 +129,7 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24,
     alignItems: "center", justifyContent: "center", marginRight: 12,
   },
+  avatarImg: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
   avatarText: { color: "#fff", fontSize: 19, fontFamily: font.title },
   cardInfo: { flex: 1 },
   cardName: { color: colors.ink, fontSize: 16.5, fontFamily: font.semi, letterSpacing: -0.2 },
