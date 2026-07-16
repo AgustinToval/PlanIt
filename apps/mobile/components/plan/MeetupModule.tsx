@@ -10,7 +10,8 @@ import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import MeetupMap from "./MeetupMap"; // resolves to .native.tsx on phone, .tsx on web
 import { font, radius, shadow, userColor, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
+import type { TKey } from "../../lib/i18n";
 
 type Member = {
   rsvp: string;
@@ -25,14 +26,14 @@ type Member = {
 type StatusIcon = "home-outline" | "car-outline" | "checkmark-circle-outline" | "ellipse-outline";
 
 const STATUSES: { key: string; icon: StatusIcon; label: string; color: string }[] = [
-  { key: "home", icon: "home-outline", label: "Not left yet", color: "#5E7688" },
-  { key: "onway", icon: "car-outline", label: "On my way", color: "#F77F00" },
-  { key: "there", icon: "checkmark-circle-outline", label: "I'm there", color: "#0892A5" },
+  { key: "home", icon: "home-outline", label: "mu.notLeft", color: "#5E7688" },
+  { key: "onway", icon: "car-outline", label: "mu.onWay", color: "#F77F00" },
+  { key: "there", icon: "checkmark-circle-outline", label: "mu.there", color: "#0892A5" },
 ];
 
 function statusInfo(key: string | undefined) {
   return STATUSES.find((s) => s.key === key)
-    ?? { key: "none", icon: "ellipse-outline" as StatusIcon, label: "No status", color: "#8FA6B5" };
+    ?? { key: "none", icon: "ellipse-outline" as StatusIcon, label: "mu.noStatus", color: "#8FA6B5" };
 }
 
 // Locations older than 10 minutes are considered stale
@@ -44,6 +45,7 @@ function isFresh(at: string | null | undefined): boolean {
 export default function MeetupModule({ planId }: { planId: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [members, setMembers] = useState<Member[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,12 +92,12 @@ export default function MeetupModule({ planId }: { planId: string }) {
 
   const startSharing = async () => {
     if (Platform.OS === "web") {
-      Alert.alert("Not on web", "Location sharing works from the phone app.");
+      Alert.alert(t("er.notWeb"), t("er.phoneOnly"));
       return;
     }
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow location access to share where you are.");
+      Alert.alert(t("er.permission"), t("er.locPerm"));
       return;
     }
     setSharing(true);
@@ -141,11 +143,11 @@ export default function MeetupModule({ planId }: { planId: string }) {
 
   const mapMembers = located.map((m) => ({
     id: m.user.id,
-    name: m.user.id === user?.id ? "You" : m.user.name ?? "?",
+    name: m.user.id === user?.id ? t("common.you") : m.user.name ?? "?",
     lat: m.lat!,
     lng: m.lng!,
     isMe: m.user.id === user?.id,
-    statusLabel: statusInfo(m.meetupStatus).label,
+    statusLabel: t(statusInfo(m.meetupStatus).label as TKey),
   }));
 
   return (
@@ -159,7 +161,7 @@ export default function MeetupModule({ planId }: { planId: string }) {
       ) : (
         <View style={styles.mapEmpty}>
           <Ionicons name="map-outline" size={22} color={c.faint} />
-          <Text style={styles.mapEmptyText}>No one is sharing location yet</Text>
+          <Text style={styles.mapEmptyText}>{t("mu.noOne")}</Text>
         </View>
       )}
 
@@ -174,12 +176,12 @@ export default function MeetupModule({ planId }: { planId: string }) {
           color="#fff"
         />
         <Text style={styles.shareBtnText}>
-          {sharing ? "Stop sharing my location" : "Share my live location"}
+          {sharing ? t("mu.stop") : t("mu.share")}
         </Text>
       </TouchableOpacity>
 
       {/* My status */}
-      <Text style={styles.sectionTitle}>Your status</Text>
+      <Text style={styles.sectionTitle}>{t("mu.yourStatus")}</Text>
       <View style={styles.statusRow}>
         {STATUSES.map((s) => {
           const active = myStatus === s.key;
@@ -191,7 +193,7 @@ export default function MeetupModule({ planId }: { planId: string }) {
             >
               <Ionicons name={s.icon} size={22} color={active ? s.color : c.faint} style={{ marginBottom: 6 }} />
               <Text style={[styles.statusLabel, active && { color: c.ink }]}>
-                {s.label}
+                {t(s.label as TKey)}
               </Text>
             </TouchableOpacity>
           );
@@ -201,12 +203,12 @@ export default function MeetupModule({ planId }: { planId: string }) {
       {/* Summary */}
       <View style={styles.summary}>
         <Text style={styles.summaryText}>
-          {there} there · {onway} on the way · {located.length} sharing location
+          {there} {t("mu.thereN")} · {onway} {t("mu.onWayN")} · {located.length} {t("mu.sharingN")}
         </Text>
       </View>
 
       {/* Everyone */}
-      <Text style={styles.sectionTitle}>Who's where</Text>
+      <Text style={styles.sectionTitle}>{t("mu.who")}</Text>
       {members.map((m) => {
         const info = statusInfo(m.meetupStatus);
         const isMe = m.user.id === user?.id;
@@ -217,16 +219,16 @@ export default function MeetupModule({ planId }: { planId: string }) {
               <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.memberName}>{isMe ? "You" : m.user.name ?? "?"}</Text>
+              <Text style={styles.memberName}>{isMe ? t("common.you") : m.user.name ?? "?"}</Text>
               {hasLoc && (
                 <View style={styles.memberLocRow}>
                   <Ionicons name="location" size={11} color={c.teal} />
-                  <Text style={styles.memberLoc}>sharing live location</Text>
+                  <Text style={styles.memberLoc}>{t("mu.sharing")}</Text>
                 </View>
               )}
             </View>
             <Ionicons name={info.icon} size={16} color={info.color} style={{ marginRight: 6 }} />
-            <Text style={[styles.memberStatus, { color: info.color }]}>{info.label}</Text>
+            <Text style={[styles.memberStatus, { color: info.color }]}>{t(info.label as TKey)}</Text>
           </View>
         );
       })}

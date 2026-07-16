@@ -2,7 +2,7 @@
 // The real map lives in MeetupMap.native.tsx.
 import { View, Text, StyleSheet } from "react-native";
 import { font, radius, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 export type MapMember = {
   id: string;
@@ -16,11 +16,12 @@ export type MapMember = {
 export default function MeetupMap({ members }: { members: MapMember[] }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   return (
     <View style={styles.box}>
       <Text style={styles.text}>
-        Live map is available in the phone app
-        {members.length > 0 ? ` — ${members.length} sharing location` : ""}
+        {t("mm.web")}
+        {members.length > 0 ? ` — ${members.length} ${t("mu.sharingN")}` : ""}
       </Text>
     </View>
   );

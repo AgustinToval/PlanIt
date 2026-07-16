@@ -78,13 +78,13 @@ export default function NotificationsScreen() {
           <View style={styles.emptyIconWrap}>
             <Ionicons name="notifications-outline" size={40} color={c.teal} />
           </View>
-          <Text style={styles.emptyText}>You're all caught up</Text>
-          <Text style={styles.emptySub}>Friend requests and invitations will show up here</Text>
+          <Text style={styles.emptyText}>{t("nt.caughtUp")}</Text>
+          <Text style={styles.emptySub}>{t("nt.willShow")}</Text>
         </View>
       )}
 
       {/* Plan invites */}
-      {planInvites.length > 0 && <SectionLabel icon="calendar-outline" text="Plan invitations" />}
+      {planInvites.length > 0 && <SectionLabel icon="calendar-outline" text={t("nt.planInv")} />}
       {planInvites.map((inv) => (
         <View key={inv.id} style={styles.card}>
           <View style={styles.cardTitleRow}>
@@ -92,7 +92,7 @@ export default function NotificationsScreen() {
             <Text style={styles.cardTitle}>{inv.plan.title}</Text>
           </View>
           <Text style={styles.cardMeta}>
-            {inv.invitedBy} invited you · {inv.memberCount} going
+            {inv.invitedBy} {t("nt.invitedYou")} · {inv.memberCount} {t("nt.going")}
             {inv.plan.location ? ` · ${inv.plan.location}` : ""}
           </Text>
           <View style={styles.actions}>
@@ -107,11 +107,11 @@ export default function NotificationsScreen() {
       ))}
 
       {/* Group invites */}
-      {groupInvites.length > 0 && <SectionLabel icon="people-outline" text="Group invitations" />}
+      {groupInvites.length > 0 && <SectionLabel icon="people-outline" text={t("nt.groupInv")} />}
       {groupInvites.map((inv) => (
         <View key={inv.id} style={styles.card}>
           <Text style={styles.cardTitle}>{inv.group.name}</Text>
-          <Text style={styles.cardMeta}>{inv.invitedBy} invited you · {inv.memberCount} members</Text>
+          <Text style={styles.cardMeta}>{inv.invitedBy} {t("nt.invitedYou")} · {inv.memberCount} {t("nt.members")}</Text>
           <View style={styles.actions}>
             <TouchableOpacity style={styles.accept} onPress={() => respondGroup(inv.id, "accept")}>
               <Text style={styles.acceptText}>{t("common.join")}</Text>
@@ -124,7 +124,7 @@ export default function NotificationsScreen() {
       ))}
 
       {/* Friend requests */}
-      {friendReqs.length > 0 && <SectionLabel icon="person-add-outline" text="Friend requests" />}
+      {friendReqs.length > 0 && <SectionLabel icon="person-add-outline" text={t("nt.frReq")} />}
       {friendReqs.map((r) => (
         <View key={r.id} style={styles.card}>
           <Text style={styles.cardTitle}>{r.from.name ?? "?"}</Text>

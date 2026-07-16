@@ -9,7 +9,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Vote = {
   id: string;
@@ -25,6 +25,7 @@ export default function VotesModule({
 }: { planId: string; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [votes, setVotes] = useState<Vote[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,10 +90,10 @@ export default function VotesModule({
 
   const closeVote = (vote: Vote) => {
     if (!canManage) return;
-    Alert.alert("Close vote?", "No more votes will be accepted.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("vo.closeQ"), t("vo.closeMsg"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Close", onPress: async () => {
+        text: t("common.close"), onPress: async () => {
           try { await api.post(`/votes/${vote.id}/close`); await load(); } catch { /* noop */ }
         },
       },
@@ -101,10 +102,10 @@ export default function VotesModule({
 
   const deleteVote = (vote: Vote) => {
     if (!canManage) return;
-    Alert.alert("Delete vote?", vote.question, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("vo.deleteQ"), vote.question, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try { await api.delete(`/votes/${vote.id}`); await load(); } catch { /* noop */ }
         },
@@ -121,7 +122,7 @@ export default function VotesModule({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {votes.length === 0 && (
-          <Text style={styles.empty}>No votes yet — settle a debate!</Text>
+          <Text style={styles.empty}>{t("vo.empty")}</Text>
         )}
         {votes.map((vote) => {
           const totalVotes = Object.keys(vote.results).length;
@@ -139,11 +140,11 @@ export default function VotesModule({
             >
               <View style={styles.voteHeader}>
                 <Text style={styles.question}>{vote.question}</Text>
-                {vote.closed && <Text style={styles.closedBadge}>Closed</Text>}
+                {vote.closed && <Text style={styles.closedBadge}>{t("vo.closed")}</Text>}
               </View>
               <Text style={styles.voteMeta}>
-                {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
-                {myChoice === undefined && !vote.closed ? " · you haven't voted" : ""}
+                {totalVotes} {t("vo.votes")}
+                {myChoice === undefined && !vote.closed ? ` · ${t("vo.notVoted")}` : ""}
               </Text>
 
               {vote.options.map((opt, i) => {
@@ -173,7 +174,7 @@ export default function VotesModule({
 
               {canManage && (
                 <Text style={styles.manageHint}>
-                  {vote.closed ? "Long-press to delete" : "Long-press to close voting"}
+                  {vote.closed ? t("vo.longDel") : t("vo.longClose")}
                 </Text>
               )}
             </TouchableOpacity>
@@ -185,7 +186,7 @@ export default function VotesModule({
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
         <View style={styles.fabRow}>
           <Ionicons name="add" size={18} color={c.onOrange} />
-          <Text style={styles.fabText}>New vote</Text>
+          <Text style={styles.fabText}>{t("vo.new")}</Text>
         </View>
       </TouchableOpacity>
 
@@ -196,27 +197,27 @@ export default function VotesModule({
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New vote</Text>
+              <Text style={styles.modalTitle}>{t("vo.new")}</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.label}>Question</Text>
+            <Text style={styles.label}>{t("vo.q")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Where do we eat?"
+              placeholder={t("vo.qPh")}
               placeholderTextColor={c.faint}
               value={question}
               onChangeText={setQuestion}
             />
 
-            <Text style={styles.label}>Options</Text>
+            <Text style={styles.label}>{t("vo.options")}</Text>
             {options.map((opt, i) => (
               <View key={i} style={styles.optionInputRow}>
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  placeholder={`Option ${i + 1}`}
+                  placeholder={`${t("vo.option")} ${i + 1}`}
                   placeholderTextColor={c.faint}
                   value={opt}
                   onChangeText={(t) => setOptions((prev) => prev.map((o, j) => (j === i ? t : o)))}
@@ -233,7 +234,7 @@ export default function VotesModule({
             ))}
             {options.length < 6 && (
               <TouchableOpacity onPress={() => setOptions((prev) => [...prev, ""])}>
-                <Text style={styles.addOption}>+ Add option</Text>
+                <Text style={styles.addOption}>{t("vo.addOpt")}</Text>
               </TouchableOpacity>
             )}
 
@@ -245,7 +246,7 @@ export default function VotesModule({
               onPress={createVote}
               disabled={busy || !question.trim() || options.filter((o) => o.trim()).length < 2}
             >
-              <Text style={styles.buttonText}>{busy ? "..." : "Create vote"}</Text>
+              <Text style={styles.buttonText}>{busy ? "..." : t("vo.create")}</Text>
             </TouchableOpacity>
           </View>
           </TouchableWithoutFeedback>

@@ -5,12 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../lib/api";
 import { useAuthStore } from "../../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../../lib/theme";
-import { useTheme } from "../../../hooks/useSettings";
+import { useTheme, useT } from "../../../hooks/useSettings";
 
 // Handles deep links like planit://join/plan/<code> and planit://join/group/<code>
 export default function JoinScreen() {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { kind, code } = useLocalSearchParams<{ kind: string; code: string }>();
   const router = useRouter();
   const { token } = useAuthStore();
@@ -44,7 +45,7 @@ export default function JoinScreen() {
       {status === "joining" && (
         <>
           <ActivityIndicator size="large" color={c.orange} />
-          <Text style={styles.text}>Joining {kind === "group" ? "group" : "plan"}...</Text>
+          <Text style={styles.text}>{t("jn.joining")}</Text>
         </>
       )}
       {status === "done" && (
@@ -52,7 +53,7 @@ export default function JoinScreen() {
           <View style={[styles.iconWrap, { backgroundColor: c.tealSoft }]}>
             <Ionicons name="checkmark-circle" size={44} color={c.teal} />
           </View>
-          <Text style={styles.text}>You're in! Opening it...</Text>
+          <Text style={styles.text}>{t("jn.in")}</Text>
         </>
       )}
       {status === "needLogin" && (
@@ -60,10 +61,10 @@ export default function JoinScreen() {
           <View style={[styles.iconWrap, { backgroundColor: c.orangeSoft }]}>
             <Ionicons name="hand-left-outline" size={40} color={c.orange} />
           </View>
-          <Text style={styles.title}>Log in to join</Text>
-          <Text style={styles.sub}>Create an account or log in, then open this link again.</Text>
+          <Text style={styles.title}>{t("jn.loginTitle")}</Text>
+          <Text style={styles.sub}>{t("jn.loginSub")}</Text>
           <TouchableOpacity style={styles.btn} onPress={() => router.replace("/(auth)/sign-in")}>
-            <Text style={styles.btnText}>Log in / Sign up</Text>
+            <Text style={styles.btnText}>{t("jn.loginBtn")}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -74,7 +75,7 @@ export default function JoinScreen() {
           </View>
           <Text style={styles.title}>{message}</Text>
           <TouchableOpacity style={styles.btn} onPress={() => router.replace("/(tabs)")}>
-            <Text style={styles.btnText}>Go home</Text>
+            <Text style={styles.btnText}>{t("jn.home")}</Text>
           </TouchableOpacity>
         </>
       )}

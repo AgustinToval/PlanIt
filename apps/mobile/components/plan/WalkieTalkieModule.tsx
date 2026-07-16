@@ -9,7 +9,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, userColor, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Clip = {
   id: string;
@@ -26,6 +26,7 @@ export default function WalkieTalkieModule({
 }: { planId: string; members?: Member[] }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [clips, setClips] = useState<Clip[]>([]);
   const [recording, setRecording] = useState(false);
@@ -114,7 +115,7 @@ export default function WalkieTalkieModule({
 
   const startRecording = () => {
     if (Platform.OS === "web") {
-      Alert.alert("Not on web", "The walkie talkie works from the phone app.");
+      Alert.alert(t("er.notWeb"), t("er.phoneOnly"));
       return;
     }
     setRecording(true);
@@ -161,7 +162,7 @@ export default function WalkieTalkieModule({
       });
       const dataUrl = `data:audio/m4a;base64,${base64}`;
       if (dataUrl.length > 8_000_000) {
-        Alert.alert("Too long", "Keep messages under ~1 minute.");
+        Alert.alert(t("er.tooLong"), t("er.tooLongMsg"));
         return;
       }
       await api.post(
@@ -171,7 +172,7 @@ export default function WalkieTalkieModule({
       );
       await load();
     } catch (e: any) {
-      Alert.alert("Send error", e?.response?.data?.error ?? e?.message ?? "Could not send the message");
+      Alert.alert(t("er.send"), e?.response?.data?.error ?? e?.message ?? "Could not send the message");
     } finally {
       setSending(false);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
@@ -213,16 +214,16 @@ export default function WalkieTalkieModule({
       });
     } catch (e: any) {
       setNowPlaying(null);
-      Alert.alert("Playback error", e?.message ?? "Could not play this clip");
+      Alert.alert(t("er.playback"), e?.message ?? "Could not play this clip");
     }
   };
 
   const deleteClip = (clip: Clip) => {
     if (clip.userId !== user?.id) return; // UI: only the sender long-presses own clips
-    Alert.alert("Delete voice message?", "It will be removed for everyone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("wk.deleteQ"), t("wk.deleteMsg"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/voice/${clip.id}`);
@@ -246,7 +247,7 @@ export default function WalkieTalkieModule({
   const timeAgo = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
-    if (m < 1) return "just now";
+    if (m < 1) return t("wk.justNow");
     if (m < 60) return `${m}m ago`;
     const h = Math.floor(m / 60);
     if (h < 24) return `${h}h ago`;
@@ -263,23 +264,22 @@ export default function WalkieTalkieModule({
         <View style={styles.gateIconWrap}>
           <Ionicons name="mic-outline" size={44} color={c.orange} />
         </View>
-        <Text style={styles.gateTitle}>Join the walkie talkie?</Text>
+        <Text style={styles.gateTitle}>{t("wk.joinQ")}</Text>
         <Text style={styles.gateText}>
-          If you join, voice messages from this plan will play on your phone
-          while you're in this tab. You can mute people or leave anytime.
+          {t("wk.joinMsg")}
         </Text>
         {optIn === "loading" ? null : (
           <>
             <TouchableOpacity style={styles.gateJoin} onPress={() => respondOptIn(true)}>
-              <Text style={styles.gateJoinText}>Join channel</Text>
+              <Text style={styles.gateJoinText}>{t("wk.join")}</Text>
             </TouchableOpacity>
             {optIn !== "declined" && (
               <TouchableOpacity style={styles.gateDecline} onPress={() => respondOptIn(false)}>
-                <Text style={styles.gateDeclineText}>Not now</Text>
+                <Text style={styles.gateDeclineText}>{t("wk.notNow")}</Text>
               </TouchableOpacity>
             )}
             {optIn === "declined" && (
-              <Text style={styles.gateHint}>You declined — you can join whenever you want.</Text>
+              <Text style={styles.gateHint}>{t("wk.declined")}</Text>
             )}
           </>
         )}
@@ -298,13 +298,13 @@ export default function WalkieTalkieModule({
             color={autoPlay ? c.teal : c.muted}
           />
           <Text style={[styles.topText, !autoPlay && { color: c.muted }]}>
-            Auto-play {autoPlay ? "ON" : "OFF"}
+            {t("wk.autoplay")} {autoPlay ? "ON" : "OFF"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowMute(true)} style={styles.topBtn}>
           <Ionicons name="notifications-off-outline" size={15} color={c.teal} />
           <Text style={styles.topText}>
-            Mute{mutedCount > 0 ? ` (${mutedCount})` : ""}
+            {t("wk.mute")}{mutedCount > 0 ? ` (${mutedCount})` : ""}
           </Text>
         </TouchableOpacity>
       </View>
@@ -316,8 +316,8 @@ export default function WalkieTalkieModule({
             <View style={styles.emptyIconWrap}>
               <Ionicons name="mic-outline" size={38} color={c.teal} />
             </View>
-            <Text style={styles.emptyText}>No messages yet</Text>
-            <Text style={styles.emptySub}>Hold the button below to talk</Text>
+            <Text style={styles.emptyText}>{t("wk.empty")}</Text>
+            <Text style={styles.emptySub}>{t("wk.hold")}</Text>
           </View>
         ) : (
           clips.map((clip) => {
@@ -336,7 +336,7 @@ export default function WalkieTalkieModule({
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                    <Text style={styles.clipName}>{mine ? "You" : clip.name ?? "?"}</Text>
+                    <Text style={styles.clipName}>{mine ? t("common.you") : clip.name ?? "?"}</Text>
                     {isMuted && !mine && (
                       <Ionicons name="notifications-off" size={12} color={c.faint} />
                     )}
@@ -345,7 +345,7 @@ export default function WalkieTalkieModule({
                     {clip.duration > 0 ? `${clip.duration}s · ` : ""}{timeAgo(clip.createdAt)}
                   </Text>
                 </View>
-                <Text style={styles.clipTap}>{mine ? "hold to delete" : "tap to play"}</Text>
+                <Text style={styles.clipTap}>{mine ? t("wk.holdDel") : t("wk.tapPlay")}</Text>
               </TouchableOpacity>
             );
           })
@@ -369,7 +369,7 @@ export default function WalkieTalkieModule({
             style={{ marginBottom: 6 }}
           />
           <Text style={styles.talkText}>
-            {sending ? "Sending..." : recording ? "Release to send" : "Hold to talk"}
+            {sending ? t("wk.sending") : recording ? t("wk.release") : t("wk.talk")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -379,7 +379,7 @@ export default function WalkieTalkieModule({
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Mute</Text>
+              <Text style={styles.modalTitle}>{t("wk.mute")}</Text>
               <TouchableOpacity onPress={() => setShowMute(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
@@ -389,7 +389,7 @@ export default function WalkieTalkieModule({
               style={[styles.muteAllRow, muteAll && styles.muteRowActive]}
               onPress={() => setMuteAll((v) => !v)}
             >
-              <Text style={styles.muteAllText}>Mute everyone</Text>
+              <Text style={styles.muteAllText}>{t("wk.muteAll")}</Text>
               <View style={styles.muteToggleRow}>
                 <Ionicons
                   name={muteAll ? "notifications-off" : "notifications-outline"}
@@ -405,7 +405,7 @@ export default function WalkieTalkieModule({
             {!muteAll && (
               <ScrollView style={{ maxHeight: 340 }}>
                 {others.length === 0 ? (
-                  <Text style={styles.hint}>No other members in this plan yet.</Text>
+                  <Text style={styles.hint}>{t("wk.noOthers")}</Text>
                 ) : (
                   others.map((m) => {
                     const muted = mutedUsers.has(m.user.id);
@@ -428,7 +428,7 @@ export default function WalkieTalkieModule({
                             color={muted ? c.danger : c.muted}
                           />
                           <Text style={[styles.muteToggle, muted && { color: c.danger }]}>
-                            {muted ? "Muted" : "On"}
+                            {muted ? t("wk.muted") : t("wk.on")}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -437,7 +437,7 @@ export default function WalkieTalkieModule({
                 )}
               </ScrollView>
             )}
-            {muteAll && <Text style={styles.hint}>Everyone is muted — no incoming voice will auto-play.</Text>}
+            {muteAll && <Text style={styles.hint}>{t("wk.allMuted")}</Text>}
           </View>
         </View>
       </Modal>

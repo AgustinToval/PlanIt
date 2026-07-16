@@ -66,22 +66,22 @@ export default function CreatePlanScreen() {
     api.get("/plans/templates/mine").then((res) => setTemplates(res.data)).catch(() => {});
   }, []);
 
-  const pickTemplate = (t: Template) => {
-    setSelectedTemplate(t);
-    if (!title.trim()) setTitle(t.name);
+  const pickTemplate = (tpl: Template) => {
+    setSelectedTemplate(tpl);
+    if (!title.trim()) setTitle(tpl.name);
     setShowTemplates(false);
   };
 
-  const deleteTemplate = (t: Template) => {
-    Alert.alert("Delete template?", t.name, [
-      { text: "Cancel", style: "cancel" },
+  const deleteTemplate = (tpl: Template) => {
+    Alert.alert(t("tp.deleteQ"), tpl.name, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
-            await api.delete(`/plans/templates/${t.id}`);
-            setTemplates((prev) => prev.filter((x) => x.id !== t.id));
-            if (selectedTemplate?.id === t.id) setSelectedTemplate(null);
+            await api.delete(`/plans/templates/${tpl.id}`);
+            setTemplates((prev) => prev.filter((x) => x.id !== tpl.id));
+            if (selectedTemplate?.id === tpl.id) setSelectedTemplate(null);
           } catch { /* noop */ }
         },
       },
@@ -164,11 +164,11 @@ export default function CreatePlanScreen() {
       const nobodyAdded = selectedGroups.size === 0 && selectedFriends.size === 0;
       if (plan.inviteCode && nobodyAdded) {
         Alert.alert(
-          "Plan created!",
-          "You didn't invite anyone yet — share an invite link?",
+          t("cp.createdQ"),
+          t("cp.createdMsg"),
           [
-            { text: "Later", style: "cancel" },
-            { text: "Share link", onPress: () => shareInvite("plan", plan.title, plan.inviteCode) },
+            { text: t("common.later"), style: "cancel" },
+            { text: t("cp.shareLink"), onPress: () => shareInvite("plan", plan.title, plan.inviteCode) },
           ]
         );
       }
@@ -195,12 +195,12 @@ export default function CreatePlanScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.templateTitle}>
-              {selectedTemplate ? `Template: ${selectedTemplate.name}` : "Start from a template"}
+              {selectedTemplate ? `${t("cp.template")}: ${selectedTemplate.name}` : t("cp.fromTemplate")}
             </Text>
             <Text style={styles.templateMeta}>
               {selectedTemplate
-                ? `${selectedTemplate.data.modules.length} modules · ${selectedTemplate.data.checkItems.length} items · ${selectedTemplate.data.activities.length} activities`
-                : `${templates.length} saved template${templates.length > 1 ? "s" : ""}`}
+                ? `${selectedTemplate.data.modules.length} ${t("tp.modules")} · ${selectedTemplate.data.checkItems.length} ${t("tp.items")} · ${selectedTemplate.data.activities.length} ${t("tp.activities")}`
+                : `${templates.length} ${t("cp.savedTpl")}`}
             </Text>
           </View>
           {selectedTemplate ? (
@@ -220,9 +220,9 @@ export default function CreatePlanScreen() {
         >
           <View style={styles.typeBtnTitleRow}>
             <Ionicons name="calendar-clear-outline" size={15} color={type === "full" ? c.teal : c.muted} />
-            <Text style={[styles.typeBtnText, type === "full" && styles.typeBtnTextActive]}>Full Plan</Text>
+            <Text style={[styles.typeBtnText, type === "full" && styles.typeBtnTextActive]}>{t("cp.fullPlan")}</Text>
           </View>
-          <Text style={styles.typeBtnSub}>Trips, dinners, events</Text>
+          <Text style={styles.typeBtnSub}>{t("cp.fullSub")}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.typeBtn, type === "quick" && styles.typeBtnActiveQuick]}
@@ -230,13 +230,13 @@ export default function CreatePlanScreen() {
         >
           <View style={styles.typeBtnTitleRow}>
             <Ionicons name="flash" size={15} color={type === "quick" ? c.orange : c.muted} />
-            <Text style={[styles.typeBtnText, type === "quick" && styles.typeBtnTextActive]}>Quick Plan</Text>
+            <Text style={[styles.typeBtnText, type === "quick" && styles.typeBtnTextActive]}>{t("cp.quickPlan")}</Text>
           </View>
-          <Text style={styles.typeBtnSub}>Today — who's in?</Text>
+          <Text style={styles.typeBtnSub}>{t("cp.quickSub")}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.label}>Title</Text>
+      <Text style={styles.label}>{t("cp.title")}</Text>
       <TextInput
         style={styles.input}
         placeholder={type === "quick" ? "Football at 6pm" : "Camping July"}
@@ -245,16 +245,16 @@ export default function CreatePlanScreen() {
         onChangeText={setTitle}
       />
 
-      <Text style={styles.label}>Who's invited?</Text>
+      <Text style={styles.label}>{t("cp.whoInvited")}</Text>
       <TouchableOpacity style={styles.pickerBtn} onPress={() => { setSearch(""); setPicker("groups"); }}>
         <View style={styles.pickerIconWrap}>
           <Ionicons name="people-outline" size={18} color={c.teal} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.pickerTitle}>Groups</Text>
+          <Text style={styles.pickerTitle}>{t("cp.groups")}</Text>
           <Text style={styles.pickerMeta} numberOfLines={1}>
             {selectedGroups.size === 0
-              ? "None selected"
+              ? t("cp.none")
               : groups.filter((g) => selectedGroups.has(g.id)).map((g) => g.name).join(", ")}
           </Text>
         </View>
@@ -270,7 +270,7 @@ export default function CreatePlanScreen() {
           <Text style={styles.pickerTitle}>{t("scr.friends")}</Text>
           <Text style={styles.pickerMeta} numberOfLines={1}>
             {selectedFriends.size === 0
-              ? "None selected"
+              ? t("cp.none")
               : friends.filter((f) => selectedFriends.has(f.id)).map((f) => f.name ?? "?").join(", ")}
           </Text>
         </View>
@@ -278,10 +278,10 @@ export default function CreatePlanScreen() {
         <Ionicons name="chevron-forward" size={16} color={c.teal} />
       </TouchableOpacity>
 
-      <Text style={styles.label}>Location (optional)</Text>
+      <Text style={styles.label}>{t("cp.location")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="The park"
+        placeholder={t("cp.locPh")}
         placeholderTextColor={c.faint}
         value={location}
         onChangeText={setLocation}
@@ -289,7 +289,7 @@ export default function CreatePlanScreen() {
 
       {type === "full" && (
         <>
-          <Text style={styles.label}>Date (optional) — DD/MM</Text>
+          <Text style={styles.label}>{t("cp.date")}</Text>
           <TextInput
             style={styles.input}
             placeholder="18/07"
@@ -302,7 +302,7 @@ export default function CreatePlanScreen() {
         </>
       )}
 
-      <Text style={styles.label}>Time (optional) — HH:MM</Text>
+      <Text style={styles.label}>{t("cp.time")}</Text>
       <TextInput
         style={styles.input}
         placeholder="18:00"
@@ -312,10 +312,10 @@ export default function CreatePlanScreen() {
         autoCapitalize="none"
       />
 
-      <Text style={styles.label}>Description (optional)</Text>
+      <Text style={styles.label}>{t("cp.desc")}</Text>
       <TextInput
         style={[styles.input, { height: 80 }]}
-        placeholder="Bring your boots!"
+        placeholder={t("cp.descPh")}
         placeholderTextColor={c.faint}
         value={description}
         onChangeText={setDescription}
@@ -328,19 +328,19 @@ export default function CreatePlanScreen() {
         onPress={create}
         disabled={!title.trim() || busy}
       >
-        <Text style={styles.buttonText}>{busy ? "..." : type === "quick" ? "Send it!" : "Create Plan"}</Text>
+        <Text style={styles.buttonText}>{busy ? "..." : type === "quick" ? t("cp.send") : t("cp.create")}</Text>
       </TouchableOpacity>
 
       <View style={styles.divider}>
         <View style={styles.line} />
-        <Text style={styles.dividerText}>or join a plan</Text>
+        <Text style={styles.dividerText}>{t("cp.orJoin")}</Text>
         <View style={styles.line} />
       </View>
 
-      <Text style={styles.label}>Invite code</Text>
+      <Text style={styles.label}>{t("cp.inviteCode")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Paste plan invite code"
+        placeholder={t("cp.pastePlanCode")}
         placeholderTextColor={c.faint}
         value={joinCode}
         onChangeText={setJoinCode}
@@ -351,7 +351,7 @@ export default function CreatePlanScreen() {
         onPress={joinPlan}
         disabled={!joinCode.trim() || busy}
       >
-        <Text style={styles.buttonOutlineText}>Join Plan</Text>
+        <Text style={styles.buttonOutlineText}>{t("cp.join")}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 60 }} />
@@ -361,36 +361,36 @@ export default function CreatePlanScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>My templates</Text>
+              <Text style={styles.modalTitle}>{t("cp.myTemplates")}</Text>
               <TouchableOpacity onPress={() => setShowTemplates(false)}>
                 <Text style={styles.modalDone}>Close</Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={{ maxHeight: 400 }}>
-              {templates.map((t) => (
+              {templates.map((tpl) => (
                 <TouchableOpacity
-                  key={t.id}
+                  key={tpl.id}
                   style={styles.groupRow}
-                  onPress={() => pickTemplate(t)}
-                  onLongPress={() => deleteTemplate(t)}
+                  onPress={() => pickTemplate(tpl)}
+                  onLongPress={() => deleteTemplate(tpl)}
                 >
                   <View style={styles.pickerIconWrap}>
                     <Ionicons name="documents-outline" size={18} color={c.teal} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.groupName}>{t.name}</Text>
+                    <Text style={styles.groupName}>{tpl.name}</Text>
                     <Text style={styles.groupMeta}>
-                      {t.data.modules.length} modules · {t.data.checkItems.length} items · {t.data.activities.length} activities
+                      {tpl.data.modules.length} {t("tp.modules")} · {tpl.data.checkItems.length} {t("tp.items")} · {tpl.data.activities.length} {t("tp.activities")}
                     </Text>
                   </View>
                   <Ionicons
-                    name={selectedTemplate?.id === t.id ? "checkmark-circle" : "chevron-forward"}
+                    name={selectedTemplate?.id === tpl.id ? "checkmark-circle" : "chevron-forward"}
                     size={20}
-                    color={selectedTemplate?.id === t.id ? c.teal : c.faint}
+                    color={selectedTemplate?.id === tpl.id ? c.teal : c.faint}
                   />
                 </TouchableOpacity>
               ))}
-              <Text style={styles.hint}>Long-press a template to delete it</Text>
+              <Text style={styles.hint}>{t("cp.longDelete")}</Text>
             </ScrollView>
           </View>
         </View>
@@ -402,7 +402,7 @@ export default function CreatePlanScreen() {
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {picker === "groups" ? "Invite groups" : "Invite friends"}
+                {picker === "groups" ? t("cp.inviteGroups") : t("cp.inviteFriends")}
               </Text>
               <TouchableOpacity onPress={() => setPicker(null)}>
                 <Text style={styles.modalDone}>Done</Text>
@@ -411,7 +411,7 @@ export default function CreatePlanScreen() {
 
             <TextInput
               style={styles.input}
-              placeholder="Search..."
+              placeholder={t("cp.searchPh")}
               placeholderTextColor={c.faint}
               value={search}
               onChangeText={setSearch}
@@ -423,8 +423,8 @@ export default function CreatePlanScreen() {
                 filteredGroups.length === 0 ? (
                   <Text style={styles.hint}>
                     {groups.length === 0
-                      ? "You have no groups yet — create one in the Groups tab."
-                      : "No groups match your search."}
+                      ? t("cp.noGroups")
+                      : t("cp.noGroupsMatch")}
                   </Text>
                 ) : (
                   filteredGroups.map((g) => {
@@ -440,7 +440,7 @@ export default function CreatePlanScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.groupName}>{g.name}</Text>
-                          <Text style={styles.groupMeta}>{g.members.length} members</Text>
+                          <Text style={styles.groupMeta}>{g.members.length} {t("nt.members")}</Text>
                         </View>
                         <Ionicons
                           name={selected ? "checkbox" : "square-outline"}
@@ -457,8 +457,8 @@ export default function CreatePlanScreen() {
                 filteredFriends.length === 0 ? (
                   <Text style={styles.hint}>
                     {friends.length === 0
-                      ? "Add friends from Profile → Friends to invite them individually."
-                      : "No friends match your search."}
+                      ? t("cp.noFriends")
+                      : t("cp.noFriendsMatch")}
                   </Text>
                 ) : (
                   filteredFriends.map((f) => {

@@ -44,7 +44,7 @@ export default function EditProfileScreen() {
   const pickFromLibrary = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo access to set a profile picture.");
+      Alert.alert(t("er.permission"), t("er.photoPerm"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -58,7 +58,7 @@ export default function EditProfileScreen() {
   const takePhoto = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow camera access to take a profile picture.");
+      Alert.alert(t("er.permission"), t("er.cameraPerm"));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -69,10 +69,10 @@ export default function EditProfileScreen() {
   };
 
   const pickAvatar = () => {
-    Alert.alert("Profile photo", "How do you want to add it?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Take a photo", onPress: takePhoto },
-      { text: "Choose from gallery", onPress: pickFromLibrary },
+    Alert.alert(t("ep.photoQ"), t("ep.photoHow"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("ep.takePhoto"), onPress: takePhoto },
+      { text: t("ep.fromGallery"), onPress: pickFromLibrary },
     ]);
   };
 
@@ -87,7 +87,7 @@ export default function EditProfileScreen() {
         avatar: avatar ?? undefined,
       });
       setUser(res.data);
-      Alert.alert("Saved", "Your profile was updated.");
+      Alert.alert(t("ep.saved"), t("ep.savedMsg"));
       router.back();
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not save profile");
@@ -103,7 +103,7 @@ export default function EditProfileScreen() {
       await api.post("/users/me/password", { current: currentPw, next: newPw });
       setCurrentPw("");
       setNewPw("");
-      Alert.alert("Password changed");
+      Alert.alert(t("ep.pwChanged"));
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not change password");
     } finally {
@@ -132,23 +132,23 @@ export default function EditProfileScreen() {
         )}
         <View style={styles.avatarHintRow}>
           <Ionicons name="camera-outline" size={14} color={c.teal} />
-          <Text style={styles.avatarHint}>Tap to change photo</Text>
+          <Text style={styles.avatarHint}>{t("ep.tapPhoto")}</Text>
         </View>
       </TouchableOpacity>
 
-      <Text style={styles.label}>Name</Text>
+      <Text style={styles.label}>{t("ep.name")}</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName}
-        placeholder="Your name" placeholderTextColor={c.faint} />
+        placeholder={t("auth.yourName")} placeholderTextColor={c.faint} />
 
-      <Text style={styles.label}>Username</Text>
+      <Text style={styles.label}>{t("auth.username")}</Text>
       <TextInput style={styles.input} value={username} onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_\.]/g, ""))}
         placeholder="username" placeholderTextColor={c.faint} autoCapitalize="none" />
 
-      <Text style={styles.label}>Bio</Text>
+      <Text style={styles.label}>{t("ep.bio")}</Text>
       <TextInput style={[styles.input, { height: 70 }]} value={bio} onChangeText={setBio}
-        placeholder="Something about you" placeholderTextColor={c.faint} multiline textAlignVertical="top" />
+        placeholder={t("ep.bioPh")} placeholderTextColor={c.faint} multiline textAlignVertical="top" />
 
-      <Text style={styles.label}>Location</Text>
+      <Text style={styles.label}>{t("fr.location")}</Text>
       <TextInput style={styles.input} value={location} onChangeText={setLocation}
         placeholder="Buenos Aires" placeholderTextColor={c.faint} />
 
@@ -160,23 +160,23 @@ export default function EditProfileScreen() {
       <View style={styles.divider} />
       <View style={styles.sectionTitleRow}>
         <Ionicons name="lock-closed-outline" size={16} color={c.ink} />
-        <Text style={styles.sectionTitle}>Change password</Text>
+        <Text style={styles.sectionTitle}>{t("ep.changePw")}</Text>
       </View>
 
-      <Text style={styles.label}>Current password</Text>
+      <Text style={styles.label}>{t("ep.currentPw")}</Text>
       <TextInput style={styles.input} value={currentPw} onChangeText={setCurrentPw}
-        placeholder="Your current password" placeholderTextColor={c.faint} secureTextEntry autoCapitalize="none" />
+        placeholder={t("ep.currentPwPh")} placeholderTextColor={c.faint} secureTextEntry autoCapitalize="none" />
 
-      <Text style={styles.label}>New password</Text>
+      <Text style={styles.label}>{t("ep.newPw")}</Text>
       <TextInput style={styles.input} value={newPw} onChangeText={setNewPw}
-        placeholder="At least 8 characters" placeholderTextColor={c.faint} secureTextEntry autoCapitalize="none" />
+        placeholder={t("auth.pwPlaceholderNew")} placeholderTextColor={c.faint} secureTextEntry autoCapitalize="none" />
 
       <TouchableOpacity
         style={[styles.buttonOutline, (!currentPw || newPw.length < 8 || changingPw) && { opacity: 0.5 }]}
         onPress={changePassword}
         disabled={!currentPw || newPw.length < 8 || changingPw}
       >
-        <Text style={styles.buttonOutlineText}>{changingPw ? "..." : "Change password"}</Text>
+        <Text style={styles.buttonOutlineText}>{changingPw ? "..." : t("ep.changePw")}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 60 }} />

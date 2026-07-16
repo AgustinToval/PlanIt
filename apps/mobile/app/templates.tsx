@@ -43,9 +43,9 @@ export default function TemplatesScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
-  const openRename = (t: Template) => {
-    setRenaming(t);
-    setNewName(t.name);
+  const openRename = (tpl: Template) => {
+    setRenaming(tpl);
+    setNewName(tpl.name);
   };
 
   const saveRename = async () => {
@@ -62,14 +62,14 @@ export default function TemplatesScreen() {
     }
   };
 
-  const deleteTemplate = (t: Template) => {
-    Alert.alert("Delete template?", `"${t.name}" will be removed. Plans created from it are not affected.`, [
-      { text: "Cancel", style: "cancel" },
+  const deleteTemplate = (tpl: Template) => {
+    Alert.alert(t("tp.deleteQ"), `"${tpl.name}" ${t("tp.deleteMsg")}`, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
-            await api.delete(`/plans/templates/${t.id}`);
+            await api.delete(`/plans/templates/${tpl.id}`);
             await load();
           } catch { /* noop */ }
         },
@@ -89,7 +89,7 @@ export default function TemplatesScreen() {
 
       <Text style={styles.title}>{t("scr.templates")}</Text>
       <Text style={styles.subtitle}>
-        Saved from your plans (settings → Save as template). Use them when creating a new plan.
+        {t("tp.sub")}
       </Text>
 
       {templates.length === 0 ? (
@@ -97,33 +97,33 @@ export default function TemplatesScreen() {
           <View style={styles.emptyIconWrap}>
             <Ionicons name="documents-outline" size={40} color={c.teal} />
           </View>
-          <Text style={styles.emptyText}>No templates yet</Text>
+          <Text style={styles.emptyText}>{t("tp.empty")}</Text>
           <Text style={styles.emptySub}>
-            Open a plan → settings → "Save as template" to reuse its structure later.
+            {t("tp.emptySub")}
           </Text>
         </View>
       ) : (
-        templates.map((t) => (
-          <View key={t.id} style={styles.card}>
+        templates.map((tpl) => (
+          <View key={tpl.id} style={styles.card}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardName}>{t.name}</Text>
+              <Text style={styles.cardName}>{tpl.name}</Text>
               <Text style={styles.cardMeta}>
-                {t.data.type === "quick" ? "Quick" : "Full"} ·{" "}
-                {t.data.modules.length} modules · {t.data.checkItems.length} items ·{" "}
-                {t.data.activities.length} activities
+                {tpl.data.type === "quick" ? t("tp.quick") : t("tp.full")} ·{" "}
+                {tpl.data.modules.length} {t("tp.modules")} · {tpl.data.checkItems.length} {t("tp.items")} ·{" "}
+                {tpl.data.activities.length} {t("tp.activities")}
               </Text>
-              {t.data.location && (
+              {tpl.data.location && (
                 <View style={styles.locRow}>
                   <Ionicons name="location-outline" size={12} color={c.muted} />
-                  <Text style={styles.cardMeta}>{t.data.location}</Text>
+                  <Text style={styles.cardMeta}>{tpl.data.location}</Text>
                 </View>
               )}
             </View>
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => openRename(t)}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => openRename(tpl)}>
                 <Ionicons name="pencil-outline" size={17} color={c.teal} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => deleteTemplate(t)}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => deleteTemplate(tpl)}>
                 <Ionicons name="trash-outline" size={17} color={c.danger} />
               </TouchableOpacity>
             </View>
@@ -138,7 +138,7 @@ export default function TemplatesScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modal}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Rename template</Text>
+                <Text style={styles.modalTitle}>{t("tp.rename")}</Text>
                 <TouchableOpacity onPress={() => setRenaming(null)}>
                   <Ionicons name="close" size={22} color={c.muted} />
                 </TouchableOpacity>
@@ -147,7 +147,7 @@ export default function TemplatesScreen() {
                 style={styles.input}
                 value={newName}
                 onChangeText={setNewName}
-                placeholder="Template name"
+                placeholder={t("tp.namePh")}
                 placeholderTextColor={c.faint}
                 autoFocus
                 returnKeyType="done"

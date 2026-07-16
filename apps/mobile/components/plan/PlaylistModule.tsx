@@ -9,7 +9,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Song = {
   id: string;
@@ -28,6 +28,7 @@ export default function PlaylistModule({
 }: { planId: string; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [songs, setSongs] = useState<Song[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,10 +95,10 @@ export default function PlaylistModule({
   const deleteSong = (song: Song) => {
     const canDelete = song.addedBy === user?.id || myRole === "admin";
     if (!canDelete) return;
-    Alert.alert("Remove song?", song.title, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("py.removeQ"), song.title, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Remove", style: "destructive",
+        text: t("common.remove"), style: "destructive",
         onPress: async () => {
           try { await api.delete(`/playlist/${song.id}`); await load(); } catch { /* noop */ }
         },
@@ -118,8 +119,8 @@ export default function PlaylistModule({
             <View style={styles.emptyIconWrap}>
               <Ionicons name="musical-notes-outline" size={38} color={c.teal} />
             </View>
-            <Text style={styles.emptyText}>No songs yet</Text>
-            <Text style={styles.emptySub}>Paste a Spotify or YouTube Music link to start the vibe</Text>
+            <Text style={styles.emptyText}>{t("py.empty")}</Text>
+            <Text style={styles.emptySub}>{t("py.sub")}</Text>
           </View>
         )}
         {songs.map((song, i) => (
@@ -136,7 +137,7 @@ export default function PlaylistModule({
               </View>
               {song.artist ? <Text style={styles.songArtist}>{song.artist}</Text> : null}
               <Text style={styles.songSource}>
-                {song.source === "spotify" ? "Spotify" : "YouTube Music"} · tap to open
+                {song.source === "spotify" ? "Spotify" : "YouTube Music"} · {t("py.open")}
               </Text>
             </TouchableOpacity>
 
@@ -157,7 +158,7 @@ export default function PlaylistModule({
       <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)}>
         <View style={styles.fabRow}>
           <Ionicons name="add" size={18} color={c.onOrange} />
-          <Text style={styles.fabText}>Add song</Text>
+          <Text style={styles.fabText}>{t("py.add")}</Text>
         </View>
       </TouchableOpacity>
 
@@ -168,13 +169,13 @@ export default function PlaylistModule({
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add a song</Text>
+              <Text style={styles.modalTitle}>{t("py.new")}</Text>
               <TouchableOpacity onPress={() => setShowAdd(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.label}>Spotify or YouTube Music link</Text>
+            <Text style={styles.label}>{t("py.link")}</Text>
             <TextInput
               style={styles.input}
               placeholder="https://open.spotify.com/track/..."
@@ -185,7 +186,7 @@ export default function PlaylistModule({
               autoCorrect={false}
             />
 
-            <Text style={styles.label}>Song name (optional)</Text>
+            <Text style={styles.label}>{t("py.song")}</Text>
             <TextInput
               style={styles.input}
               placeholder="Blinding Lights"
@@ -194,7 +195,7 @@ export default function PlaylistModule({
               onChangeText={setTitle}
             />
 
-            <Text style={styles.label}>Artist (optional)</Text>
+            <Text style={styles.label}>{t("py.artist")}</Text>
             <TextInput
               style={styles.input}
               placeholder="The Weeknd"
@@ -204,7 +205,7 @@ export default function PlaylistModule({
             />
 
             <Text style={styles.hint}>
-              In Spotify or YouTube Music: tap Share → Copy link, then paste it here.
+              {t("py.hint")}
             </Text>
 
             <TouchableOpacity
@@ -212,7 +213,7 @@ export default function PlaylistModule({
               onPress={addSong}
               disabled={busy || !url.trim()}
             >
-              <Text style={styles.buttonText}>{busy ? "..." : "Add to playlist"}</Text>
+              <Text style={styles.buttonText}>{busy ? "..." : t("py.addTo")}</Text>
             </TouchableOpacity>
           </View>
           </TouchableWithoutFeedback>

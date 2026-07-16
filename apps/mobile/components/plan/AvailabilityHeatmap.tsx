@@ -5,7 +5,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { font, radius, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Entry = { userId: string; date: string; status: string };
 type MemberInfo = { id: string; name: string | null };
@@ -20,6 +20,7 @@ function ymd(year: number, month: number, day: number): string {
 export default function AvailabilityHeatmap({ planId }: { planId: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -85,7 +86,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
   return (
     <ScrollView>
       <Text style={styles.subtitle}>
-        Darker teal = more people free. Everyone sets their days in Calendar → My availability.
+        {t("hm.sub")}
       </Text>
 
       {/* Month nav */}
@@ -142,19 +143,19 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
           {selected.free.length > 0 && (
             <View style={styles.detailRow}>
               <View style={[styles.dot, { backgroundColor: c.teal }]} />
-              <Text style={styles.detailLine}>Free: {selected.free.map(nameOf).join(", ")}</Text>
+              <Text style={styles.detailLine}>{t("hm.free")} {selected.free.map(nameOf).join(", ")}</Text>
             </View>
           )}
           {selected.maybe.length > 0 && (
             <View style={styles.detailRow}>
               <View style={[styles.dot, { backgroundColor: "#F0A72B" }]} />
-              <Text style={styles.detailLine}>Maybe: {selected.maybe.map(nameOf).join(", ")}</Text>
+              <Text style={styles.detailLine}>{t("hm.maybe")} {selected.maybe.map(nameOf).join(", ")}</Text>
             </View>
           )}
           {selected.busy.length > 0 && (
             <View style={styles.detailRow}>
               <View style={[styles.dot, { backgroundColor: c.danger }]} />
-              <Text style={styles.detailLine}>Busy: {selected.busy.map(nameOf).join(", ")}</Text>
+              <Text style={styles.detailLine}>{t("hm.busy")} {selected.busy.map(nameOf).join(", ")}</Text>
             </View>
           )}
         </View>
@@ -165,7 +166,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
         <View style={styles.best}>
           <View style={styles.bestTitleRow}>
             <Ionicons name="trophy-outline" size={15} color={c.orange} />
-            <Text style={styles.bestTitle}>Best dates this month</Text>
+            <Text style={styles.bestTitle}>{t("hm.best")}</Text>
           </View>
           {bestDays.map((d, i) => (
             <View key={d.date} style={styles.bestRow}>
@@ -176,7 +177,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
                 {new Date(`${d.date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
               </Text>
               <Text style={styles.bestMeta}>
-                {d.free}/{members.length} free{d.maybe > 0 ? ` · ${d.maybe} maybe` : ""}
+                {d.free}/{members.length} {t("hm.freeWord")}{d.maybe > 0 ? ` · ${d.maybe} ${t("hm.maybeWord")}` : ""}
               </Text>
             </View>
           ))}
@@ -184,7 +185,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
       )}
       {entries.length === 0 && (
         <Text style={styles.empty}>
-          No availability set this month yet — ask everyone to mark their days in Calendar → My availability
+          {t("hm.empty")}
         </Text>
       )}
       <View style={{ height: 20 }} />

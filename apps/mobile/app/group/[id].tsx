@@ -64,7 +64,7 @@ export default function GroupScreen() {
   const pickGroupPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo access to set a group photo.");
+      Alert.alert(t("er.permission"), t("er.photoPerm"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -92,10 +92,10 @@ export default function GroupScreen() {
   };
 
   const leaveGroup = () => {
-    Alert.alert("Leave group?", `You will leave "${group?.name}".`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("gr.leaveQ"), `${t("gr.leaveMsg")} "${group?.name}".`, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Leave", style: "destructive",
+        text: t("common.leave"), style: "destructive",
         onPress: async () => {
           try {
             await api.post(`/groups/${id}/leave`);
@@ -108,12 +108,12 @@ export default function GroupScreen() {
 
   const deleteGroup = () => {
     Alert.alert(
-      "Delete group?",
-      `"${group?.name}" and its chat will be deleted for everyone. This cannot be undone.`,
+      t("gr.deleteQ"),
+      `"${group?.name}" ${t("gr.deleteMsg")}`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete", style: "destructive",
+          text: t("common.delete"), style: "destructive",
           onPress: async () => {
             try {
               await api.delete(`/groups/${id}`);
@@ -229,7 +229,7 @@ export default function GroupScreen() {
                 {isMuted && <Ionicons name="notifications-off-outline" size={15} color={c.faint} />}
               </View>
               <Text style={[styles.meta, typingLabel ? { color: c.teal, fontFamily: font.bodySemi } : null]}>
-                {typingLabel ?? `${group?.members.length ?? 0} members — tap to ${showMembers ? "hide" : "see"}`}
+                {typingLabel ?? `${group?.members.length ?? 0} ${showMembers ? t("gr.tapHide") : t("gr.tapSee")}`}
               </Text>
             </View>
           </View>
@@ -297,7 +297,7 @@ export default function GroupScreen() {
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.emptyChat}>No messages yet — say hi!</Text>
+          <Text style={styles.emptyChat}>{t("gr.emptyChat")}</Text>
         }
       />
 
@@ -342,7 +342,7 @@ export default function GroupScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Invite to {group?.name ?? "group"}</Text>
+              <Text style={styles.modalTitle}>{t("gr.inviteTo")} {group?.name ?? ""}</Text>
               <TouchableOpacity onPress={() => setShowInvite(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
@@ -353,20 +353,20 @@ export default function GroupScreen() {
               onPress={() => { setShowInvite(false); doShareInvite(); }}
             >
               <Ionicons name="link-outline" size={16} color={c.onOrange} />
-              <Text style={styles.shareLinkText}>Share invite link</Text>
+              <Text style={styles.shareLinkText}>{t("gr.shareLink")}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.inviteSectionTitle}>Your friends</Text>
+            <Text style={styles.inviteSectionTitle}>{t("gr.yourFriends")}</Text>
             <ScrollView style={{ maxHeight: 340 }}>
               {(() => {
                 const notInGroup = friends.filter(
                   (f) => !group?.members.some((m) => m.user.id === f.id)
                 );
                 if (friends.length === 0) {
-                  return <Text style={styles.inviteHint}>Add friends from Profile → Friends to invite them here.</Text>;
+                  return <Text style={styles.inviteHint}>{t("gr.noFriendsHint")}</Text>;
                 }
                 if (notInGroup.length === 0) {
-                  return <Text style={styles.inviteHint}>All your friends are already in this group.</Text>;
+                  return <Text style={styles.inviteHint}>{t("gr.allIn")}</Text>;
                 }
                 return notInGroup.map((f) => (
                   <View key={f.id} style={styles.inviteFriendRow}>
@@ -380,7 +380,7 @@ export default function GroupScreen() {
                     {invitedIds.has(f.id) ? (
                       <View style={styles.invitedTagRow}>
                         <Ionicons name="checkmark" size={13} color={c.teal} />
-                        <Text style={styles.invitedTag}>Invited</Text>
+                        <Text style={styles.invitedTag}>{t("gr.invited")}</Text>
                       </View>
                     ) : (
                       <TouchableOpacity style={styles.inviteBtn} onPress={() => inviteFriend(f.id)}>
@@ -391,7 +391,7 @@ export default function GroupScreen() {
                 ));
               })()}
             </ScrollView>
-            <Text style={styles.inviteHint}>They'll get a notification asking to join.</Text>
+            <Text style={styles.inviteHint}>{t("gr.notifJoin")}</Text>
           </View>
         </View>
       </Modal>
@@ -416,9 +416,9 @@ export default function GroupScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.settingText}>
-                    {group?.photo ? "Change group photo" : "Add group photo"}
+                    {group?.photo ? t("gr.photoChange") : t("gr.photoAdd")}
                   </Text>
-                  <Text style={styles.settingDesc}>Shown in the groups list and this chat</Text>
+                  <Text style={styles.settingDesc}>{t("gr.photoDesc")}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -428,9 +428,9 @@ export default function GroupScreen() {
                 <Ionicons name={isMuted ? "notifications-outline" : "notifications-off-outline"} size={18} color={c.teal} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingText}>{isMuted ? "Unmute" : "Mute"}</Text>
+                <Text style={styles.settingText}>{isMuted ? t("gr.unmute") : t("gr.mute")}</Text>
                 <Text style={styles.settingDesc}>
-                  {isMuted ? "Get notifications from this group again" : "Stop notifications from this group"}
+                  {isMuted ? t("gr.unmuteDesc") : t("gr.muteDesc")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -441,7 +441,7 @@ export default function GroupScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.settingText}>{t("group.leave")}</Text>
-                <Text style={styles.settingDesc}>You can rejoin later with an invite</Text>
+                <Text style={styles.settingDesc}>{t("gr.leaveDesc")}</Text>
               </View>
             </TouchableOpacity>
 
@@ -452,7 +452,7 @@ export default function GroupScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.settingText, { color: c.danger }]}>{t("group.delete")}</Text>
-                  <Text style={styles.settingDesc}>Deletes the group and chat for everyone</Text>
+                  <Text style={styles.settingDesc}>{t("gr.deleteDesc")}</Text>
                 </View>
               </TouchableOpacity>
             )}

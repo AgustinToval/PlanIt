@@ -25,6 +25,7 @@ import { useChatUx } from "../../hooks/useChatUx";
 import UserProfileSheet from "../../components/UserProfileSheet";
 import { font, radius, shadow, userColor, Palette, themedStyles } from "../../lib/theme";
 import { useTheme, useT } from "../../hooks/useSettings";
+import type { TKey } from "../../lib/i18n";
 
 type Message = {
   id: string;
@@ -58,15 +59,15 @@ type Plan = {
 type ModIcon = keyof typeof Ionicons.glyphMap;
 
 const MODULE_CATALOG: { type: string; icon: ModIcon; name: string; desc: string }[] = [
-  { type: "expenses", icon: "card-outline", name: "Split Expenses", desc: "Track costs, split the bill" },
-  { type: "checklist", icon: "checkbox-outline", name: "Packing List", desc: "Shared checklist, assign items" },
-  { type: "activities", icon: "list-outline", name: "Activities", desc: "Order and schedule what to do" },
-  { type: "votes", icon: "stats-chart-outline", name: "Quick Vote", desc: "Decide things together" },
-  { type: "walkietalkie", icon: "mic-outline", name: "Walkie Talkie", desc: "Push-to-talk voice" },
-  { type: "gallery", icon: "images-outline", name: "Gallery", desc: "Shared photo album" },
-  { type: "playlist", icon: "musical-notes-outline", name: "Playlist", desc: "Spotify & YouTube Music" },
-  { type: "files", icon: "document-attach-outline", name: "Files & Notes", desc: "Maps, PDFs, shared notes" },
-  { type: "meetup", icon: "location-outline", name: "Meetup Tracker", desc: "Who's on the way" },
+  { type: "expenses", icon: "card-outline", name: "cat.expenses.n", desc: "cat.expenses.d" },
+  { type: "checklist", icon: "checkbox-outline", name: "cat.checklist.n", desc: "cat.checklist.d" },
+  { type: "activities", icon: "list-outline", name: "cat.activities.n", desc: "cat.activities.d" },
+  { type: "votes", icon: "stats-chart-outline", name: "cat.votes.n", desc: "cat.votes.d" },
+  { type: "walkietalkie", icon: "mic-outline", name: "cat.walkietalkie.n", desc: "cat.walkietalkie.d" },
+  { type: "gallery", icon: "images-outline", name: "cat.gallery.n", desc: "cat.gallery.d" },
+  { type: "playlist", icon: "musical-notes-outline", name: "cat.playlist.n", desc: "cat.playlist.d" },
+  { type: "files", icon: "document-attach-outline", name: "cat.files.n", desc: "cat.files.d" },
+  { type: "meetup", icon: "location-outline", name: "cat.meetup.n", desc: "cat.meetup.d" },
 ];
 
 export default function PlanScreen() {
@@ -166,7 +167,7 @@ export default function PlanScreen() {
   const pickBanner = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo access to set a banner.");
+      Alert.alert(t("er.permission"), t("er.photoPerm"));
       return;
     }
     // 16:9 crop with native zoom/preview, then compressed to ~100-200 KB
@@ -191,11 +192,11 @@ export default function PlanScreen() {
       pickBanner();
       return;
     }
-    Alert.alert("Plan banner", "What do you want to do?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Change photo", onPress: pickBanner },
+    Alert.alert(t("pl.bannerQ"), t("plans.whatDo"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("pl.bannerChangePhoto"), onPress: pickBanner },
       {
-        text: "Remove banner", style: "destructive",
+        text: t("pl.bannerRemove"), style: "destructive",
         onPress: async () => {
           try {
             await api.patch(`/plans/${id}`, { bannerImage: null });
@@ -268,17 +269,17 @@ export default function PlanScreen() {
     try {
       const res = await api.post(`/plans/${id}/save-template`, {});
       setShowSettings(false);
-      Alert.alert("Template saved", `"${res.data.name}" — you'll see it when creating a new plan.`);
+      Alert.alert(t("pl.tplSaved"), `"${res.data.name}" — you'll see it when creating a new plan.`);
     } catch {
       Alert.alert("Error", "Could not save the template");
     }
   };
 
   const leavePlan = () => {
-    Alert.alert("Leave plan?", `You will leave "${plan?.title}".`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("plans.leaveTitle"), `${t("plans.leaveMsg")} "${plan?.title}".`, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Leave", style: "destructive",
+        text: t("common.leave"), style: "destructive",
         onPress: async () => {
           try {
             await api.post(`/plans/${id}/leave`);
@@ -293,12 +294,12 @@ export default function PlanScreen() {
 
   const deletePlan = () => {
     Alert.alert(
-      "Delete plan?",
-      `"${plan?.title}" and everything in it (chat, expenses, lists) will be deleted for everyone. This cannot be undone.`,
+      t("plans.deleteTitle"),
+      `"${plan?.title}" ${t("plans.deleteMsg")}`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete", style: "destructive",
+          text: t("common.delete"), style: "destructive",
           onPress: async () => {
             try {
               await api.delete(`/plans/${id}`);
@@ -391,12 +392,12 @@ export default function PlanScreen() {
   const removeModule = (type: string) => {
     const mod = MODULE_CATALOG.find((m) => m.type === type);
     Alert.alert(
-      `Remove ${mod?.name}?`,
-      "The module and its tab will be removed from this plan.",
+      `${t("pl.removeQ")} ${mod ? t(mod.name as TKey) : ""}?`,
+      t("pl.removeMsg"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Remove", style: "destructive",
+          text: t("common.remove"), style: "destructive",
           onPress: async () => {
             try {
               await api.delete(`/plans/${id}/modules/${type}`);
@@ -456,11 +457,11 @@ export default function PlanScreen() {
             </View>
           )}
           <Text style={[styles.meta, { color: c.teal, fontFamily: font.semi }]}>
-            {yesCount}/{plan?.members.length ?? 0} in
+            {yesCount}/{plan?.members.length ?? 0} {t("plans.in")}
           </Text>
           {myRole !== "member" && (
             <View style={styles.roleChip}>
-              <Text style={styles.roleChipText}>{myRole === "admin" ? "Admin" : "Helper"}</Text>
+              <Text style={styles.roleChipText}>{myRole === "admin" ? t("pl.admin") : t("pl.helper")}</Text>
             </View>
           )}
         </View>
@@ -470,9 +471,9 @@ export default function PlanScreen() {
       {activeTab === null && (
         <View style={styles.rsvpRow}>
           {([
-            { v: "yes", label: "I'm in", icon: "checkmark-circle-outline" as ModIcon, color: c.teal },
-            { v: "maybe", label: "Maybe", icon: "help-circle-outline" as ModIcon, color: "#F0A72B" },
-            { v: "no", label: "Can't", icon: "close-circle-outline" as ModIcon, color: c.danger },
+            { v: "yes", label: t("pl.imIn"), icon: "checkmark-circle-outline" as ModIcon, color: c.teal },
+            { v: "maybe", label: t("pl.maybe"), icon: "help-circle-outline" as ModIcon, color: "#F0A72B" },
+            { v: "no", label: t("pl.cant"), icon: "close-circle-outline" as ModIcon, color: c.danger },
           ]).map(({ v, label, icon, color }) => {
             const active = myRsvp === v;
             return (
@@ -495,10 +496,10 @@ export default function PlanScreen() {
           <TouchableOpacity onPress={() => setActiveTab(null)} style={styles.moduleBarBack}>
             <Ionicons name="chevron-back" size={16} color={c.teal} />
             <Ionicons name="grid-outline" size={14} color={c.teal} />
-            <Text style={styles.moduleBarBackText}>Modules</Text>
+            <Text style={styles.moduleBarBackText}>{t("pl.modules")}</Text>
           </TouchableOpacity>
           <Text style={styles.moduleBarTitle}>
-            {activeTab === "chat" ? "Chat" : MODULE_CATALOG.find((c) => c.type === activeTab)?.name ?? ""}
+            {t((activeTab === "chat" ? "pl.chat" : MODULE_CATALOG.find((x) => x.type === activeTab)?.name ?? "pl.chat") as TKey)}
           </Text>
           <View style={{ width: 92 }} />
         </View>
@@ -507,7 +508,7 @@ export default function PlanScreen() {
       {/* Content */}
       {activeTab === null ? (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.gridWrap}>
-          <Text style={styles.gridLabel}>Modules</Text>
+          <Text style={styles.gridLabel}>{t("pl.modules")}</Text>
           <View style={styles.grid}>
             {/* Chat is always first */}
             <TouchableOpacity style={styles.gridCard} onPress={() => setActiveTab("chat")}>
@@ -516,9 +517,9 @@ export default function PlanScreen() {
                 <Ionicons name="chatbubble-outline" size={17} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.gridName}>Chat</Text>
+                <Text style={styles.gridName}>{t("pl.chat")}</Text>
                 <Text style={[styles.gridSub, isUnseen("chat") && styles.gridSubNew]} numberOfLines={1}>
-                  {isUnseen("chat") ? "New messages" : "Group chat"}
+                  {isUnseen("chat") ? t("pl.newMsgs") : t("pl.groupChat")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -539,9 +540,9 @@ export default function PlanScreen() {
                     <Ionicons name={info?.icon ?? "cube-outline"} size={17} color="#fff" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.gridName} numberOfLines={1}>{info?.name}</Text>
+                    <Text style={styles.gridName} numberOfLines={1}>{info ? t(info.name as TKey) : ""}</Text>
                     <Text style={[styles.gridSub, unseen && styles.gridSubNew]} numberOfLines={1}>
-                      {unseen ? "New activity" : info?.desc}
+                      {unseen ? t("pl.newActivity") : info ? t(info.desc as TKey) : ""}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -554,14 +555,14 @@ export default function PlanScreen() {
                   <Ionicons name="add" size={19} color={c.orange} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.gridName, { color: c.orange }]}>Add module</Text>
-                  <Text style={styles.gridSub} numberOfLines={1}>Expand this plan</Text>
+                  <Text style={[styles.gridName, { color: c.orange }]}>{t("pl.addModule")}</Text>
+                  <Text style={styles.gridSub} numberOfLines={1}>{t("pl.expand")}</Text>
                 </View>
               </TouchableOpacity>
             )}
           </View>
           {canManage && enabledModules.length > 0 && (
-            <Text style={styles.gridHint}>Long-press a module to remove it</Text>
+            <Text style={styles.gridHint}>{t("pl.longRemove")}</Text>
           )}
           <View style={{ height: 30 }} />
         </ScrollView>
@@ -606,7 +607,7 @@ export default function PlanScreen() {
               );
             }}
             ListEmptyComponent={
-              <Text style={styles.emptyChat}>No messages yet — say something!</Text>
+              <Text style={styles.emptyChat}>{t("pl.emptyChat")}</Text>
             }
           />
           {/* Jump to latest message */}
@@ -671,10 +672,10 @@ export default function PlanScreen() {
             />
           </View>
           <Text style={styles.modulePlaceholderTitle}>
-            {MODULE_CATALOG.find((m) => m.type === activeTab)?.name}
+            {t((MODULE_CATALOG.find((m) => m.type === activeTab)?.name ?? "pl.chat") as TKey)}
           </Text>
-          <Text style={styles.modulePlaceholderText}>Coming soon</Text>
-          <Text style={styles.modulePlaceholderHint}>Long-press the tab to remove this module</Text>
+          <Text style={styles.modulePlaceholderText}>{t("pl.comingSoon")}</Text>
+          <Text style={styles.modulePlaceholderHint}>{t("pl.longRemove")}</Text>
         </View>
       )}
 
@@ -693,7 +694,7 @@ export default function PlanScreen() {
               onPress={() => plan && shareInvite("plan", plan.title, plan.inviteCode)}
             >
               <Ionicons name="link-outline" size={16} color={c.onOrange} />
-              <Text style={styles.shareBtnText}>Share invite link</Text>
+              <Text style={styles.shareBtnText}>{t("gr.shareLink")}</Text>
             </TouchableOpacity>
             <ScrollView>
               {plan?.members.map((m) => {
@@ -719,10 +720,10 @@ export default function PlanScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.memberName}>
-                          {isMe ? "You" : m.user.name ?? "?"}
+                          {isMe ? t("common.you") : m.user.name ?? "?"}
                         </Text>
                         {m.role !== "member" && (
-                          <Text style={styles.memberRole}>{m.role === "admin" ? "Admin" : "Helper"}</Text>
+                          <Text style={styles.memberRole}>{m.role === "admin" ? t("pl.admin") : t("pl.helper")}</Text>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -733,7 +734,7 @@ export default function PlanScreen() {
                         onPress={() => setRole(m.user.id, m.role === "helper" ? "member" : "helper")}
                       >
                         <Text style={styles.roleBtnText}>
-                          {m.role === "helper" ? "Remove helper" : "Make helper"}
+                          {m.role === "helper" ? t("pl.removeHelper") : t("pl.makeHelper")}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -749,7 +750,7 @@ export default function PlanScreen() {
                 if (notInPlan.length === 0) return null;
                 return (
                   <>
-                    <Text style={styles.inviteSectionTitle}>Invite friends</Text>
+                    <Text style={styles.inviteSectionTitle}>{t("pl.inviteFriends")}</Text>
                     {notInPlan.map((f) => (
                       <View key={f.id} style={styles.memberRow}>
                         <View style={[styles.memberAvatar, { backgroundColor: userColor(f.id) }]}>
@@ -761,7 +762,7 @@ export default function PlanScreen() {
                         {invitedIds.has(f.id) ? (
                           <View style={styles.invitedTagRow}>
                             <Ionicons name="checkmark" size={13} color={c.teal} />
-                            <Text style={styles.invitedTag}>Invited</Text>
+                            <Text style={styles.invitedTag}>{t("pl.invited")}</Text>
                           </View>
                         ) : (
                           <TouchableOpacity style={styles.roleBtn} onPress={() => inviteFriend(f.id)}>
@@ -786,7 +787,7 @@ export default function PlanScreen() {
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                 <Ionicons name="sparkles" size={17} color={c.orange} />
-                <Text style={styles.modalTitle}>Plan Assistant</Text>
+                <Text style={styles.modalTitle}>{t("pl.assistant")}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAi(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
@@ -800,7 +801,7 @@ export default function PlanScreen() {
                 </View>
               ) : (
                 <Text style={styles.aiHint}>
-                  Ask anything about this plan:{"\n\n"}
+                  {t("pl.askAnything")}{"\n\n"}
                   "What should we pack?"{"\n"}
                   "Suggest a schedule for the day"{"\n"}
                   "How should we split the budget?"{"\n"}
@@ -812,7 +813,7 @@ export default function PlanScreen() {
             <View style={styles.aiInputRow}>
               <TextInput
                 style={styles.aiInput}
-                placeholder="Ask the assistant..."
+                placeholder={t("pl.askPh")}
                 placeholderTextColor={c.faint}
                 value={aiQuestion}
                 onChangeText={setAiQuestion}
@@ -839,7 +840,7 @@ export default function PlanScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modal, { maxHeight: "88%" }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Group availability</Text>
+              <Text style={styles.modalTitle}>{t("pl.groupAvail")}</Text>
               <TouchableOpacity onPress={() => setShowDates(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
@@ -867,7 +868,7 @@ export default function PlanScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.settingText}>{t("plan.editPlan")}</Text>
-                  <Text style={styles.settingDesc}>Title, date, location and description</Text>
+                  <Text style={styles.settingDesc}>{t("pl.editDesc")}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -879,9 +880,9 @@ export default function PlanScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.settingText}>
-                    {plan?.bannerImage ? "Change banner photo" : "Add banner photo"}
+                    {plan?.bannerImage ? t("pl.bannerChange") : t("pl.bannerAdd")}
                   </Text>
-                  <Text style={styles.settingDesc}>Shown behind this plan's card in Plans</Text>
+                  <Text style={styles.settingDesc}>{t("pl.bannerDesc")}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -892,9 +893,7 @@ export default function PlanScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.settingText}>{t("plan.saveTemplate")}</Text>
-                <Text style={styles.settingDesc}>
-                  Reuse this plan's modules, checklist and activities next time
-                </Text>
+                <Text style={styles.settingDesc}>{t("pl.saveTplDesc")}</Text>
               </View>
             </TouchableOpacity>
 
@@ -904,7 +903,7 @@ export default function PlanScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.settingText}>{t("plan.leave")}</Text>
-                <Text style={styles.settingDesc}>You can rejoin later with an invite</Text>
+                <Text style={styles.settingDesc}>{t("pl.leaveDesc")}</Text>
               </View>
             </TouchableOpacity>
 
@@ -915,7 +914,7 @@ export default function PlanScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.settingText, { color: c.danger }]}>{t("plan.delete")}</Text>
-                  <Text style={styles.settingDesc}>Deletes everything for everyone — cannot be undone</Text>
+                  <Text style={styles.settingDesc}>{t("pl.deleteDesc")}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -1019,7 +1018,7 @@ export default function PlanScreen() {
             </View>
             <ScrollView>
               {availableModules.length === 0 ? (
-                <Text style={styles.emptyChat}>All modules added!</Text>
+                <Text style={styles.emptyChat}>{t("pl.allAdded")}</Text>
               ) : (
                 availableModules.map((m) => (
                   <TouchableOpacity key={m.type} style={styles.moduleRow} onPress={() => addModule(m.type)}>

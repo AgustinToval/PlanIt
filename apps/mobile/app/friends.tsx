@@ -84,7 +84,7 @@ export default function FriendsScreen() {
       setSentIds((prev) => new Set(prev).add(target.id));
       await load();
       if (res.data.autoAccepted) {
-        Alert.alert("You're now friends", `${res.data.name} had already sent you a request`);
+        Alert.alert(t("fr.nowFriends"), `${res.data.name} ${t("fr.alreadySent")}`);
       }
     } catch (e: any) {
       Alert.alert("Error", e?.response?.data?.error ?? "Could not send request");
@@ -110,10 +110,10 @@ export default function FriendsScreen() {
   };
 
   const removeFriend = (f: Friend) => {
-    Alert.alert("Remove friend?", f.name ?? "This user", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("fr.removeQ"), f.name ?? "This user", [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Remove", style: "destructive",
+        text: t("common.remove"), style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/friends/${f.id}`);
@@ -137,12 +137,12 @@ export default function FriendsScreen() {
 
       <Text style={styles.title}>{t("scr.friends")}</Text>
 
-      <Text style={styles.label}>Add a friend</Text>
+      <Text style={styles.label}>{t("fr.addFriend")}</Text>
       <View style={styles.inputWrap}>
         <Ionicons name="search" size={16} color={c.faint} />
         <TextInput
           style={styles.input}
-          placeholder="Search by username (or email)"
+          placeholder={t("fr.searchPh")}
           placeholderTextColor={c.faint}
           value={query}
           onChangeText={onQueryChange}
@@ -161,9 +161,9 @@ export default function FriendsScreen() {
       {query.trim().length >= 2 && (
         <View style={{ marginTop: 10 }}>
           {searching && results.length === 0 ? (
-            <Text style={styles.empty}>Searching…</Text>
+            <Text style={styles.empty}>{t("fr.searching")}</Text>
           ) : results.length === 0 ? (
-            <Text style={styles.empty}>No one found — check the username or try their email.</Text>
+            <Text style={styles.empty}>{t("fr.noResults")}</Text>
           ) : (
             results.map((r) => {
               const alreadyFriend = friends.some((f) => f.id === r.id);
@@ -183,16 +183,16 @@ export default function FriendsScreen() {
                     {r.bio ? <Text style={styles.friendMeta} numberOfLines={1}>{r.bio}</Text> : null}
                   </View>
                   {alreadyFriend ? (
-                    <Text style={styles.sentTag}>Friends ✓</Text>
+                    <Text style={styles.sentTag}>{t("fr.already")}</Text>
                   ) : sent ? (
-                    <Text style={styles.sentTag}>Sent ✓</Text>
+                    <Text style={styles.sentTag}>{t("fr.sentTag")}</Text>
                   ) : (
                     <TouchableOpacity
                       style={[styles.acceptBtn, busy && { opacity: 0.5 }]}
                       onPress={() => addFriendById(r)}
                       disabled={busy}
                     >
-                      <Text style={styles.acceptText}>Add</Text>
+                      <Text style={styles.acceptText}>{t("common.add")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -206,7 +206,7 @@ export default function FriendsScreen() {
       {requests.length > 0 && (
         <>
           <Text style={[styles.label, { marginTop: 24 }]}>
-            Friend requests ({requests.length})
+            {t("fr.requests")} ({requests.length})
           </Text>
           {requests.map((r) => (
             <View key={r.id} style={[styles.friendRow, styles.requestRow]}>
@@ -229,11 +229,11 @@ export default function FriendsScreen() {
       )}
 
       <Text style={[styles.label, { marginTop: 24 }]}>
-        Your friends ({friends.length})
+        {t("fr.yourFriends")} ({friends.length})
       </Text>
       {friends.length === 0 ? (
         <Text style={styles.empty}>
-          No friends yet — send a request by email or username. They need a PlanIt account first.
+          {t("fr.empty")}
         </Text>
       ) : (
         friends.map((f) => (
@@ -254,7 +254,7 @@ export default function FriendsScreen() {
           </TouchableOpacity>
         ))
       )}
-      <Text style={styles.hint}>Tap to see profile · long-press to remove</Text>
+      <Text style={styles.hint}>{t("fr.hint")}</Text>
 
       {/* Friend profile modal */}
       <Modal visible={profile !== null} animationType="slide" transparent>
@@ -281,12 +281,12 @@ export default function FriendsScreen() {
                 <View style={styles.infoBox}>
                   {profile.location && (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Location</Text>
+                      <Text style={styles.infoLabel}>{t("fr.location")}</Text>
                       <Text style={styles.infoValue}>{profile.location}</Text>
                     </View>
                   )}
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Joined</Text>
+                    <Text style={styles.infoLabel}>{t("fr.joined")}</Text>
                     <Text style={styles.infoValue}>
                       {new Date(profile.createdAt).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
                     </Text>
@@ -296,15 +296,15 @@ export default function FriendsScreen() {
                 <View style={styles.statsRow}>
                   <View style={styles.stat}>
                     <Text style={styles.statNum}>{profile._count.planMembers}</Text>
-                    <Text style={styles.statLabel}>Plans</Text>
+                    <Text style={styles.statLabel}>{t("stats.plans")}</Text>
                   </View>
                   <View style={styles.stat}>
                     <Text style={styles.statNum}>{profile._count.groupMembers}</Text>
-                    <Text style={styles.statLabel}>Groups</Text>
+                    <Text style={styles.statLabel}>{t("stats.groups")}</Text>
                   </View>
                   <View style={styles.stat}>
                     <Text style={styles.statNum}>{profile._count.photos}</Text>
-                    <Text style={styles.statLabel}>Photos</Text>
+                    <Text style={styles.statLabel}>{t("stats.photos")}</Text>
                   </View>
                 </View>
               </>

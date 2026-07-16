@@ -13,7 +13,7 @@ import { compressToDataUrl } from "../../lib/images";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Photo = {
   id: string;
@@ -33,6 +33,7 @@ export default function GalleryModule({
 }: { planId: string; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,7 +59,7 @@ export default function GalleryModule({
   const pickAndUpload = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo access to add pictures.");
+      Alert.alert(t("er.permission"), t("er.photoPerm"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -89,7 +90,7 @@ export default function GalleryModule({
     }
     const perm = await MediaLibrary.requestPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo access to save pictures.");
+      Alert.alert(t("er.permission"), t("er.photoPerm"));
       return;
     }
     setSaving(true);
@@ -101,7 +102,7 @@ export default function GalleryModule({
       const fileUri = `${FileSystem.cacheDirectory}planit_${photo.id}.${ext}`;
       await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
       await MediaLibrary.saveToLibraryAsync(fileUri);
-      Alert.alert("Saved", "The photo is now in your gallery.");
+      Alert.alert(t("ga.savedT"), t("ga.savedMsg"));
     } catch {
       Alert.alert("Error", "Could not save the photo.");
     } finally {
@@ -112,10 +113,10 @@ export default function GalleryModule({
   const deletePhoto = (photo: Photo) => {
     const canDelete = photo.user.id === user?.id || myRole === "admin";
     if (!canDelete) return;
-    Alert.alert("Delete photo?", "", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("ga.deleteQ"), "", [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/gallery/${photo.id}`);
@@ -139,8 +140,8 @@ export default function GalleryModule({
             <View style={styles.emptyIconWrap}>
               <Ionicons name="images-outline" size={38} color={c.teal} />
             </View>
-            <Text style={styles.emptyText}>No photos yet</Text>
-            <Text style={styles.emptySub}>Share the memories from this plan</Text>
+            <Text style={styles.emptyText}>{t("ga.empty")}</Text>
+            <Text style={styles.emptySub}>{t("ga.sub")}</Text>
           </View>
         ) : (
           photos.map((p) => (
@@ -157,7 +158,7 @@ export default function GalleryModule({
           : (
             <View style={styles.fabRow}>
               <Ionicons name="add" size={18} color={c.onOrange} />
-              <Text style={styles.fabText}>Add photo</Text>
+              <Text style={styles.fabText}>{t("ga.add")}</Text>
             </View>
           )}
       </TouchableOpacity>
@@ -173,7 +174,7 @@ export default function GalleryModule({
               <Image source={{ uri: viewer.url }} style={styles.viewerImage} resizeMode="contain" />
               <View style={styles.viewerInfo}>
                 <Text style={styles.viewerUser}>
-                  {viewer.user.id === user?.id ? "You" : viewer.user.name ?? "?"}
+                  {viewer.user.id === user?.id ? t("common.you") : viewer.user.name ?? "?"}
                 </Text>
                 <Text style={styles.viewerDate}>
                   {new Date(viewer.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -190,7 +191,7 @@ export default function GalleryModule({
                     : (
                       <View style={styles.fabRow}>
                         <Ionicons name="download-outline" size={16} color="#fff" />
-                        <Text style={styles.viewerSaveText}>Save</Text>
+                        <Text style={styles.viewerSaveText}>{t("common.save")}</Text>
                       </View>
                     )}
                 </TouchableOpacity>
@@ -198,7 +199,7 @@ export default function GalleryModule({
                   <TouchableOpacity style={styles.viewerDelete} onPress={() => deletePhoto(viewer)}>
                     <View style={styles.fabRow}>
                       <Ionicons name="trash-outline" size={16} color="#FCA5A5" />
-                      <Text style={styles.viewerDeleteText}>Delete</Text>
+                      <Text style={styles.viewerDeleteText}>{t("common.delete")}</Text>
                     </View>
                   </TouchableOpacity>
                 )}

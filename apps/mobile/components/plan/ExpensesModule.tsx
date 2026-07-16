@@ -9,7 +9,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Expense = {
   id: string;
@@ -34,6 +34,7 @@ type Member = { rsvp: string; user: { id: string; name: string | null } };
 export default function ExpensesModule({ planId, members, myRole = "member" }: { planId: string; members: Member[]; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -103,10 +104,10 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
   const deleteExpense = (exp: Expense) => {
     const canDelete = exp.payer.id === user?.id || myRole === "admin";
     if (!canDelete) return;
-    Alert.alert("Delete expense?", `"${exp.title}" — $${exp.amount.toFixed(2)}`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("ex.deleteQ"), `"${exp.title}" — $${exp.amount.toFixed(2)}`, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/expenses/${exp.id}`);
@@ -129,7 +130,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
   };
 
   const memberName = (id: string) =>
-    id === user?.id ? "You" : members.find((m) => m.user.id === id)?.user.name ?? "?";
+    id === user?.id ? t("common.you") : members.find((m) => m.user.id === id)?.user.name ?? "?";
 
   const myNet = summary?.balances.find((b) => b.userId === user?.id)?.net ?? 0;
 
@@ -141,17 +142,17 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
       >
         {/* Balance header */}
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Total spent</Text>
+          <Text style={styles.balanceLabel}>{t("ex.total")}</Text>
           <Text style={styles.balanceTotal}>${(summary?.total ?? 0).toFixed(2)}</Text>
           {mode === "equal" && summary?.perPerson != null && (
             <Text style={styles.perPerson}>
-              ${summary.perPerson.toFixed(2)} each ({members.length} people)
+              ${summary.perPerson.toFixed(2)} {t("ex.each")} ({members.length} {t("ex.people")})
             </Text>
           )}
           <Text style={[styles.balanceNet, { color: myNet >= 0 ? c.teal : c.danger }]}>
-            {myNet > 0 ? `You are owed $${myNet.toFixed(2)}` :
-             myNet < 0 ? `You owe $${Math.abs(myNet).toFixed(2)}` :
-             "You're all settled ✓"}
+            {myNet > 0 ? `${t("ex.owed")} $${myNet.toFixed(2)}` :
+             myNet < 0 ? `${t("ex.owe")} $${Math.abs(myNet).toFixed(2)}` :
+             t("ex.settled")}
           </Text>
 
           {/* Split mode toggle */}
@@ -160,13 +161,13 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
               style={[styles.modeBtn, mode === "expense" && styles.modeBtnActive]}
               onPress={() => setMode("expense")}
             >
-              <Text style={[styles.modeText, mode === "expense" && styles.modeTextActive]}>By expense</Text>
+              <Text style={[styles.modeText, mode === "expense" && styles.modeTextActive]}>{t("ex.byExpense")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeBtn, mode === "equal" && styles.modeBtnActive]}
               onPress={() => setMode("equal")}
             >
-              <Text style={[styles.modeText, mode === "equal" && styles.modeTextActive]}>Everything ÷ everyone</Text>
+              <Text style={[styles.modeText, mode === "equal" && styles.modeTextActive]}>{t("ex.divide")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -176,7 +177,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
               <Ionicons name="swap-horizontal-outline" size={15} color={c.ink} />
-              <Text style={styles.sectionTitle}>Settle up</Text>
+              <Text style={styles.sectionTitle}>{t("ex.settleUp")}</Text>
             </View>
             {summary.transactions.map((t, i) => (
               <View key={i} style={styles.txRow}>
@@ -199,10 +200,10 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Ionicons name="card-outline" size={15} color={c.ink} />
-            <Text style={styles.sectionTitle}>Expenses</Text>
+            <Text style={styles.sectionTitle}>{t("ex.title")}</Text>
           </View>
           {expenses.length === 0 ? (
-            <Text style={styles.empty}>No expenses yet — add the first one</Text>
+            <Text style={styles.empty}>{t("ex.empty")}</Text>
           ) : (
             expenses.map((exp) => {
               const isOpen = expanded === exp.id;
@@ -217,7 +218,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.expTitle}>{exp.title}</Text>
                       <Text style={styles.expMeta}>
-                        {exp.payer.id === user?.id ? "You" : exp.payer.name ?? "?"} paid · {settledCount}/{exp.splits.length} paid up
+                        {exp.payer.id === user?.id ? t("common.you") : exp.payer.name ?? "?"} {t("ex.paid")} · {settledCount}/{exp.splits.length} {t("ex.paidUp")}
                       </Text>
                     </View>
                     <Text style={styles.expAmount}>${exp.amount.toFixed(2)}</Text>
@@ -249,7 +250,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                             />
                             <Text style={[styles.splitName, s.settled && styles.splitSettled]}>
                               {memberName(s.userId)}
-                              {isPayerShare ? " (paid the bill)" : ""}
+                              {isPayerShare ? ` ${t("ex.paidBill")}` : ""}
                             </Text>
                             <Text style={[styles.splitAmount, s.settled && styles.splitSettled]}>
                               ${s.amount.toFixed(2)}
@@ -258,7 +259,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                         );
                       })}
                       <Text style={styles.splitsHint}>
-                        Tap your row when you've paid your share
+                        {t("ex.tapRow")}
                       </Text>
                     </View>
                   )}
@@ -274,7 +275,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
       <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)}>
         <View style={styles.fabRow}>
           <Ionicons name="add" size={18} color={c.onOrange} />
-          <Text style={styles.fabText}>Add expense</Text>
+          <Text style={styles.fabText}>{t("ex.add")}</Text>
         </View>
       </TouchableOpacity>
 
@@ -288,23 +289,23 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.modal}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>New expense</Text>
+                  <Text style={styles.modalTitle}>{t("ex.new")}</Text>
                   <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowAdd(false); }}>
                     <Ionicons name="close" size={22} color={c.muted} />
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.label}>What was it?</Text>
+                <Text style={styles.label}>{t("ex.what")}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Firewood, dinner, gas..."
+                  placeholder={t("ex.whatPh")}
                   placeholderTextColor={c.faint}
                   value={title}
                   onChangeText={setTitle}
                   returnKeyType="done"
                 />
 
-                <Text style={styles.label}>Amount</Text>
+                <Text style={styles.label}>{t("ex.amount")}</Text>
                 <View style={styles.amountRow}>
                   <TextInput
                     style={[styles.input, { flex: 1, marginBottom: 0 }]}
@@ -319,7 +320,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.label}>Split between</Text>
+                <Text style={styles.label}>{t("ex.split")}</Text>
                 <ScrollView style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled">
                   <TouchableOpacity
                     style={[styles.sharerRow, styles.everyoneRow, sharers.size === members.length && styles.sharerRowActive]}
@@ -327,7 +328,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                       <Ionicons name="people" size={15} color={c.teal} />
-                      <Text style={[styles.sharerName, { fontFamily: font.bodyBold }]}>Everyone</Text>
+                      <Text style={[styles.sharerName, { fontFamily: font.bodyBold }]}>{t("ex.everyone")}</Text>
                     </View>
                     <Ionicons
                       name={sharers.size === members.length ? "checkbox" : "square-outline"}
@@ -344,7 +345,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                         onPress={() => toggleSharer(m.user.id)}
                       >
                         <Text style={styles.sharerName}>
-                          {m.user.id === user?.id ? "You" : m.user.name ?? "?"}
+                          {m.user.id === user?.id ? t("common.you") : m.user.name ?? "?"}
                         </Text>
                         <Ionicons
                           name={selected ? "checkbox" : "square-outline"}
@@ -361,7 +362,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                   onPress={addExpense}
                   disabled={busy}
                 >
-                  <Text style={styles.buttonText}>{busy ? "..." : "Add expense"}</Text>
+                  <Text style={styles.buttonText}>{busy ? "..." : t("ex.add")}</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>

@@ -27,11 +27,11 @@ export default function CreateGroupScreen() {
       const g = res.data;
       router.replace(`/group/${g.id}`);
       Alert.alert(
-        "Group created!",
-        "Share an invite link so friends can join?",
+        t("cg.createdQ"),
+        t("cg.createdMsg"),
         [
-          { text: "Later", style: "cancel" },
-          { text: "Share link", onPress: () => shareInvite("group", g.name, g.inviteCode) },
+          { text: t("common.later"), style: "cancel" },
+          { text: t("cp.shareLink"), onPress: () => shareInvite("group", g.name, g.inviteCode) },
         ]
       );
     } catch {
@@ -63,19 +63,19 @@ export default function CreateGroupScreen() {
 
       <Text style={styles.title}>{t("scr.newGroup")}</Text>
 
-      <Text style={styles.label}>Group name</Text>
+      <Text style={styles.label}>{t("cg.name")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="College Friends"
+        placeholder={t("cg.namePh")}
         placeholderTextColor={c.faint}
         value={name}
         onChangeText={setName}
       />
 
-      <Text style={styles.label}>Description (optional)</Text>
+      <Text style={styles.label}>{t("cg.desc")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="The best crew"
+        placeholder={t("cg.descPh")}
         placeholderTextColor={c.faint}
         value={description}
         onChangeText={setDescription}
@@ -86,19 +86,19 @@ export default function CreateGroupScreen() {
         onPress={createGroup}
         disabled={!name.trim() || busy}
       >
-        <Text style={styles.buttonText}>{busy ? "..." : "Create Group"}</Text>
+        <Text style={styles.buttonText}>{busy ? "..." : t("cg.create")}</Text>
       </TouchableOpacity>
 
       <View style={styles.divider}>
         <View style={styles.line} />
-        <Text style={styles.dividerText}>or join one</Text>
+        <Text style={styles.dividerText}>{t("cg.orJoin")}</Text>
         <View style={styles.line} />
       </View>
 
-      <Text style={styles.label}>Invite code</Text>
+      <Text style={styles.label}>{t("cp.inviteCode")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Paste invite code"
+        placeholder={t("cg.pasteCode")}
         placeholderTextColor={c.faint}
         value={joinCode}
         onChangeText={setJoinCode}
@@ -109,7 +109,7 @@ export default function CreateGroupScreen() {
         onPress={joinGroup}
         disabled={!joinCode.trim() || busy}
       >
-        <Text style={styles.buttonOutlineText}>Join Group</Text>
+        <Text style={styles.buttonOutlineText}>{t("cg.join")}</Text>
       </TouchableOpacity>
     </View>
   );

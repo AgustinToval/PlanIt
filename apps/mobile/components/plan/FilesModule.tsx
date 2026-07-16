@@ -11,7 +11,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type PlanFile = {
   id: string;
@@ -43,6 +43,7 @@ export default function FilesModule({
 }: { planId: string; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [files, setFiles] = useState<PlanFile[]>([]);
   const [notes, setNotes] = useState("");
@@ -107,7 +108,7 @@ export default function FilesModule({
       });
       const dataUrl = `data:${asset.mimeType ?? "application/octet-stream"};base64,${base64}`;
       if (dataUrl.length > 7_000_000) {
-        Alert.alert("Too large", "Max file size is ~5MB.");
+        Alert.alert(t("er.tooLarge"), t("er.tooLargeMsg"));
         return;
       }
       await api.post(`/files/plan/${planId}`, {
@@ -149,10 +150,10 @@ export default function FilesModule({
   const deleteFile = (file: PlanFile) => {
     const canDelete = file.addedBy === user?.id || myRole === "admin";
     if (!canDelete) return;
-    Alert.alert("Delete file?", file.name, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("fi.deleteQ"), file.name, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try { await api.delete(`/files/${file.id}`); await load(); } catch { /* noop */ }
         },
@@ -171,15 +172,15 @@ export default function FilesModule({
       <View style={styles.notesHeader}>
         <View style={styles.sectionTitleRow}>
           <Ionicons name="create-outline" size={16} color={c.ink} />
-          <Text style={styles.sectionTitle}>Shared notes</Text>
+          <Text style={styles.sectionTitle}>{t("fi.notes")}</Text>
         </View>
         <Text style={styles.saveState}>
-          {notes === savedNotes ? "saved ✓" : "saving..."}
+          {notes === savedNotes ? t("fi.saved") : t("fi.saving")}
         </Text>
       </View>
       <TextInput
         style={styles.notesInput}
-        placeholder="Meeting point, what to bring, reservation numbers..."
+        placeholder={t("fi.notesPh")}
         placeholderTextColor={c.faint}
         value={notes}
         onChangeText={onNotesChange}
@@ -191,7 +192,7 @@ export default function FilesModule({
       <View style={styles.filesHeader}>
         <View style={styles.sectionTitleRow}>
           <Ionicons name="attach-outline" size={16} color={c.ink} />
-          <Text style={styles.sectionTitle}>Files ({files.length})</Text>
+          <Text style={styles.sectionTitle}>{t("fi.files")} ({files.length})</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={pickAndUpload} disabled={uploading}>
           {uploading
@@ -199,14 +200,14 @@ export default function FilesModule({
             : (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
                 <Ionicons name="add" size={15} color={c.onOrange} />
-                <Text style={styles.addBtnText}>Add</Text>
+                <Text style={styles.addBtnText}>{t("common.add")}</Text>
               </View>
             )}
         </TouchableOpacity>
       </View>
 
       {files.length === 0 ? (
-        <Text style={styles.empty}>Attach maps, tickets, reservations, PDFs...</Text>
+        <Text style={styles.empty}>{t("fi.empty")}</Text>
       ) : (
         files.map((f) => (
           <TouchableOpacity
@@ -230,7 +231,7 @@ export default function FilesModule({
           </TouchableOpacity>
         ))
       )}
-      <Text style={styles.hint}>Tap to open/share · long-press to delete</Text>
+      <Text style={styles.hint}>{t("fi.hint")}</Text>
       <View style={{ height: 40 }} />
     </ScrollView>
   );

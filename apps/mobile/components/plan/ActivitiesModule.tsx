@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Activity = {
   id: string;
@@ -23,6 +23,7 @@ export default function ActivitiesModule({
 }: { planId: string; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newTime, setNewTime] = useState(""); // HH:MM optional
@@ -90,10 +91,10 @@ export default function ActivitiesModule({
 
   const deleteActivity = (act: Activity) => {
     if (!canManage) return;
-    Alert.alert("Delete activity?", act.title, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("act.deleteQ"), act.title, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/activities/${act.id}`);
@@ -111,8 +112,8 @@ export default function ActivitiesModule({
       <View style={styles.progressCard}>
         <Text style={styles.progressText}>
           {activities.length === 0
-            ? "No activities planned yet"
-            : `${done} / ${activities.length} done`}
+            ? t("act.none")
+            : `${done} / ${activities.length} ${t("mod.done")}`}
         </Text>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: activities.length ? `${(done / activities.length) * 100}%` : "0%" }]} />
@@ -164,7 +165,7 @@ export default function ActivitiesModule({
           </TouchableOpacity>
         ))}
         {activities.length === 0 && (
-          <Text style={styles.empty}>Add what you'll do, in order</Text>
+          <Text style={styles.empty}>{t("act.empty")}</Text>
         )}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -172,7 +173,7 @@ export default function ActivitiesModule({
       <View style={styles.inputRow}>
         <TextInput
           style={[styles.input, { flex: 2 }]}
-          placeholder="Hike to the lake..."
+          placeholder={t("act.ph")}
           placeholderTextColor={c.faint}
           value={newTitle}
           onChangeText={setNewTitle}

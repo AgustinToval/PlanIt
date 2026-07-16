@@ -8,7 +8,7 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
-import { useTheme } from "../../hooks/useSettings";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Item = {
   id: string;
@@ -31,6 +31,7 @@ export default function ChecklistModule({
 }: { planId: string; members: Member[]; myRole?: string }) {
   const c = useTheme();
   const styles = getStyles(c);
+  const t = useT();
   const { user } = useAuthStore();
   const [items, setItems] = useState<Item[]>([]);
   const [newTitle, setNewTitle] = useState("");
@@ -55,7 +56,7 @@ export default function ChecklistModule({
       setAiSelected(new Set(suggestions.map((_: unknown, i: number) => i)));
       setShowAi(true);
     } catch (e: any) {
-      Alert.alert("AI error", e?.response?.data?.error ?? "Could not generate suggestions");
+      Alert.alert(t("er.ai"), e?.response?.data?.error ?? "Could not generate suggestions");
     } finally {
       setAiLoading(false);
     }
@@ -83,7 +84,7 @@ export default function ChecklistModule({
   const canManage = myRole === "admin" || myRole === "helper";
   const nameOf = (id: string | null) => {
     if (!id) return null;
-    if (id === user?.id) return "You";
+    if (id === user?.id) return t("common.you");
     return members.find((m) => m.user.id === id)?.user.name ?? "?";
   };
 
@@ -139,10 +140,10 @@ export default function ChecklistModule({
 
   const deleteItem = (item: Item) => {
     if (!canManage) return;
-    Alert.alert("Delete item?", item.title, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("ck.deleteQ"), item.title, [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/checklist/${item.id}`);
@@ -161,7 +162,7 @@ export default function ChecklistModule({
       <View style={styles.progressCard}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <Text style={styles.progressText}>
-            {items.length === 0 ? "Nothing on the list yet" : `${done} / ${items.length} packed`}
+            {items.length === 0 ? t("ck.none") : `${done} / ${items.length} ${t("ck.packed")}`}
           </Text>
           <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
             <TouchableOpacity onPress={generateWithAi} disabled={aiLoading} style={styles.aiBtnRow}>
@@ -176,7 +177,7 @@ export default function ChecklistModule({
             </TouchableOpacity>
             {items.length > 0 && (
               <TouchableOpacity onPress={() => setHidePacked((v) => !v)}>
-                <Text style={styles.hideToggle}>{hidePacked ? "Show packed" : "Hide packed"}</Text>
+                <Text style={styles.hideToggle}>{hidePacked ? t("ck.show") : t("ck.hide")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -219,20 +220,20 @@ export default function ChecklistModule({
                 </Text>
                 {assignee && (
                   <Text style={styles.itemAssignee}>
-                    {mine ? "You bring it" : `${assignee} brings it`}
+                    {mine ? t("ck.youBring") : `${assignee} ${t("ck.brings")}`}
                   </Text>
                 )}
               </View>
               <TouchableOpacity style={[styles.claimBtn, mine && styles.claimBtnActive]} onPress={() => claimItem(item)}>
                 <Text style={[styles.claimText, mine && styles.claimTextActive]}>
-                  {mine ? "Yours ✓" : "I got it"}
+                  {mine ? t("ck.yours") : t("ck.got")}
                 </Text>
               </TouchableOpacity>
             </TouchableOpacity>
           );
         })}
         {items.length === 0 && (
-          <Text style={styles.empty}>Add what the group needs to bring or buy</Text>
+          <Text style={styles.empty}>{t("ck.empty")}</Text>
         )}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -241,7 +242,7 @@ export default function ChecklistModule({
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
-          placeholder="Tent, ice, sunscreen..."
+          placeholder={t("ck.ph")}
           placeholderTextColor={c.faint}
           value={newTitle}
           onChangeText={setNewTitle}
@@ -264,13 +265,13 @@ export default function ChecklistModule({
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                 <Ionicons name="sparkles" size={17} color={c.orange} />
-                <Text style={styles.modalTitle}>AI suggestions</Text>
+                <Text style={styles.modalTitle}>{t("ck.ai")}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAi(false)}>
                 <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalSub}>Tap to deselect what you don't need</Text>
+            <Text style={styles.modalSub}>{t("ck.aiSub")}</Text>
             <ScrollView style={{ maxHeight: 380 }}>
               {aiItems.map((item, i) => {
                 const selected = aiSelected.has(i);
@@ -307,7 +308,7 @@ export default function ChecklistModule({
             >
               {aiAdding
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.aiAddText}>Add {aiSelected.size} items</Text>}
+                : <Text style={styles.aiAddText}>{t("common.add")} {aiSelected.size} {t("ck.items")}</Text>}
             </TouchableOpacity>
           </View>
         </View>
