@@ -72,6 +72,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   signOut: async () => {
+    // Stop push notifications for this device before dropping the session
+    try {
+      const { unregisterPush } = await import("../lib/notifications");
+      await unregisterPush();
+    } catch { /* noop */ }
     await tokenStorage.delete();
     set({ token: null, user: null });
   },

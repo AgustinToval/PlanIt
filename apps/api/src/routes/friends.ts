@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
+import { sendPushToUsers } from "../lib/push";
 
 const router = Router();
 
@@ -88,6 +89,15 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
     await prisma.friendship.create({
       data: { userId: req.userId!, friendId: target.id, status: "pending" },
     });
+
+    const me = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } });
+    void sendPushToUsers(
+      [target.id],
+      "PlanIt",
+      `${me?.name ?? "Alguien"} te envió una solicitud de amistad`,
+      { url: "/notifications" }
+    );
+
     res.status(201).json({ ...target, requested: true });
   } catch (e) {
     res.status(500).json({ error: "Failed to send request" });

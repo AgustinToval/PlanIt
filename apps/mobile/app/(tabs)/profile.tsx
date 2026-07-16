@@ -11,7 +11,7 @@ type MenuIcon = keyof typeof Ionicons.glyphMap;
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
   const router = useRouter();
-  const { theme, setTheme, lang, setLang } = useSettings();
+  const { theme, setTheme, lang, setLang, biometric, setBiometric } = useSettings();
   const c = useTheme();
   const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -101,6 +101,19 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+        {/* Biometric lock */}
+        <View style={styles.menuItem}>
+          <View style={styles.menuIconWrap}>
+            <Ionicons name="finger-print-outline" size={17} color={c.teal} />
+          </View>
+          <Text style={styles.menuText}>{t("profile.biometric")}</Text>
+          <Switch
+            value={biometric}
+            onValueChange={setBiometric}
+            trackColor={{ false: c.line, true: c.teal }}
+            thumbColor="#FFFFFF"
+          />
         </View>
       </View>
 

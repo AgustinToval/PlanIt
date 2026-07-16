@@ -21,26 +21,31 @@ const store = {
 type SettingsStore = {
   theme: ThemeMode;
   lang: Lang;
+  biometric: boolean;
   loaded: boolean;
   load: () => Promise<void>;
   setTheme: (t: ThemeMode) => void;
   setLang: (l: Lang) => void;
+  setBiometric: (b: boolean) => void;
 };
 
 export const useSettings = create<SettingsStore>((set) => ({
   theme: "light",
   lang: "en",
+  biometric: false,
   loaded: false,
 
   load: async () => {
     try {
-      const [theme, lang] = await Promise.all([
+      const [theme, lang, biometric] = await Promise.all([
         store.get("planit_theme"),
         store.get("planit_lang"),
+        store.get("planit_biometric"),
       ]);
       set({
         theme: theme === "dark" ? "dark" : "light",
         lang: lang === "es" ? "es" : "en",
+        biometric: biometric === "1",
         loaded: true,
       });
     } catch {
@@ -56,6 +61,11 @@ export const useSettings = create<SettingsStore>((set) => ({
   setLang: (lang) => {
     set({ lang });
     store.set("planit_lang", lang).catch(() => {});
+  },
+
+  setBiometric: (biometric) => {
+    set({ biometric });
+    store.set("planit_biometric", biometric ? "1" : "0").catch(() => {});
   },
 }));
 

@@ -64,6 +64,20 @@ router.patch("/me", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/users/me/push-token — register this device's Expo push token
+router.post("/me/push-token", authMiddleware, async (req: Request, res: Response) => {
+  const { token } = req.body as { token?: string | null };
+  try {
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { pushToken: token ?? null },
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to save push token" });
+  }
+});
+
 // POST /api/users/me/password — change password (requires current password)
 router.post("/me/password", authMiddleware, async (req: Request, res: Response) => {
   const { current, next } = req.body as { current?: string; next?: string };

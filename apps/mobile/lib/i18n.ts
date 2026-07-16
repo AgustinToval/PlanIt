@@ -498,6 +498,11 @@ const en = {
   "er.send": "Send error",
   "er.playback": "Playback error",
   "er.ai": "AI error",
+
+  // Biometric lock
+  "bio.unlock": "Unlock",
+  "bio.failed": "Authentication failed — try again",
+  "profile.biometric": "Face ID / fingerprint lock",
 };
 
 const es: typeof en = {
@@ -965,6 +970,10 @@ const es: typeof en = {
   "er.send": "Error al enviar",
   "er.playback": "Error de reproducción",
   "er.ai": "Error de IA",
+
+  "bio.unlock": "Desbloquear",
+  "bio.failed": "No se pudo autenticar — probá de nuevo",
+  "profile.biometric": "Bloqueo con Face ID / huella",
 };
 
 export type TKey = keyof typeof en;

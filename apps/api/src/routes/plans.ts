@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { io } from "../server";
+import { sendPushToUsers } from "../lib/push";
 
 const router = Router();
 
@@ -157,6 +158,17 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
         modules: true,
       },
     });
+
+    if (invited.size > 0) {
+      const me = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } });
+      void sendPushToUsers(
+        [...invited],
+        "PlanIt",
+        `${me?.name ?? "Alguien"} te invitó a unirte al plan "${plan.title}"`,
+        { url: "/notifications" }
+      );
+    }
+
     res.status(201).json(plan);
   } catch (e) {
     res.status(500).json({ error: "Failed to create plan" });
@@ -238,6 +250,17 @@ router.post("/:id/invite", authMiddleware, async (req: Request, res: Response) =
       where: { id },
       include: { members: { where: { status: "member" }, include: { user: { select: { id: true, name: true } } } } },
     });
+
+    if (invited.size > 0) {
+      const me = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } });
+      void sendPushToUsers(
+        [...invited],
+        "PlanIt",
+        `${me?.name ?? "Alguien"} te invitó a unirte al plan "${plan?.title ?? ""}"`,
+        { url: "/notifications" }
+      );
+    }
+
     res.json(plan);
   } catch (e) {
     res.status(500).json({ error: "Failed to invite" });

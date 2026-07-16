@@ -14,19 +14,35 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.agustintoval.planit",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "PlanIt uses the microphone for the walkie talkie so you can send voice messages to your plan.",
+        "NSCameraUsageDescription": "PlanIt uses the camera so you can take a profile photo.",
+        "NSPhotoLibraryUsageDescription": "PlanIt uses your photos for profile pictures, plan banners and the shared gallery.",
+        "NSLocationWhenInUseUsageDescription": "PlanIt shares your live location with your plan when you enable the meetup tracker.",
+        "NSFaceIDUsageDescription": "PlanIt uses Face ID to unlock the app when you enable the biometric lock.",
         "UIBackgroundModes": [
           "audio"
         ]
       }
     },
     "android": {
+      "package": "com.agustintoval.planit",
       "adaptiveIcon": {
         "backgroundColor": "#F77F00",
         "foregroundImage": "./assets/brand/adaptive-foreground.png"
       },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.USE_BIOMETRIC"
+      ],
       "predictiveBackGestureEnabled": false
+    },
+    "notification": {
+      "icon": "./assets/brand/adaptive-foreground.png",
+      "color": "#F77F00"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,7 +51,22 @@
       "expo-router",
       "expo-web-browser",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "expo-notifications",
+      "expo-local-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PlanIt uses your photos for profile pictures, plan banners and the shared gallery.",
+          "cameraPermission": "PlanIt uses the camera so you can take a profile photo."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PlanIt shares your live location with your plan when you enable the meetup tracker."
+        }
+      ]
     ]
   }
 }

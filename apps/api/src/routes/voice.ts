@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
+import { sendPushToUsers } from "../lib/push";
 import { io } from "../server";
 
 const router = Router();
@@ -94,6 +95,22 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
       duration: clip.duration,
       createdAt: clip.createdAt,
     });
+
+    // Push (wakes the screen): plan name + who is talking, only to members
+    // who joined the walkie channel
+    const [planInfo, recipients] = await Promise.all([
+      prisma.plan.findUnique({ where: { id: planId }, select: { title: true } }),
+      prisma.planMember.findMany({
+        where: { planId, status: "member", walkieOptIn: "accepted", NOT: { userId: req.userId! } },
+        select: { userId: true },
+      }),
+    ]);
+    void sendPushToUsers(
+      recipients.map((r) => r.userId),
+      planInfo?.title ?? "Walkie",
+      `${clip.user.name ?? "Alguien"} está hablando por walkie 🎙️`,
+      { url: `/plan/${planId}` }
+    );
 
     res.status(201).json({ id: clip.id });
   } catch (e) {

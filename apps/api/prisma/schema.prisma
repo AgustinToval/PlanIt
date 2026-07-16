@@ -15,6 +15,7 @@ model User {
   // (two people can both be "agus" with different tags: agus#4821, agus#0193)
   username      String?
   tag           String    @default("0000")
+  pushToken     String?   // Expo push token for mobile notifications
   name          String?
   avatar        String?
   bio           String?

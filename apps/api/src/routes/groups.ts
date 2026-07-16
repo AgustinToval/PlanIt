@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
+import { sendPushToUsers } from "../lib/push";
 
 const router = Router();
 
@@ -67,6 +68,20 @@ router.post("/:id/invite", authMiddleware, async (req: Request, res: Response) =
       data: invited.map((userId) => ({ userId, groupId: id, status: "invited" })),
       skipDuplicates: true,
     });
+
+    if (invited.length > 0) {
+      const [sender, group] = await Promise.all([
+        prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } }),
+        prisma.group.findUnique({ where: { id }, select: { name: true } }),
+      ]);
+      void sendPushToUsers(
+        invited,
+        "PlanIt",
+        `${sender?.name ?? "Alguien"} te invitó al grupo "${group?.name ?? ""}"`,
+        { url: "/notifications" }
+      );
+    }
+
     res.json({ message: "Invitations sent" });
   } catch (e) {
     res.status(500).json({ error: "Failed to invite" });

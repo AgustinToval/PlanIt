@@ -39,13 +39,13 @@ Pedidos del 2026-07-14. Orden de trabajo acordado: **remake visual primero**, de
 - [ ] Clic en el nombre en el chat → abre su perfil (ver sección C).
 
 ## E. Notificaciones + sonidos (requiere build nativo)
-- [ ] Push al celular de TODO lo que llega a la campanita: solicitudes de amistad, invitaciones a plan/grupo. Ej: "Tienes una solicitud de amistad de {nombre}", "{nombre} te ha invitado a unirte al plan {título}".
-- [ ] Walkie talkie en segundo plano: se escucha sin estar en la app, prende la pantalla y muestra notificación con nombre del plan + quién habla.
+- [x] Push al celular: solicitudes de amistad, invitaciones a plan (crear + invitar) y a grupo. (2026-07-16: backend con Expo Push API + registro de token en la app; activo a partir del primer build nativo)
+- [~] Walkie: notificación push con sonido que prende la pantalla mostrando plan + quién habla (solo a quienes se unieron al canal). (2026-07-16 — la REPRODUCCIÓN automática en background queda para una iteración con notificaciones de audio nativas)
 - [ ] Tono de mensaje propio de la app + sonidos in-app (enviar/recibir mensaje).
 
 ## F. Auth y sesión
-- [ ] Login con Google (requiere build nativo).
-- [ ] Recordar usuario y contraseña + entrar con biometría (Face ID / huella) para no loguearse cada vez.
+- [ ] Login con Google (requiere build nativo + OAuth client en Google Cloud — siguiente paso tras el primer build).
+- [x] Biometría: toggle "Face ID / huella" en Configuración; al abrir la app pide desbloqueo. La sesión ya se recuerda 30 días. (2026-07-16 — probable en Expo Go ya)
 
 ## G. Perfil / Configuración
 - [ ] Edit profile → "tap to change photo": sacar foto con cámara O elegir de galería.
