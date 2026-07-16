@@ -50,7 +50,7 @@ Pedidos del 2026-07-14. Orden de trabajo acordado: **remake visual primero**, de
 ## G. Perfil / Configuración
 - [ ] Edit profile → "tap to change photo": sacar foto con cámara O elegir de galería.
 - [x] Configuración dentro de Perfil: modo oscuro / modo claro. (2026-07-15: TODA la app con tema dinámico — pantallas, chats, módulos y sheets)
-- [~] Configuración: cambiar idioma a Español. (2026-07-15: pantallas principales 100%; en secundarias/chats están traducidos títulos, botones y navegación — faltan textos internos de módulos y alerts)
+- [x] Configuración: cambiar idioma a Español. (2026-07-16: traducción TOTAL — todas las pantallas, los 12 módulos, catálogo, alerts y permisos; ~360 claves en lib/i18n.ts)
 
 ## H. Playlist
 - [ ] Conectar el módulo playlist directo al servicio de cada uno (Spotify / YouTube Music). Spotify OAuth requiere build nativo.
