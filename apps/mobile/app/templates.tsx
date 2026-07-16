@@ -6,7 +6,8 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
-import { colors, font, radius, shadow } from "../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../lib/theme";
+import { useTheme, useT } from "../hooks/useSettings";
 
 type Template = {
   id: string;
@@ -23,6 +24,9 @@ type Template = {
 };
 
 export default function TemplatesScreen() {
+  const c = useTheme();
+  const styles = getStyles(c);
+  const t = useT();
   const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,14 +80,14 @@ export default function TemplatesScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
     >
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Ionicons name="chevron-back" size={18} color={colors.teal} />
-        <Text style={styles.backText}>Back</Text>
+        <Ionicons name="chevron-back" size={18} color={c.teal} />
+        <Text style={styles.backText}>{t("common.back")}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Plan templates</Text>
+      <Text style={styles.title}>{t("scr.templates")}</Text>
       <Text style={styles.subtitle}>
         Saved from your plans (settings → Save as template). Use them when creating a new plan.
       </Text>
@@ -91,7 +95,7 @@ export default function TemplatesScreen() {
       {templates.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="documents-outline" size={40} color={colors.teal} />
+            <Ionicons name="documents-outline" size={40} color={c.teal} />
           </View>
           <Text style={styles.emptyText}>No templates yet</Text>
           <Text style={styles.emptySub}>
@@ -110,17 +114,17 @@ export default function TemplatesScreen() {
               </Text>
               {t.data.location && (
                 <View style={styles.locRow}>
-                  <Ionicons name="location-outline" size={12} color={colors.muted} />
+                  <Ionicons name="location-outline" size={12} color={c.muted} />
                   <Text style={styles.cardMeta}>{t.data.location}</Text>
                 </View>
               )}
             </View>
             <View style={styles.actions}>
               <TouchableOpacity style={styles.actionBtn} onPress={() => openRename(t)}>
-                <Ionicons name="pencil-outline" size={17} color={colors.teal} />
+                <Ionicons name="pencil-outline" size={17} color={c.teal} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={() => deleteTemplate(t)}>
-                <Ionicons name="trash-outline" size={17} color={colors.danger} />
+                <Ionicons name="trash-outline" size={17} color={c.danger} />
               </TouchableOpacity>
             </View>
           </View>
@@ -136,7 +140,7 @@ export default function TemplatesScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Rename template</Text>
                 <TouchableOpacity onPress={() => setRenaming(null)}>
-                  <Ionicons name="close" size={22} color={colors.muted} />
+                  <Ionicons name="close" size={22} color={c.muted} />
                 </TouchableOpacity>
               </View>
               <TextInput
@@ -144,7 +148,7 @@ export default function TemplatesScreen() {
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="Template name"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={saveRename}
@@ -154,7 +158,7 @@ export default function TemplatesScreen() {
                 onPress={saveRename}
                 disabled={!newName.trim() || busy}
               >
-                <Text style={styles.saveText}>{busy ? "..." : "Save"}</Text>
+                <Text style={styles.saveText}>{busy ? "..." : t("common.save")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -164,49 +168,49 @@ export default function TemplatesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg, padding: 20, paddingTop: 60 },
   back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
-  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
-  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 6 },
-  subtitle: { color: colors.muted, fontSize: 13.5, fontFamily: font.body, lineHeight: 20, marginBottom: 20 },
+  backText: { color: c.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: c.ink, letterSpacing: -0.5, marginBottom: 6 },
+  subtitle: { color: c.muted, fontSize: 13.5, fontFamily: font.body, lineHeight: 20, marginBottom: 20 },
   empty: { alignItems: "center", marginTop: 60 },
   emptyIconWrap: {
-    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    width: 84, height: 84, borderRadius: 26, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptyText: { color: c.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
   emptySub: {
-    color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
+    color: c.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
     textAlign: "center", paddingHorizontal: 20,
   },
   card: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
     borderRadius: radius.lg, padding: 15, marginBottom: 10,
-    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
-  cardName: { color: colors.ink, fontSize: 16, fontFamily: font.semi, letterSpacing: -0.2 },
-  cardMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
+  cardName: { color: c.ink, fontSize: 16, fontFamily: font.semi, letterSpacing: -0.2 },
+  cardMeta: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 3 },
   locRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   actions: { flexDirection: "row", gap: 8, marginLeft: 10 },
   actionBtn: {
-    backgroundColor: colors.surface2, borderRadius: radius.sm, padding: 10,
-    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface2, borderRadius: radius.sm, padding: 10,
+    borderWidth: 1, borderColor: c.line,
   },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
   input: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
-    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, color: c.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: c.line,
   },
   saveBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", ...shadow.orange,
   },
-  saveText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
-});
+  saveText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
+}));

@@ -60,6 +60,20 @@ export const darkColors: Palette = {
 // Legacy static palette (light) — used by screens not yet converted to useTheme()
 export const colors: Palette = light;
 
+// Memoizes a StyleSheet factory per palette, so themed screens don't rebuild
+// their styles on every render — only when the theme actually changes.
+export function themedStyles<T>(factory: (c: Palette) => T): (c: Palette) => T {
+  const cache = new Map<Palette, T>();
+  return (c: Palette) => {
+    let cached = cache.get(c);
+    if (!cached) {
+      cached = factory(c);
+      cache.set(c, cached);
+    }
+    return cached;
+  };
+}
+
 export const font = {
   // Poppins — titles & UI chrome
   title: "Poppins_700Bold",

@@ -9,7 +9,8 @@ import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import MeetupMap from "./MeetupMap"; // resolves to .native.tsx on phone, .tsx on web
-import { colors, font, radius, shadow, userColor } from "../../lib/theme";
+import { font, radius, shadow, userColor, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Member = {
   rsvp: string;
@@ -41,6 +42,8 @@ function isFresh(at: string | null | undefined): boolean {
 }
 
 export default function MeetupModule({ planId }: { planId: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [members, setMembers] = useState<Member[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,14 +151,14 @@ export default function MeetupModule({ planId }: { planId: string }) {
   return (
     <ScrollView
       style={{ flex: 1, padding: 12 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
     >
       {/* Live map (native) / notice (web) */}
       {located.length > 0 ? (
         <MeetupMap members={mapMembers} />
       ) : (
         <View style={styles.mapEmpty}>
-          <Ionicons name="map-outline" size={22} color={colors.faint} />
+          <Ionicons name="map-outline" size={22} color={c.faint} />
           <Text style={styles.mapEmptyText}>No one is sharing location yet</Text>
         </View>
       )}
@@ -186,8 +189,8 @@ export default function MeetupModule({ planId }: { planId: string }) {
               style={[styles.statusBtn, active && { borderColor: s.color, backgroundColor: `${s.color}18` }]}
               onPress={() => setStatus(s.key)}
             >
-              <Ionicons name={s.icon} size={22} color={active ? s.color : colors.faint} style={{ marginBottom: 6 }} />
-              <Text style={[styles.statusLabel, active && { color: colors.ink }]}>
+              <Ionicons name={s.icon} size={22} color={active ? s.color : c.faint} style={{ marginBottom: 6 }} />
+              <Text style={[styles.statusLabel, active && { color: c.ink }]}>
                 {s.label}
               </Text>
             </TouchableOpacity>
@@ -217,7 +220,7 @@ export default function MeetupModule({ planId }: { planId: string }) {
               <Text style={styles.memberName}>{isMe ? "You" : m.user.name ?? "?"}</Text>
               {hasLoc && (
                 <View style={styles.memberLocRow}>
-                  <Ionicons name="location" size={11} color={colors.teal} />
+                  <Ionicons name="location" size={11} color={c.teal} />
                   <Text style={styles.memberLoc}>sharing live location</Text>
                 </View>
               )}
@@ -232,44 +235,44 @@ export default function MeetupModule({ planId }: { planId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   mapWrap: { borderRadius: radius.lg, overflow: "hidden", marginBottom: 12 },
   map: { width: "100%", height: 260 },
   mapEmpty: {
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 24,
-    alignItems: "center", marginBottom: 12, gap: 6, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 24,
+    alignItems: "center", marginBottom: 12, gap: 6, borderWidth: 1, borderColor: c.line,
   },
-  mapEmptyText: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium },
+  mapEmptyText: { color: c.muted, fontSize: 13.5, fontFamily: font.bodyMedium },
   shareBtn: {
     flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7,
-    backgroundColor: colors.teal, borderRadius: radius.md, padding: 14,
+    backgroundColor: c.teal, borderRadius: radius.md, padding: 14,
     marginBottom: 16, ...shadow.card,
   },
-  shareBtnActive: { backgroundColor: colors.danger },
+  shareBtnActive: { backgroundColor: c.danger },
   shareBtnText: { color: "#fff", fontSize: 14, fontFamily: font.semi },
   sectionTitle: {
-    color: colors.muted, fontSize: 11, fontFamily: font.semi, letterSpacing: 1,
+    color: c.muted, fontSize: 11, fontFamily: font.semi, letterSpacing: 1,
     textTransform: "uppercase", marginBottom: 10, marginTop: 8,
   },
   statusRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   statusBtn: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14,
-    alignItems: "center", borderWidth: 1.5, borderColor: colors.line,
+    flex: 1, backgroundColor: c.surface, borderRadius: radius.lg, padding: 14,
+    alignItems: "center", borderWidth: 1.5, borderColor: c.line,
   },
-  statusLabel: { color: colors.muted, fontSize: 11.5, fontFamily: font.semi, textAlign: "center" },
+  statusLabel: { color: c.muted, fontSize: 11.5, fontFamily: font.semi, textAlign: "center" },
   summary: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14,
-    alignItems: "center", marginBottom: 16, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14,
+    alignItems: "center", marginBottom: 16, borderWidth: 1, borderColor: c.line,
   },
-  summaryText: { color: colors.ink, fontSize: 12.5, fontFamily: font.bodySemi },
+  summaryText: { color: c.ink, fontSize: 12.5, fontFamily: font.bodySemi },
   memberRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
   memberAvatar: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", marginRight: 11 },
   memberAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 13 },
-  memberName: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
+  memberName: { color: c.ink, fontSize: 14, fontFamily: font.bodySemi },
   memberLocRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
-  memberLoc: { color: colors.teal, fontSize: 11, fontFamily: font.bodyMedium },
+  memberLoc: { color: c.teal, fontSize: 11, fontFamily: font.bodyMedium },
   memberStatus: { fontSize: 12, fontFamily: font.bodySemi },
-});
+}));

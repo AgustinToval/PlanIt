@@ -4,7 +4,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
-import { colors, font, radius } from "../../lib/theme";
+import { font, radius, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Entry = { userId: string; date: string; status: string };
 type MemberInfo = { id: string; name: string | null };
@@ -17,6 +18,8 @@ function ymd(year: number, month: number, day: number): string {
 }
 
 export default function AvailabilityHeatmap({ planId }: { planId: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -88,11 +91,11 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
       {/* Month nav */}
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-          <Ionicons name="chevron-back" size={18} color={colors.teal} />
+          <Ionicons name="chevron-back" size={18} color={c.teal} />
         </TouchableOpacity>
         <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-          <Ionicons name="chevron-forward" size={18} color={colors.teal} />
+          <Ionicons name="chevron-forward" size={18} color={c.teal} />
         </TouchableOpacity>
       </View>
 
@@ -138,7 +141,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
           </Text>
           {selected.free.length > 0 && (
             <View style={styles.detailRow}>
-              <View style={[styles.dot, { backgroundColor: colors.teal }]} />
+              <View style={[styles.dot, { backgroundColor: c.teal }]} />
               <Text style={styles.detailLine}>Free: {selected.free.map(nameOf).join(", ")}</Text>
             </View>
           )}
@@ -150,7 +153,7 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
           )}
           {selected.busy.length > 0 && (
             <View style={styles.detailRow}>
-              <View style={[styles.dot, { backgroundColor: colors.danger }]} />
+              <View style={[styles.dot, { backgroundColor: c.danger }]} />
               <Text style={styles.detailLine}>Busy: {selected.busy.map(nameOf).join(", ")}</Text>
             </View>
           )}
@@ -161,12 +164,12 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
       {bestDays.length > 0 && (
         <View style={styles.best}>
           <View style={styles.bestTitleRow}>
-            <Ionicons name="trophy-outline" size={15} color={colors.orange} />
+            <Ionicons name="trophy-outline" size={15} color={c.orange} />
             <Text style={styles.bestTitle}>Best dates this month</Text>
           </View>
           {bestDays.map((d, i) => (
             <View key={d.date} style={styles.bestRow}>
-              <View style={[styles.bestRank, i === 0 && { backgroundColor: colors.orange }]}>
+              <View style={[styles.bestRank, i === 0 && { backgroundColor: c.orange }]}>
                 <Text style={[styles.bestRankText, i === 0 && { color: "#fff" }]}>{i + 1}</Text>
               </View>
               <Text style={styles.bestDate}>
@@ -189,42 +192,42 @@ export default function AvailabilityHeatmap({ planId }: { planId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  subtitle: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 14, lineHeight: 18 },
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
+  subtitle: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 14, lineHeight: 18 },
   monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   navBtn: {
-    backgroundColor: colors.surface, borderRadius: radius.md, width: 36, height: 36,
-    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, width: 36, height: 36,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.line,
   },
-  monthTitle: { color: colors.ink, fontSize: 15.5, fontFamily: font.semi },
+  monthTitle: { color: c.ink, fontSize: 15.5, fontFamily: font.semi },
   weekRow: { flexDirection: "row", marginBottom: 4 },
-  weekday: { flex: 1, textAlign: "center", color: colors.faint, fontSize: 11, fontFamily: font.semi },
+  weekday: { flex: 1, textAlign: "center", color: c.faint, fontSize: 11, fontFamily: font.semi },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center", borderRadius: radius.sm },
-  cellSelected: { borderWidth: 2, borderColor: colors.orange },
-  cellText: { color: colors.ink, fontSize: 12.5, fontFamily: font.bodyMedium },
-  cellCount: { color: colors.teal, fontSize: 9, fontFamily: font.bodyBold, marginTop: 1 },
+  cellSelected: { borderWidth: 2, borderColor: c.orange },
+  cellText: { color: c.ink, fontSize: 12.5, fontFamily: font.bodyMedium },
+  cellCount: { color: c.teal, fontSize: 9, fontFamily: font.bodyBold, marginTop: 1 },
   detail: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginTop: 12,
-    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, marginTop: 12,
+    borderWidth: 1, borderColor: c.line,
   },
-  detailTitle: { color: colors.ink, fontSize: 13.5, fontFamily: font.semi, marginBottom: 8 },
+  detailTitle: { color: c.ink, fontSize: 13.5, fontFamily: font.semi, marginBottom: 8 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 4 },
   dot: { width: 9, height: 9, borderRadius: 3 },
-  detailLine: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, flex: 1 },
+  detailLine: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium, flex: 1 },
   best: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginTop: 12,
-    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, marginTop: 12,
+    borderWidth: 1, borderColor: c.line,
   },
   bestTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  bestTitle: { color: colors.ink, fontSize: 13.5, fontFamily: font.semi },
+  bestTitle: { color: c.ink, fontSize: 13.5, fontFamily: font.semi },
   bestRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4, gap: 9 },
   bestRank: {
-    width: 22, height: 22, borderRadius: 11, backgroundColor: colors.tealSoft,
+    width: 22, height: 22, borderRadius: 11, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  bestRankText: { color: colors.teal, fontSize: 11.5, fontFamily: font.semi },
-  bestDate: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodySemi, flex: 1 },
-  bestMeta: { color: colors.muted, fontSize: 12, fontFamily: font.bodyMedium },
-  empty: { color: colors.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", marginTop: 16, lineHeight: 18 },
-});
+  bestRankText: { color: c.teal, fontSize: 11.5, fontFamily: font.semi },
+  bestDate: { color: c.ink, fontSize: 13.5, fontFamily: font.bodySemi, flex: 1 },
+  bestMeta: { color: c.muted, fontSize: 12, fontFamily: font.bodyMedium },
+  empty: { color: c.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", marginTop: 16, lineHeight: 18 },
+}));

@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Expense = {
   id: string;
@@ -31,6 +32,8 @@ type Summary = {
 type Member = { rsvp: string; user: { id: string; name: string | null } };
 
 export default function ExpensesModule({ planId, members, myRole = "member" }: { planId: string; members: Member[]; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -134,7 +137,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
     <View style={{ flex: 1 }}>
       <ScrollView
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {/* Balance header */}
         <View style={styles.balanceCard}>
@@ -145,7 +148,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
               ${summary.perPerson.toFixed(2)} each ({members.length} people)
             </Text>
           )}
-          <Text style={[styles.balanceNet, { color: myNet >= 0 ? colors.teal : colors.danger }]}>
+          <Text style={[styles.balanceNet, { color: myNet >= 0 ? c.teal : c.danger }]}>
             {myNet > 0 ? `You are owed $${myNet.toFixed(2)}` :
              myNet < 0 ? `You owe $${Math.abs(myNet).toFixed(2)}` :
              "You're all settled ✓"}
@@ -172,17 +175,17 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
         {summary && summary.transactions.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="swap-horizontal-outline" size={15} color={colors.ink} />
+              <Ionicons name="swap-horizontal-outline" size={15} color={c.ink} />
               <Text style={styles.sectionTitle}>Settle up</Text>
             </View>
             {summary.transactions.map((t, i) => (
               <View key={i} style={styles.txRow}>
                 <Text style={styles.txText}>
-                  <Text style={{ fontFamily: font.bodyBold, color: t.fromId === user?.id ? colors.danger : colors.ink }}>
+                  <Text style={{ fontFamily: font.bodyBold, color: t.fromId === user?.id ? c.danger : c.ink }}>
                     {t.fromId === user?.id ? "You" : t.from}
                   </Text>
                   {"  →  "}
-                  <Text style={{ fontFamily: font.bodyBold, color: t.toId === user?.id ? colors.teal : colors.ink }}>
+                  <Text style={{ fontFamily: font.bodyBold, color: t.toId === user?.id ? c.teal : c.ink }}>
                     {t.toId === user?.id ? "You" : t.to}
                   </Text>
                 </Text>
@@ -195,7 +198,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
         {/* Expense list */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="card-outline" size={15} color={colors.ink} />
+            <Ionicons name="card-outline" size={15} color={c.ink} />
             <Text style={styles.sectionTitle}>Expenses</Text>
           </View>
           {expenses.length === 0 ? (
@@ -221,7 +224,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                     <Ionicons
                       name={isOpen ? "chevron-down" : "chevron-forward"}
                       size={15}
-                      color={colors.muted}
+                      color={c.muted}
                       style={{ marginLeft: 10 }}
                     />
                   </TouchableOpacity>
@@ -241,7 +244,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                             <Ionicons
                               name={s.settled ? "checkbox" : "square-outline"}
                               size={18}
-                              color={s.settled ? colors.teal : colors.faint}
+                              color={s.settled ? c.teal : c.faint}
                               style={{ marginRight: 10 }}
                             />
                             <Text style={[styles.splitName, s.settled && styles.splitSettled]}>
@@ -270,7 +273,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
       {/* Add button */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)}>
         <View style={styles.fabRow}>
-          <Ionicons name="add" size={18} color={colors.onOrange} />
+          <Ionicons name="add" size={18} color={c.onOrange} />
           <Text style={styles.fabText}>Add expense</Text>
         </View>
       </TouchableOpacity>
@@ -287,7 +290,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>New expense</Text>
                   <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowAdd(false); }}>
-                    <Ionicons name="close" size={22} color={colors.muted} />
+                    <Ionicons name="close" size={22} color={c.muted} />
                   </TouchableOpacity>
                 </View>
 
@@ -295,7 +298,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                 <TextInput
                   style={styles.input}
                   placeholder="Firewood, dinner, gas..."
-                  placeholderTextColor={colors.faint}
+                  placeholderTextColor={c.faint}
                   value={title}
                   onChangeText={setTitle}
                   returnKeyType="done"
@@ -306,7 +309,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                   <TextInput
                     style={[styles.input, { flex: 1, marginBottom: 0 }]}
                     placeholder="25.50"
-                    placeholderTextColor={colors.faint}
+                    placeholderTextColor={c.faint}
                     value={amount}
                     onChangeText={setAmount}
                     keyboardType="decimal-pad"
@@ -323,13 +326,13 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                     onPress={() => setSharers(new Set(members.map((m) => m.user.id)))}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                      <Ionicons name="people" size={15} color={colors.teal} />
+                      <Ionicons name="people" size={15} color={c.teal} />
                       <Text style={[styles.sharerName, { fontFamily: font.bodyBold }]}>Everyone</Text>
                     </View>
                     <Ionicons
                       name={sharers.size === members.length ? "checkbox" : "square-outline"}
                       size={19}
-                      color={sharers.size === members.length ? colors.orange : colors.faint}
+                      color={sharers.size === members.length ? c.orange : c.faint}
                     />
                   </TouchableOpacity>
                   {members.map((m) => {
@@ -346,7 +349,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                         <Ionicons
                           name={selected ? "checkbox" : "square-outline"}
                           size={19}
-                          color={selected ? colors.orange : colors.faint}
+                          color={selected ? c.orange : c.faint}
                         />
                       </TouchableOpacity>
                     );
@@ -369,10 +372,10 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   container: { flex: 1, padding: 12 },
   balanceCard: {
-    backgroundColor: colors.petrol, borderRadius: radius.lg, padding: 20,
+    backgroundColor: c.petrol, borderRadius: radius.lg, padding: 20,
     alignItems: "center", marginBottom: 12, ...shadow.card,
   },
   balanceLabel: { color: "#8FB0C0", fontSize: 12.5, fontFamily: font.bodyMedium },
@@ -380,72 +383,72 @@ const styles = StyleSheet.create({
   balanceNet: { fontSize: 14, fontFamily: font.semi },
   section: { marginBottom: 12 },
   sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  sectionTitle: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
+  sectionTitle: { color: c.ink, fontSize: 15, fontFamily: font.semi },
   txRow: {
-    flexDirection: "row", justifyContent: "space-between", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 14, marginBottom: 6, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", justifyContent: "space-between", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 14, marginBottom: 6, borderWidth: 1, borderColor: c.line,
   },
-  txText: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyMedium },
-  txAmount: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyBold },
-  empty: { color: colors.faint, fontSize: 13.5, fontFamily: font.body, textAlign: "center", marginTop: 12 },
+  txText: { color: c.ink, fontSize: 13.5, fontFamily: font.bodyMedium },
+  txAmount: { color: c.ink, fontSize: 13.5, fontFamily: font.bodyBold },
+  empty: { color: c.faint, fontSize: 13.5, fontFamily: font.body, textAlign: "center", marginTop: 12 },
   expRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 14, marginBottom: 6, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 14, marginBottom: 6, borderWidth: 1, borderColor: c.line,
   },
   expRowOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0, borderBottomWidth: 0 },
-  expTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
-  expMeta: { color: colors.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
-  expAmount: { color: colors.ink, fontSize: 15.5, fontFamily: font.title },
+  expTitle: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  expMeta: { color: c.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
+  expAmount: { color: c.ink, fontSize: 15.5, fontFamily: font.title },
   splitsBox: {
-    backgroundColor: colors.surface2, borderBottomLeftRadius: radius.md, borderBottomRightRadius: radius.md,
-    padding: 12, marginBottom: 6, borderWidth: 1, borderTopWidth: 0, borderColor: colors.line,
+    backgroundColor: c.surface2, borderBottomLeftRadius: radius.md, borderBottomRightRadius: radius.md,
+    padding: 12, marginBottom: 6, borderWidth: 1, borderTopWidth: 0, borderColor: c.line,
   },
   splitRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  splitName: { flex: 1, color: colors.ink, fontSize: 13.5, fontFamily: font.bodyMedium },
-  splitAmount: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyBold },
-  splitSettled: { color: colors.faint, textDecorationLine: "line-through" },
-  splitsHint: { color: colors.faint, fontSize: 11, fontFamily: font.body, textAlign: "center", marginTop: 6 },
+  splitName: { flex: 1, color: c.ink, fontSize: 13.5, fontFamily: font.bodyMedium },
+  splitAmount: { color: c.ink, fontSize: 13.5, fontFamily: font.bodyBold },
+  splitSettled: { color: c.faint, textDecorationLine: "line-through" },
+  splitsHint: { color: c.faint, fontSize: 11, fontFamily: font.body, textAlign: "center", marginTop: 6 },
   perPerson: { color: "#7FD1DC", fontSize: 13, fontFamily: font.bodySemi, marginBottom: 4 },
   modeRow: { flexDirection: "row", gap: 8, marginTop: 14, alignSelf: "stretch" },
   modeBtn: {
     flex: 1, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: radius.sm,
     paddingVertical: 8, alignItems: "center", borderWidth: 1.5, borderColor: "transparent",
   },
-  modeBtnActive: { borderColor: colors.orange, backgroundColor: "rgba(247,127,0,0.18)" },
+  modeBtnActive: { borderColor: c.orange, backgroundColor: "rgba(247,127,0,0.18)" },
   modeText: { color: "#8FB0C0", fontSize: 11.5, fontFamily: font.semi },
   modeTextActive: { color: "#FFFFFF" },
   fab: {
-    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: c.orange,
     borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
   },
   fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  fabText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
-  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
+  label: { color: c.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   input: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
-    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, color: c.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: c.line,
   },
   sharerRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 12, marginBottom: 6,
-    borderWidth: 1.5, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 12, marginBottom: 6,
+    borderWidth: 1.5, borderColor: c.line,
   },
-  sharerRowActive: { borderColor: colors.orange },
-  everyoneRow: { backgroundColor: colors.tealSoft },
+  sharerRowActive: { borderColor: c.orange },
+  everyoneRow: { backgroundColor: c.tealSoft },
   amountRow: { flexDirection: "row", gap: 8, marginBottom: 14, alignItems: "center" },
-  doneBtn: { backgroundColor: colors.teal, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 14 },
+  doneBtn: { backgroundColor: c.teal, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 14 },
   doneBtnText: { color: "#fff", fontFamily: font.semi, fontSize: 14 },
-  sharerName: { color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium },
+  sharerName: { color: c.ink, fontSize: 14, fontFamily: font.bodyMedium },
   button: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", marginTop: 12, ...shadow.orange,
   },
-  buttonText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
-});
+  buttonText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
+}));

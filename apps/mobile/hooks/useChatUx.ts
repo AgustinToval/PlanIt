@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FlatList, Keyboard, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { getSocket } from "../lib/socket";
+import { useSettings } from "./useSettings";
 
 export function useChatUx(
   kind: "plan" | "group",
@@ -102,11 +103,13 @@ export function useChatUx(
     typingTimer.current = setTimeout(stopTyping, 2500);
   };
 
+  const lang = useSettings((s) => s.lang);
   const names = Object.values(typers);
   const typingLabel =
     names.length === 0 ? null :
-    names.length === 1 ? `${names[0]} is typing…` :
-    `${names.length} people are typing…`;
+    names.length === 1
+      ? `${names[0]} ${lang === "es" ? "está escribiendo…" : "is typing…"}`
+      : `${names.length} ${lang === "es" ? "personas están escribiendo…" : "people are typing…"}`;
 
   return { listRef, onScroll, onContentSizeChange, scrollToBottom, showDown, typingLabel, notifyTyping, stopTyping };
 }

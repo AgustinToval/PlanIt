@@ -23,7 +23,8 @@ import WalkieTalkieModule from "../../components/plan/WalkieTalkieModule";
 import { shareInvite } from "../../lib/invite";
 import { useChatUx } from "../../hooks/useChatUx";
 import UserProfileSheet from "../../components/UserProfileSheet";
-import { colors, font, radius, shadow, userColor } from "../../lib/theme";
+import { font, radius, shadow, userColor, Palette, themedStyles } from "../../lib/theme";
+import { useTheme, useT } from "../../hooks/useSettings";
 
 type Message = {
   id: string;
@@ -69,6 +70,9 @@ const MODULE_CATALOG: { type: string; icon: ModIcon; name: string; desc: string 
 ];
 
 export default function PlanScreen() {
+  const c = useTheme();
+  const styles = getStyles(c);
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
@@ -421,25 +425,25 @@ export default function PlanScreen() {
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backRow}>
-            <Ionicons name="chevron-back" size={18} color={colors.teal} />
-            <Text style={styles.backText}>Back</Text>
+            <Ionicons name="chevron-back" size={18} color={c.teal} />
+            <Text style={styles.backText}>{t("common.back")}</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
             <TouchableOpacity onPress={() => setShowAi(true)}>
-              <Ionicons name="sparkles-outline" size={19} color={colors.teal} />
+              <Ionicons name="sparkles-outline" size={19} color={c.teal} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowDates(true)}>
-              <Ionicons name="calendar-outline" size={19} color={colors.teal} />
+              <Ionicons name="calendar-outline" size={19} color={c.teal} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => { loadFriends(); setShowMembers(true); }}
               style={styles.membersBtn}
             >
-              <Ionicons name="people-outline" size={17} color={colors.teal} />
+              <Ionicons name="people-outline" size={17} color={c.teal} />
               <Text style={styles.membersBtnText}>{plan?.members.length ?? 0}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowSettings(true)}>
-              <Ionicons name="settings-outline" size={19} color={colors.teal} />
+              <Ionicons name="settings-outline" size={19} color={c.teal} />
             </TouchableOpacity>
           </View>
         </View>
@@ -447,11 +451,11 @@ export default function PlanScreen() {
         <View style={styles.metaRow}>
           {plan?.location && (
             <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={13} color={colors.muted} />
+              <Ionicons name="location-outline" size={13} color={c.muted} />
               <Text style={styles.meta}>{plan.location}</Text>
             </View>
           )}
-          <Text style={[styles.meta, { color: colors.teal, fontFamily: font.semi }]}>
+          <Text style={[styles.meta, { color: c.teal, fontFamily: font.semi }]}>
             {yesCount}/{plan?.members.length ?? 0} in
           </Text>
           {myRole !== "member" && (
@@ -466,9 +470,9 @@ export default function PlanScreen() {
       {activeTab === null && (
         <View style={styles.rsvpRow}>
           {([
-            { v: "yes", label: "I'm in", icon: "checkmark-circle-outline" as ModIcon, color: colors.teal },
+            { v: "yes", label: "I'm in", icon: "checkmark-circle-outline" as ModIcon, color: c.teal },
             { v: "maybe", label: "Maybe", icon: "help-circle-outline" as ModIcon, color: "#F0A72B" },
-            { v: "no", label: "Can't", icon: "close-circle-outline" as ModIcon, color: colors.danger },
+            { v: "no", label: "Can't", icon: "close-circle-outline" as ModIcon, color: c.danger },
           ]).map(({ v, label, icon, color }) => {
             const active = myRsvp === v;
             return (
@@ -477,8 +481,8 @@ export default function PlanScreen() {
                 style={[styles.rsvpBtn, active && { borderColor: color, backgroundColor: `${color}18` }]}
                 onPress={() => rsvp(v)}
               >
-                <Ionicons name={icon} size={15} color={active ? color : colors.muted} />
-                <Text style={[styles.rsvpText, active && { color: colors.ink }]}>{label}</Text>
+                <Ionicons name={icon} size={15} color={active ? color : c.muted} />
+                <Text style={[styles.rsvpText, active && { color: c.ink }]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -489,8 +493,8 @@ export default function PlanScreen() {
       {activeTab !== null && (
         <View style={styles.moduleBar}>
           <TouchableOpacity onPress={() => setActiveTab(null)} style={styles.moduleBarBack}>
-            <Ionicons name="chevron-back" size={16} color={colors.teal} />
-            <Ionicons name="grid-outline" size={14} color={colors.teal} />
+            <Ionicons name="chevron-back" size={16} color={c.teal} />
+            <Ionicons name="grid-outline" size={14} color={c.teal} />
             <Text style={styles.moduleBarBackText}>Modules</Text>
           </TouchableOpacity>
           <Text style={styles.moduleBarTitle}>
@@ -508,7 +512,7 @@ export default function PlanScreen() {
             {/* Chat is always first */}
             <TouchableOpacity style={styles.gridCard} onPress={() => setActiveTab("chat")}>
               {isUnseen("chat") && <View style={styles.gridDot} />}
-              <View style={[styles.gridIcon, { backgroundColor: colors.orange }]}>
+              <View style={[styles.gridIcon, { backgroundColor: c.orange }]}>
                 <Ionicons name="chatbubble-outline" size={17} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
@@ -521,7 +525,7 @@ export default function PlanScreen() {
 
             {enabledModules.map((m, i) => {
               const info = MODULE_CATALOG.find((c) => c.type === m.type);
-              const accent = [colors.teal, colors.petrol, colors.orange][i % 3];
+              const accent = [c.teal, c.petrol, c.orange][i % 3];
               const unseen = isUnseen(m.type);
               return (
                 <TouchableOpacity
@@ -546,11 +550,11 @@ export default function PlanScreen() {
 
             {canManage && (
               <TouchableOpacity style={[styles.gridCard, styles.gridAddCard]} onPress={() => setShowAddModule(true)}>
-                <View style={[styles.gridIcon, { backgroundColor: colors.orangeSoft }]}>
-                  <Ionicons name="add" size={19} color={colors.orange} />
+                <View style={[styles.gridIcon, { backgroundColor: c.orangeSoft }]}>
+                  <Ionicons name="add" size={19} color={c.orange} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.gridName, { color: colors.orange }]}>Add module</Text>
+                  <Text style={[styles.gridName, { color: c.orange }]}>Add module</Text>
                   <Text style={styles.gridSub} numberOfLines={1}>Expand this plan</Text>
                 </View>
               </TouchableOpacity>
@@ -608,7 +612,7 @@ export default function PlanScreen() {
           {/* Jump to latest message */}
           {showDown && (
             <TouchableOpacity style={styles.downFab} onPress={() => scrollToBottom()}>
-              <Ionicons name="chevron-down" size={20} color={colors.orange} />
+              <Ionicons name="chevron-down" size={20} color={c.orange} />
             </TouchableOpacity>
           )}
           </View>
@@ -627,15 +631,15 @@ export default function PlanScreen() {
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
-              placeholder="Message..."
-              placeholderTextColor={colors.faint}
+              placeholder={t("chat.placeholder")}
+              placeholderTextColor={c.faint}
               value={text}
               onChangeText={(t) => { setText(t); notifyTyping(t); }}
               onSubmitEditing={send}
               returnKeyType="send"
             />
             <TouchableOpacity style={styles.sendBtn} onPress={send}>
-              <Ionicons name="send" size={17} color={colors.onOrange} />
+              <Ionicons name="send" size={17} color={c.onOrange} />
             </TouchableOpacity>
           </View>
         </>
@@ -663,7 +667,7 @@ export default function PlanScreen() {
             <Ionicons
               name={MODULE_CATALOG.find((m) => m.type === activeTab)?.icon ?? "cube-outline"}
               size={36}
-              color={colors.teal}
+              color={c.teal}
             />
           </View>
           <Text style={styles.modulePlaceholderTitle}>
@@ -679,16 +683,16 @@ export default function PlanScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Members</Text>
+              <Text style={styles.modalTitle}>{t("scr.members")}</Text>
               <TouchableOpacity onPress={() => setShowMembers(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={styles.shareBtn}
               onPress={() => plan && shareInvite("plan", plan.title, plan.inviteCode)}
             >
-              <Ionicons name="link-outline" size={16} color={colors.onOrange} />
+              <Ionicons name="link-outline" size={16} color={c.onOrange} />
               <Text style={styles.shareBtnText}>Share invite link</Text>
             </TouchableOpacity>
             <ScrollView>
@@ -700,10 +704,10 @@ export default function PlanScreen() {
                   : m.rsvp === "maybe" ? "help-circle"
                   : "time-outline";
                 const rsvpColor =
-                  m.rsvp === "yes" ? colors.teal
-                  : m.rsvp === "no" ? colors.danger
+                  m.rsvp === "yes" ? c.teal
+                  : m.rsvp === "no" ? c.danger
                   : m.rsvp === "maybe" ? "#F0A72B"
-                  : colors.faint;
+                  : c.faint;
                 return (
                   <View key={m.user.id} style={styles.memberRow}>
                     <TouchableOpacity
@@ -756,12 +760,12 @@ export default function PlanScreen() {
                         </View>
                         {invitedIds.has(f.id) ? (
                           <View style={styles.invitedTagRow}>
-                            <Ionicons name="checkmark" size={13} color={colors.teal} />
+                            <Ionicons name="checkmark" size={13} color={c.teal} />
                             <Text style={styles.invitedTag}>Invited</Text>
                           </View>
                         ) : (
                           <TouchableOpacity style={styles.roleBtn} onPress={() => inviteFriend(f.id)}>
-                            <Text style={styles.roleBtnText}>Invite</Text>
+                            <Text style={styles.roleBtnText}>{t("common.invite")}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -781,11 +785,11 @@ export default function PlanScreen() {
           <View style={[styles.modal, { maxHeight: "85%" }]}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                <Ionicons name="sparkles" size={17} color={colors.orange} />
+                <Ionicons name="sparkles" size={17} color={c.orange} />
                 <Text style={styles.modalTitle}>Plan Assistant</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAi(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
@@ -809,7 +813,7 @@ export default function PlanScreen() {
               <TextInput
                 style={styles.aiInput}
                 placeholder="Ask the assistant..."
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
                 value={aiQuestion}
                 onChangeText={setAiQuestion}
                 onSubmitEditing={askAi}
@@ -822,7 +826,7 @@ export default function PlanScreen() {
               >
                 {aiLoading
                   ? <Text style={styles.aiSendText}>...</Text>
-                  : <Ionicons name="send" size={16} color={colors.onOrange} />}
+                  : <Ionicons name="send" size={16} color={c.onOrange} />}
               </TouchableOpacity>
             </View>
           </View>
@@ -837,7 +841,7 @@ export default function PlanScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Group availability</Text>
               <TouchableOpacity onPress={() => setShowDates(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
             {plan && <AvailabilityHeatmap planId={plan.id} />}
@@ -850,19 +854,19 @@ export default function PlanScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Plan settings</Text>
+              <Text style={styles.modalTitle}>{t("scr.planSettings")}</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
             {canManage && (
               <TouchableOpacity style={styles.settingRow} onPress={openEdit}>
                 <View style={styles.settingIconWrap}>
-                  <Ionicons name="pencil-outline" size={18} color={colors.teal} />
+                  <Ionicons name="pencil-outline" size={18} color={c.teal} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.settingText}>Edit plan</Text>
+                  <Text style={styles.settingText}>{t("plan.editPlan")}</Text>
                   <Text style={styles.settingDesc}>Title, date, location and description</Text>
                 </View>
               </TouchableOpacity>
@@ -871,7 +875,7 @@ export default function PlanScreen() {
             {canManage && (
               <TouchableOpacity style={styles.settingRow} onPress={bannerAction}>
                 <View style={styles.settingIconWrap}>
-                  <Ionicons name="image-outline" size={18} color={colors.teal} />
+                  <Ionicons name="image-outline" size={18} color={c.teal} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.settingText}>
@@ -884,10 +888,10 @@ export default function PlanScreen() {
 
             <TouchableOpacity style={styles.settingRow} onPress={saveTemplate}>
               <View style={styles.settingIconWrap}>
-                <Ionicons name="documents-outline" size={18} color={colors.teal} />
+                <Ionicons name="documents-outline" size={18} color={c.teal} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingText}>Save as template</Text>
+                <Text style={styles.settingText}>{t("plan.saveTemplate")}</Text>
                 <Text style={styles.settingDesc}>
                   Reuse this plan's modules, checklist and activities next time
                 </Text>
@@ -896,21 +900,21 @@ export default function PlanScreen() {
 
             <TouchableOpacity style={styles.settingRow} onPress={() => { setShowSettings(false); leavePlan(); }}>
               <View style={styles.settingIconWrap}>
-                <Ionicons name="exit-outline" size={18} color={colors.teal} />
+                <Ionicons name="exit-outline" size={18} color={c.teal} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingText}>Leave plan</Text>
+                <Text style={styles.settingText}>{t("plan.leave")}</Text>
                 <Text style={styles.settingDesc}>You can rejoin later with an invite</Text>
               </View>
             </TouchableOpacity>
 
             {isAdmin && (
               <TouchableOpacity style={styles.settingRow} onPress={() => { setShowSettings(false); deletePlan(); }}>
-                <View style={[styles.settingIconWrap, { backgroundColor: colors.dangerSoft }]}>
-                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                <View style={[styles.settingIconWrap, { backgroundColor: c.dangerSoft }]}>
+                  <Ionicons name="trash-outline" size={18} color={c.danger} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.settingText, { color: colors.danger }]}>Delete plan</Text>
+                  <Text style={[styles.settingText, { color: c.danger }]}>{t("plan.delete")}</Text>
                   <Text style={styles.settingDesc}>Deletes everything for everyone — cannot be undone</Text>
                 </View>
               </TouchableOpacity>
@@ -928,9 +932,9 @@ export default function PlanScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modal, { maxHeight: "88%" }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit plan</Text>
+              <Text style={styles.modalTitle}>{t("plan.editPlan")}</Text>
               <TouchableOpacity onPress={() => setShowEdit(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
             <ScrollView keyboardShouldPersistTaps="handled">
@@ -940,7 +944,7 @@ export default function PlanScreen() {
                 value={editTitle}
                 onChangeText={setEditTitle}
                 placeholder="Plan title"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
               />
 
               <Text style={styles.editLabel}>Location</Text>
@@ -949,7 +953,7 @@ export default function PlanScreen() {
                 value={editLocation}
                 onChangeText={setEditLocation}
                 placeholder="The park"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
               />
 
               <View style={{ flexDirection: "row", gap: 10 }}>
@@ -960,7 +964,7 @@ export default function PlanScreen() {
                     value={editDate}
                     onChangeText={setEditDate}
                     placeholder="18/07"
-                    placeholderTextColor={colors.faint}
+                    placeholderTextColor={c.faint}
                     autoCapitalize="none"
                     keyboardType="numbers-and-punctuation"
                   />
@@ -972,7 +976,7 @@ export default function PlanScreen() {
                     value={editTime}
                     onChangeText={setEditTime}
                     placeholder="18:00"
-                    placeholderTextColor={colors.faint}
+                    placeholderTextColor={c.faint}
                     autoCapitalize="none"
                   />
                 </View>
@@ -984,7 +988,7 @@ export default function PlanScreen() {
                 value={editDesc}
                 onChangeText={setEditDesc}
                 placeholder="Bring your boots!"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={c.faint}
                 multiline
                 textAlignVertical="top"
               />
@@ -1008,9 +1012,9 @@ export default function PlanScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add a module</Text>
+              <Text style={styles.modalTitle}>{t("scr.addModule")}</Text>
               <TouchableOpacity onPress={() => setShowAddModule(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
             <ScrollView>
@@ -1020,13 +1024,13 @@ export default function PlanScreen() {
                 availableModules.map((m) => (
                   <TouchableOpacity key={m.type} style={styles.moduleRow} onPress={() => addModule(m.type)}>
                     <View style={styles.moduleIconWrap}>
-                      <Ionicons name={m.icon} size={19} color={colors.teal} />
+                      <Ionicons name={m.icon} size={19} color={c.teal} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.moduleName}>{m.name}</Text>
                       <Text style={styles.moduleDesc}>{m.desc}</Text>
                     </View>
-                    <Ionicons name="add-circle-outline" size={22} color={colors.orange} />
+                    <Ionicons name="add-circle-outline" size={22} color={c.orange} />
                   </TouchableOpacity>
                 ))
               )}
@@ -1038,192 +1042,192 @@ export default function PlanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg },
   header: {
     padding: 20, paddingTop: 60, paddingBottom: 12,
-    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.line,
+    backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.line,
   },
   headerTopRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   backRow: { flexDirection: "row", alignItems: "center", gap: 2 },
-  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
+  backText: { color: c.teal, fontSize: 15, fontFamily: font.bodySemi },
   membersBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  membersBtnText: { color: colors.teal, fontSize: 13.5, fontFamily: font.semi },
-  title: { fontSize: 20, fontFamily: font.title, color: colors.ink, letterSpacing: -0.3 },
+  membersBtnText: { color: c.teal, fontSize: 13.5, fontFamily: font.semi },
+  title: { fontSize: 20, fontFamily: font.title, color: c.ink, letterSpacing: -0.3 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 5, flexWrap: "wrap" },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  meta: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
+  meta: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium },
   roleChip: {
-    backgroundColor: colors.orangeSoft, borderRadius: radius.pill,
+    backgroundColor: c.orangeSoft, borderRadius: radius.pill,
     paddingHorizontal: 9, paddingVertical: 2,
   },
-  roleChipText: { color: colors.orange, fontSize: 11, fontFamily: font.semi },
+  roleChipText: { color: c.orange, fontSize: 11, fontFamily: font.semi },
   rsvpRow: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
   rsvpBtn: {
     flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5,
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 10,
-    borderWidth: 1.5, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 10,
+    borderWidth: 1.5, borderColor: c.line,
   },
-  rsvpText: { color: colors.muted, fontSize: 12.5, fontFamily: font.semi },
+  rsvpText: { color: c.muted, fontSize: 12.5, fontFamily: font.semi },
   moduleBar: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.surface,
+    borderBottomWidth: 1, borderBottomColor: c.line, backgroundColor: c.surface,
   },
   moduleBarBack: { flexDirection: "row", alignItems: "center", gap: 4, width: 92 },
-  moduleBarBackText: { color: colors.teal, fontSize: 13.5, fontFamily: font.bodySemi },
-  moduleBarTitle: { color: colors.ink, fontSize: 15, fontFamily: font.semi, letterSpacing: -0.2 },
+  moduleBarBackText: { color: c.teal, fontSize: 13.5, fontFamily: font.bodySemi },
+  moduleBarTitle: { color: c.ink, fontSize: 15, fontFamily: font.semi, letterSpacing: -0.2 },
   gridWrap: { padding: 14, paddingTop: 4 },
   gridLabel: {
     fontSize: 11, fontFamily: font.semi, letterSpacing: 1, textTransform: "uppercase",
-    color: colors.muted, marginBottom: 10, marginLeft: 4,
+    color: c.muted, marginBottom: 10, marginLeft: 4,
   },
   grid: {},
   gridCard: {
     width: "100%", flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14,
-    marginBottom: 10, borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 14,
+    marginBottom: 10, borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
-  gridAddCard: { borderStyle: "dashed", borderColor: colors.orange, shadowOpacity: 0, elevation: 0 },
+  gridAddCard: { borderStyle: "dashed", borderColor: c.orange, shadowOpacity: 0, elevation: 0 },
   gridIcon: {
     width: 36, height: 36, borderRadius: 11,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
-  gridName: { color: colors.ink, fontSize: 13, fontFamily: font.semi, letterSpacing: -0.1 },
-  gridSub: { color: colors.muted, fontSize: 10.5, fontFamily: font.bodyMedium, marginTop: 1 },
-  gridSubNew: { color: colors.orange, fontFamily: font.bodySemi },
+  gridName: { color: c.ink, fontSize: 13, fontFamily: font.semi, letterSpacing: -0.1 },
+  gridSub: { color: c.muted, fontSize: 10.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  gridSubNew: { color: c.orange, fontFamily: font.bodySemi },
   gridDot: {
     position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: 4,
-    backgroundColor: colors.orange, zIndex: 1,
+    backgroundColor: c.orange, zIndex: 1,
   },
-  gridHint: { color: colors.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 6 },
+  gridHint: { color: c.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 6 },
   chat: { flex: 1, paddingHorizontal: 12, paddingTop: 8 },
   msgRow: { flexDirection: "row", alignItems: "flex-end", gap: 7, marginBottom: 8, maxWidth: "84%" },
   msgRowMine: { alignSelf: "flex-end", flexDirection: "row-reverse" },
   msgAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   msgAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 11 },
   bubble: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, flexShrink: 1 },
-  bubbleMine: { backgroundColor: colors.orange, borderBottomRightRadius: 5 },
+  bubbleMine: { backgroundColor: c.orange, borderBottomRightRadius: 5 },
   bubbleOther: {
-    backgroundColor: colors.surface, borderBottomLeftRadius: 5,
-    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderBottomLeftRadius: 5,
+    borderWidth: 1, borderColor: c.line,
   },
   bubbleName: { fontSize: 11.5, fontFamily: font.semi, marginBottom: 2 },
-  bubbleText: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodyMedium, lineHeight: 21 },
-  bubbleTextMine: { color: colors.onOrange },
-  bubbleTime: { color: colors.faint, fontSize: 10, fontFamily: font.body, marginTop: 3, alignSelf: "flex-end" },
+  bubbleText: { color: c.ink, fontSize: 14.5, fontFamily: font.bodyMedium, lineHeight: 21 },
+  bubbleTextMine: { color: c.onOrange },
+  bubbleTime: { color: c.faint, fontSize: 10, fontFamily: font.body, marginTop: 3, alignSelf: "flex-end" },
   bubbleTimeMine: { color: "rgba(255,255,255,0.75)" },
-  emptyChat: { color: colors.faint, textAlign: "center", marginTop: 32, fontSize: 13.5, fontFamily: font.body },
+  emptyChat: { color: c.faint, textAlign: "center", marginTop: 32, fontSize: 13.5, fontFamily: font.body },
   downFab: {
     position: "absolute", right: 14, bottom: 12, width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.line,
     alignItems: "center", justifyContent: "center", ...shadow.card,
   },
   typingRow: {
     flexDirection: "row", alignItems: "center", gap: 7,
-    paddingHorizontal: 16, paddingVertical: 5, backgroundColor: colors.bg,
+    paddingHorizontal: 16, paddingVertical: 5, backgroundColor: c.bg,
   },
   typingDots: { flexDirection: "row", gap: 3 },
-  typingDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.teal },
-  typingText: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium, fontStyle: "italic" },
+  typingDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: c.teal },
+  typingText: { color: c.teal, fontSize: 12, fontFamily: font.bodyMedium, fontStyle: "italic" },
   inputRow: {
-    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
-    backgroundColor: colors.surface,
+    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.line,
+    backgroundColor: c.surface,
   },
   input: {
-    flex: 1, backgroundColor: colors.surface2, borderRadius: radius.pill, paddingHorizontal: 16,
-    paddingVertical: 12, color: colors.ink, fontSize: 14.5, fontFamily: font.bodyMedium,
-    borderWidth: 1, borderColor: colors.line,
+    flex: 1, backgroundColor: c.surface2, borderRadius: radius.pill, paddingHorizontal: 16,
+    paddingVertical: 12, color: c.ink, fontSize: 14.5, fontFamily: font.bodyMedium,
+    borderWidth: 1, borderColor: c.line,
   },
   sendBtn: {
-    backgroundColor: colors.orange, borderRadius: 24, width: 46, height: 46,
+    backgroundColor: c.orange, borderRadius: 24, width: 46, height: 46,
     alignItems: "center", justifyContent: "center", ...shadow.orange,
   },
   modulePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   modulePlaceholderIcon: {
-    width: 80, height: 80, borderRadius: 24, backgroundColor: colors.tealSoft,
+    width: 80, height: 80, borderRadius: 24, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  modulePlaceholderTitle: { color: colors.ink, fontSize: 20, fontFamily: font.title, marginTop: 12 },
-  modulePlaceholderText: { color: colors.muted, fontSize: 14, fontFamily: font.bodyMedium, marginTop: 8 },
-  modulePlaceholderHint: { color: colors.faint, fontSize: 12, fontFamily: font.body, marginTop: 24 },
+  modulePlaceholderTitle: { color: c.ink, fontSize: 20, fontFamily: font.title, marginTop: 12 },
+  modulePlaceholderText: { color: c.muted, fontSize: 14, fontFamily: font.bodyMedium, marginTop: 8 },
+  modulePlaceholderHint: { color: c.faint, fontSize: 12, fontFamily: font.body, marginTop: 24 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, maxHeight: "75%",
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
   moduleRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: c.line,
   },
   moduleIconWrap: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: colors.tealSoft,
+    width: 38, height: 38, borderRadius: 12, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center", marginRight: 12,
   },
-  moduleName: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
-  moduleDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  moduleName: { color: c.ink, fontSize: 15, fontFamily: font.semi },
+  moduleDesc: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
   memberRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
   memberAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", marginRight: 11 },
   memberAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 14 },
-  memberName: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
-  memberRole: { color: colors.teal, fontSize: 11.5, fontFamily: font.semi, marginTop: 1 },
+  memberName: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  memberRole: { color: c.teal, fontSize: 11.5, fontFamily: font.semi, marginTop: 1 },
   roleBtn: {
-    backgroundColor: colors.tealSoft, borderRadius: radius.sm,
+    backgroundColor: c.tealSoft, borderRadius: radius.sm,
     paddingHorizontal: 12, paddingVertical: 8,
   },
-  roleBtnText: { color: colors.teal, fontSize: 12, fontFamily: font.semi },
+  roleBtnText: { color: c.teal, fontSize: 12, fontFamily: font.semi },
   aiAnswerBox: {
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16,
-    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 16,
+    borderWidth: 1, borderColor: c.line,
   },
-  aiAnswerText: { color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium, lineHeight: 22 },
-  aiHint: { color: colors.muted, fontSize: 13.5, fontFamily: font.body, lineHeight: 22, padding: 8 },
+  aiAnswerText: { color: c.ink, fontSize: 14, fontFamily: font.bodyMedium, lineHeight: 22 },
+  aiHint: { color: c.muted, fontSize: 13.5, fontFamily: font.body, lineHeight: 22, padding: 8 },
   aiInputRow: { flexDirection: "row", gap: 8, marginTop: 14 },
   aiInput: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: 14,
-    color: colors.ink, fontSize: 14.5, fontFamily: font.bodyMedium,
-    borderWidth: 1, borderColor: colors.line,
+    flex: 1, backgroundColor: c.surface, borderRadius: radius.md, padding: 14,
+    color: c.ink, fontSize: 14.5, fontFamily: font.bodyMedium,
+    borderWidth: 1, borderColor: c.line,
   },
   aiSendBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.md, width: 50,
+    backgroundColor: c.orange, borderRadius: radius.md, width: 50,
     alignItems: "center", justifyContent: "center", ...shadow.orange,
   },
-  aiSendText: { color: colors.onOrange, fontSize: 17, fontFamily: font.semi },
+  aiSendText: { color: c.onOrange, fontSize: 17, fontFamily: font.semi },
   shareBtn: {
     flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7,
-    backgroundColor: colors.orange, borderRadius: radius.md, padding: 13,
+    backgroundColor: c.orange, borderRadius: radius.md, padding: 13,
     marginBottom: 12, ...shadow.orange,
   },
-  shareBtnText: { color: colors.onOrange, fontSize: 14, fontFamily: font.semi },
+  shareBtnText: { color: c.onOrange, fontSize: 14, fontFamily: font.semi },
   inviteSectionTitle: {
-    color: colors.muted, fontSize: 11, fontFamily: font.semi, letterSpacing: 1,
+    color: c.muted, fontSize: 11, fontFamily: font.semi, letterSpacing: 1,
     textTransform: "uppercase", marginTop: 16, marginBottom: 8,
   },
   invitedTagRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  invitedTag: { color: colors.teal, fontSize: 12.5, fontFamily: font.semi },
+  invitedTag: { color: c.teal, fontSize: 12.5, fontFamily: font.semi },
   settingRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.lg, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: c.line,
   },
   settingIconWrap: {
-    width: 36, height: 36, borderRadius: 11, backgroundColor: colors.tealSoft,
+    width: 36, height: 36, borderRadius: 11, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center", marginRight: 12,
   },
-  settingText: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
-  settingDesc: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
-  editLabel: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  settingText: { color: c.ink, fontSize: 15, fontFamily: font.semi },
+  settingDesc: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  editLabel: { color: c.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   editInput: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
-    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, color: c.ink,
+    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 14, borderWidth: 1, borderColor: c.line,
   },
   editSaveBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", marginTop: 4, ...shadow.orange,
   },
-  editSaveText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
-});
+  editSaveText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
+}));

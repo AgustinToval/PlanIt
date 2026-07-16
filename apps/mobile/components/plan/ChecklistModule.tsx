@@ -7,7 +7,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Item = {
   id: string;
@@ -28,6 +29,8 @@ type Member = { rsvp: string; role: string; user: { id: string; name: string | n
 export default function ChecklistModule({
   planId, members, myRole = "member",
 }: { planId: string; members: Member[]; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [items, setItems] = useState<Item[]>([]);
   const [newTitle, setNewTitle] = useState("");
@@ -163,10 +166,10 @@ export default function ChecklistModule({
           <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
             <TouchableOpacity onPress={generateWithAi} disabled={aiLoading} style={styles.aiBtnRow}>
               {aiLoading
-                ? <ActivityIndicator size="small" color={colors.orange} />
+                ? <ActivityIndicator size="small" color={c.orange} />
                 : (
                   <>
-                    <Ionicons name="sparkles" size={13} color={colors.orange} />
+                    <Ionicons name="sparkles" size={13} color={c.orange} />
                     <Text style={styles.aiBtn}>AI</Text>
                   </>
                 )}
@@ -192,7 +195,7 @@ export default function ChecklistModule({
         style={{ flex: 1, paddingHorizontal: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {(hidePacked ? items.filter((i) => !i.checked) : items).map((item) => {
           const assignee = nameOf(item.assignedTo);
@@ -207,7 +210,7 @@ export default function ChecklistModule({
               <Ionicons
                 name={item.checked ? "checkbox" : "square-outline"}
                 size={21}
-                color={item.checked ? colors.teal : colors.faint}
+                color={item.checked ? c.teal : c.faint}
                 style={{ marginRight: 11 }}
               />
               <View style={{ flex: 1 }}>
@@ -239,7 +242,7 @@ export default function ChecklistModule({
         <TextInput
           style={styles.input}
           placeholder="Tent, ice, sunscreen..."
-          placeholderTextColor={colors.faint}
+          placeholderTextColor={c.faint}
           value={newTitle}
           onChangeText={setNewTitle}
           onSubmitEditing={addItem}
@@ -250,7 +253,7 @@ export default function ChecklistModule({
           onPress={() => { addItem(); Keyboard.dismiss(); }}
           disabled={!newTitle.trim()}
         >
-          <Ionicons name="add" size={22} color={colors.onOrange} />
+          <Ionicons name="add" size={22} color={c.onOrange} />
         </TouchableOpacity>
       </View>
 
@@ -260,11 +263,11 @@ export default function ChecklistModule({
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                <Ionicons name="sparkles" size={17} color={colors.orange} />
+                <Ionicons name="sparkles" size={17} color={c.orange} />
                 <Text style={styles.modalTitle}>AI suggestions</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAi(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSub}>Tap to deselect what you don't need</Text>
@@ -286,7 +289,7 @@ export default function ChecklistModule({
                     <Ionicons
                       name={selected ? "checkbox" : "square-outline"}
                       size={19}
-                      color={selected ? colors.teal : colors.faint}
+                      color={selected ? c.teal : c.faint}
                       style={{ marginRight: 10 }}
                     />
                     <View style={{ flex: 1 }}>
@@ -313,62 +316,62 @@ export default function ChecklistModule({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   progressCard: {
-    margin: 12, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16,
-    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    margin: 12, backgroundColor: c.surface, borderRadius: radius.lg, padding: 16,
+    borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
-  progressText: { color: colors.ink, fontSize: 14, fontFamily: font.semi },
-  hideToggle: { color: colors.teal, fontSize: 12.5, fontFamily: font.bodySemi },
-  progressBar: { height: 8, backgroundColor: colors.line, borderRadius: 4, overflow: "hidden" },
-  progressFill: { height: 8, backgroundColor: colors.teal, borderRadius: 4 },
+  progressText: { color: c.ink, fontSize: 14, fontFamily: font.semi },
+  hideToggle: { color: c.teal, fontSize: 12.5, fontFamily: font.bodySemi },
+  progressBar: { height: 8, backgroundColor: c.line, borderRadius: 4, overflow: "hidden" },
+  progressFill: { height: 8, backgroundColor: c.teal, borderRadius: 4 },
   itemRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
-  itemTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
-  itemDone: { color: colors.faint, textDecorationLine: "line-through" },
-  itemAssignee: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },
+  itemTitle: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  itemDone: { color: c.faint, textDecorationLine: "line-through" },
+  itemAssignee: { color: c.teal, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },
   claimBtn: {
-    backgroundColor: colors.surface2, borderRadius: radius.sm, paddingHorizontal: 12,
-    paddingVertical: 8, marginLeft: 8, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface2, borderRadius: radius.sm, paddingHorizontal: 12,
+    paddingVertical: 8, marginLeft: 8, borderWidth: 1, borderColor: c.line,
   },
-  claimBtnActive: { backgroundColor: colors.orangeSoft, borderColor: colors.orange },
-  claimText: { color: colors.muted, fontSize: 12, fontFamily: font.semi },
-  claimTextActive: { color: colors.orange },
-  empty: { color: colors.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
+  claimBtnActive: { backgroundColor: c.orangeSoft, borderColor: c.orange },
+  claimText: { color: c.muted, fontSize: 12, fontFamily: font.semi },
+  claimTextActive: { color: c.orange },
+  empty: { color: c.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
   inputRow: {
-    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
-    backgroundColor: colors.surface,
+    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.line,
+    backgroundColor: c.surface,
   },
   input: {
-    flex: 1, backgroundColor: colors.surface2, borderRadius: radius.md, padding: 13,
-    color: colors.ink, fontSize: 14, fontFamily: font.bodyMedium,
-    borderWidth: 1, borderColor: colors.line,
+    flex: 1, backgroundColor: c.surface2, borderRadius: radius.md, padding: 13,
+    color: c.ink, fontSize: 14, fontFamily: font.bodyMedium,
+    borderWidth: 1, borderColor: c.line,
   },
   addBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.md, width: 48,
+    backgroundColor: c.orange, borderRadius: radius.md, width: 48,
     alignItems: "center", justifyContent: "center", ...shadow.orange,
   },
   aiBtnRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  aiBtn: { color: colors.orange, fontSize: 12.5, fontFamily: font.semi },
+  aiBtn: { color: c.orange, fontSize: 12.5, fontFamily: font.semi },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
-  modalSub: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 14 },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
+  modalSub: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 14 },
   aiRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: c.line,
   },
-  aiTitle: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
-  aiCategory: { color: colors.teal, fontSize: 11.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  aiTitle: { color: c.ink, fontSize: 14, fontFamily: font.bodySemi },
+  aiCategory: { color: c.teal, fontSize: 11.5, fontFamily: font.bodyMedium, marginTop: 1 },
   aiAddBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", marginTop: 12, ...shadow.orange,
   },
-  aiAddText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
-});
+  aiAddText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
+}));

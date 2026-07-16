@@ -1,7 +1,8 @@
 // Web fallback — react-native-maps is native-only.
 // The real map lives in MeetupMap.native.tsx.
 import { View, Text, StyleSheet } from "react-native";
-import { colors, font, radius } from "../../lib/theme";
+import { font, radius, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 export type MapMember = {
   id: string;
@@ -13,6 +14,8 @@ export type MapMember = {
 };
 
 export default function MeetupMap({ members }: { members: MapMember[] }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   return (
     <View style={styles.box}>
       <Text style={styles.text}>
@@ -23,10 +26,10 @@ export default function MeetupMap({ members }: { members: MapMember[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   box: {
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 24,
-    alignItems: "center", marginBottom: 12, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 24,
+    alignItems: "center", marginBottom: 12, borderWidth: 1, borderColor: c.line,
   },
-  text: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, textAlign: "center" },
-});
+  text: { color: c.muted, fontSize: 13.5, fontFamily: font.bodyMedium, textAlign: "center" },
+}));

@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Vote = {
   id: string;
@@ -22,6 +23,8 @@ type Vote = {
 export default function VotesModule({
   planId, myRole = "member",
 }: { planId: string; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [votes, setVotes] = useState<Vote[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,7 +118,7 @@ export default function VotesModule({
         style={{ flex: 1, padding: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {votes.length === 0 && (
           <Text style={styles.empty}>No votes yet — settle a debate!</Text>
@@ -158,9 +161,9 @@ export default function VotesModule({
                     <View style={[styles.optionFill, { width: `${totalVotes ? (count / totalVotes) * 100 : 0}%` }]} />
                     <View style={styles.optionContent}>
                       <View style={styles.optionTextRow}>
-                        {isWinner && <Ionicons name="trophy" size={13} color={colors.orange} />}
+                        {isWinner && <Ionicons name="trophy" size={13} color={c.orange} />}
                         <Text style={styles.optionText}>{opt}</Text>
-                        {isMine && <Ionicons name="checkmark-circle" size={14} color={colors.teal} />}
+                        {isMine && <Ionicons name="checkmark-circle" size={14} color={c.teal} />}
                       </View>
                       <Text style={styles.optionCount}>{count} · {pct}%</Text>
                     </View>
@@ -181,7 +184,7 @@ export default function VotesModule({
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
         <View style={styles.fabRow}>
-          <Ionicons name="add" size={18} color={colors.onOrange} />
+          <Ionicons name="add" size={18} color={c.onOrange} />
           <Text style={styles.fabText}>New vote</Text>
         </View>
       </TouchableOpacity>
@@ -195,7 +198,7 @@ export default function VotesModule({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New vote</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
@@ -203,7 +206,7 @@ export default function VotesModule({
             <TextInput
               style={styles.input}
               placeholder="Where do we eat?"
-              placeholderTextColor={colors.faint}
+              placeholderTextColor={c.faint}
               value={question}
               onChangeText={setQuestion}
             />
@@ -214,7 +217,7 @@ export default function VotesModule({
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
                   placeholder={`Option ${i + 1}`}
-                  placeholderTextColor={colors.faint}
+                  placeholderTextColor={c.faint}
                   value={opt}
                   onChangeText={(t) => setOptions((prev) => prev.map((o, j) => (j === i ? t : o)))}
                 />
@@ -223,7 +226,7 @@ export default function VotesModule({
                     style={styles.removeOptBtn}
                     onPress={() => setOptions((prev) => prev.filter((_, j) => j !== i))}
                   >
-                    <Ionicons name="close" size={17} color={colors.muted} />
+                    <Ionicons name="close" size={17} color={c.muted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -253,55 +256,55 @@ export default function VotesModule({
   );
 }
 
-const styles = StyleSheet.create({
-  empty: { color: colors.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
+  empty: { color: c.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
   voteCard: {
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
   voteHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  question: { color: colors.ink, fontSize: 16, fontFamily: font.semi, flex: 1, letterSpacing: -0.2 },
+  question: { color: c.ink, fontSize: 16, fontFamily: font.semi, flex: 1, letterSpacing: -0.2 },
   closedBadge: {
-    color: colors.danger, fontSize: 11, fontFamily: font.semi,
-    backgroundColor: colors.dangerSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill,
+    color: c.danger, fontSize: 11, fontFamily: font.semi,
+    backgroundColor: c.dangerSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill,
   },
-  voteMeta: { color: colors.muted, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 4, marginBottom: 12 },
+  voteMeta: { color: c.muted, fontSize: 12, fontFamily: font.bodyMedium, marginTop: 4, marginBottom: 12 },
   option: {
-    borderRadius: radius.md, backgroundColor: colors.surface2, marginBottom: 8,
-    overflow: "hidden", borderWidth: 1.5, borderColor: colors.line,
+    borderRadius: radius.md, backgroundColor: c.surface2, marginBottom: 8,
+    overflow: "hidden", borderWidth: 1.5, borderColor: c.line,
   },
-  optionMine: { borderColor: colors.orange },
-  optionWinner: { borderColor: colors.teal },
-  optionFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: colors.tealSoft },
+  optionMine: { borderColor: c.orange },
+  optionWinner: { borderColor: c.teal },
+  optionFill: { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: c.tealSoft },
   optionContent: { flexDirection: "row", justifyContent: "space-between", padding: 12 },
   optionTextRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
-  optionText: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodySemi, flexShrink: 1 },
-  optionCount: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyBold },
-  manageHint: { color: colors.faint, fontSize: 11, fontFamily: font.body, textAlign: "center", marginTop: 4 },
+  optionText: { color: c.ink, fontSize: 13.5, fontFamily: font.bodySemi, flexShrink: 1 },
+  optionCount: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyBold },
+  manageHint: { color: c.faint, fontSize: 11, fontFamily: font.body, textAlign: "center", marginTop: 4 },
   fab: {
-    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: c.orange,
     borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
   },
   fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  fabText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
-  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
+  label: { color: c.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   input: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
-    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 12, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, color: c.ink,
+    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 12, borderWidth: 1, borderColor: c.line,
   },
   optionInputRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   removeOptBtn: { padding: 10 },
-  addOption: { color: colors.teal, fontSize: 13.5, fontFamily: font.bodySemi, marginBottom: 12 },
+  addOption: { color: c.teal, fontSize: 13.5, fontFamily: font.bodySemi, marginBottom: 12 },
   button: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", marginTop: 8, ...shadow.orange,
   },
-  buttonText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
-});
+  buttonText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
+}));

@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Song = {
   id: string;
@@ -25,6 +26,8 @@ type Song = {
 export default function PlaylistModule({
   planId, myRole = "member",
 }: { planId: string; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [songs, setSongs] = useState<Song[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,12 +111,12 @@ export default function PlaylistModule({
         style={{ flex: 1, padding: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {songs.length === 0 && (
           <View style={styles.empty}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="musical-notes-outline" size={38} color={colors.teal} />
+              <Ionicons name="musical-notes-outline" size={38} color={c.teal} />
             </View>
             <Text style={styles.emptyText}>No songs yet</Text>
             <Text style={styles.emptySub}>Paste a Spotify or YouTube Music link to start the vibe</Text>
@@ -139,11 +142,11 @@ export default function PlaylistModule({
 
             <View style={styles.voteBox}>
               <TouchableOpacity onPress={() => vote(song, 1)} style={{ padding: 2 }}>
-                <Ionicons name="chevron-up" size={18} color={song.myVote === 1 ? colors.teal : colors.faint} />
+                <Ionicons name="chevron-up" size={18} color={song.myVote === 1 ? c.teal : c.faint} />
               </TouchableOpacity>
               <Text style={styles.score}>{song.score}</Text>
               <TouchableOpacity onPress={() => vote(song, -1)} style={{ padding: 2 }}>
-                <Ionicons name="chevron-down" size={18} color={song.myVote === -1 ? colors.danger : colors.faint} />
+                <Ionicons name="chevron-down" size={18} color={song.myVote === -1 ? c.danger : c.faint} />
               </TouchableOpacity>
             </View>
           </View>
@@ -153,7 +156,7 @@ export default function PlaylistModule({
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowAdd(true)}>
         <View style={styles.fabRow}>
-          <Ionicons name="add" size={18} color={colors.onOrange} />
+          <Ionicons name="add" size={18} color={c.onOrange} />
           <Text style={styles.fabText}>Add song</Text>
         </View>
       </TouchableOpacity>
@@ -167,7 +170,7 @@ export default function PlaylistModule({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add a song</Text>
               <TouchableOpacity onPress={() => setShowAdd(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
@@ -175,7 +178,7 @@ export default function PlaylistModule({
             <TextInput
               style={styles.input}
               placeholder="https://open.spotify.com/track/..."
-              placeholderTextColor={colors.faint}
+              placeholderTextColor={c.faint}
               value={url}
               onChangeText={setUrl}
               autoCapitalize="none"
@@ -186,7 +189,7 @@ export default function PlaylistModule({
             <TextInput
               style={styles.input}
               placeholder="Blinding Lights"
-              placeholderTextColor={colors.faint}
+              placeholderTextColor={c.faint}
               value={title}
               onChangeText={setTitle}
             />
@@ -195,7 +198,7 @@ export default function PlaylistModule({
             <TextInput
               style={styles.input}
               placeholder="The Weeknd"
-              placeholderTextColor={colors.faint}
+              placeholderTextColor={c.faint}
               value={artist}
               onChangeText={setArtist}
             />
@@ -220,51 +223,51 @@ export default function PlaylistModule({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   empty: { alignItems: "center", marginTop: 70 },
   emptyIconWrap: {
-    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    width: 84, height: 84, borderRadius: 26, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptyText: { color: c.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
   emptySub: {
-    color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
+    color: c.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8,
     textAlign: "center", paddingHorizontal: 30,
   },
   songRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
-  rank: { color: colors.faint, fontSize: 13, fontFamily: font.bodyBold, width: 22 },
+  rank: { color: c.faint, fontSize: 13, fontFamily: font.bodyBold, width: 22 },
   songTitleRow: { flexDirection: "row", alignItems: "center" },
   sourceDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
-  songTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi, flex: 1 },
-  songArtist: { color: colors.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
-  songSource: { color: colors.faint, fontSize: 11, fontFamily: font.body, marginTop: 2 },
+  songTitle: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi, flex: 1 },
+  songArtist: { color: c.muted, fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 1 },
+  songSource: { color: c.faint, fontSize: 11, fontFamily: font.body, marginTop: 2 },
   voteBox: { alignItems: "center", marginLeft: 8, width: 40 },
-  score: { color: colors.ink, fontSize: 13.5, fontFamily: font.bodyBold, paddingVertical: 2 },
+  score: { color: c.ink, fontSize: 13.5, fontFamily: font.bodyBold, paddingVertical: 2 },
   fab: {
-    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: c.orange,
     borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
   },
   fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  fabText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
-  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
+  label: { color: c.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   input: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, color: colors.ink,
-    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 12, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 14, color: c.ink,
+    fontSize: 14.5, fontFamily: font.bodyMedium, marginBottom: 12, borderWidth: 1, borderColor: c.line,
   },
-  hint: { color: colors.muted, fontSize: 12, fontFamily: font.body, marginBottom: 14, lineHeight: 17 },
+  hint: { color: c.muted, fontSize: 12, fontFamily: font.body, marginBottom: 14, lineHeight: 17 },
   button: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 16,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", ...shadow.orange,
   },
-  buttonText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
-});
+  buttonText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
+}));

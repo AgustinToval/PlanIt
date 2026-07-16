@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow, userColor } from "../../lib/theme";
+import { font, radius, shadow, userColor, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Clip = {
   id: string;
@@ -23,6 +24,8 @@ type Member = { rsvp: string; role: string; user: { id: string; name: string | n
 export default function WalkieTalkieModule({
   planId, members = [],
 }: { planId: string; members?: Member[] }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [clips, setClips] = useState<Clip[]>([]);
   const [recording, setRecording] = useState(false);
@@ -258,7 +261,7 @@ export default function WalkieTalkieModule({
     return (
       <View style={styles.gate}>
         <View style={styles.gateIconWrap}>
-          <Ionicons name="mic-outline" size={44} color={colors.orange} />
+          <Ionicons name="mic-outline" size={44} color={c.orange} />
         </View>
         <Text style={styles.gateTitle}>Join the walkie talkie?</Text>
         <Text style={styles.gateText}>
@@ -292,14 +295,14 @@ export default function WalkieTalkieModule({
           <Ionicons
             name={autoPlay ? "volume-high-outline" : "volume-mute-outline"}
             size={15}
-            color={autoPlay ? colors.teal : colors.muted}
+            color={autoPlay ? c.teal : c.muted}
           />
-          <Text style={[styles.topText, !autoPlay && { color: colors.muted }]}>
+          <Text style={[styles.topText, !autoPlay && { color: c.muted }]}>
             Auto-play {autoPlay ? "ON" : "OFF"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowMute(true)} style={styles.topBtn}>
-          <Ionicons name="notifications-off-outline" size={15} color={colors.teal} />
+          <Ionicons name="notifications-off-outline" size={15} color={c.teal} />
           <Text style={styles.topText}>
             Mute{mutedCount > 0 ? ` (${mutedCount})` : ""}
           </Text>
@@ -311,7 +314,7 @@ export default function WalkieTalkieModule({
         {clips.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="mic-outline" size={38} color={colors.teal} />
+              <Ionicons name="mic-outline" size={38} color={c.teal} />
             </View>
             <Text style={styles.emptyText}>No messages yet</Text>
             <Text style={styles.emptySub}>Hold the button below to talk</Text>
@@ -335,7 +338,7 @@ export default function WalkieTalkieModule({
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                     <Text style={styles.clipName}>{mine ? "You" : clip.name ?? "?"}</Text>
                     {isMuted && !mine && (
-                      <Ionicons name="notifications-off" size={12} color={colors.faint} />
+                      <Ionicons name="notifications-off" size={12} color={c.faint} />
                     )}
                   </View>
                   <Text style={styles.clipMeta}>
@@ -378,7 +381,7 @@ export default function WalkieTalkieModule({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Mute</Text>
               <TouchableOpacity onPress={() => setShowMute(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+                <Ionicons name="close" size={22} color={c.muted} />
               </TouchableOpacity>
             </View>
 
@@ -391,9 +394,9 @@ export default function WalkieTalkieModule({
                 <Ionicons
                   name={muteAll ? "notifications-off" : "notifications-outline"}
                   size={15}
-                  color={muteAll ? colors.danger : colors.muted}
+                  color={muteAll ? c.danger : c.muted}
                 />
-                <Text style={[styles.muteToggle, muteAll && { color: colors.danger }]}>
+                <Text style={[styles.muteToggle, muteAll && { color: c.danger }]}>
                   {muteAll ? "ON" : "OFF"}
                 </Text>
               </View>
@@ -422,9 +425,9 @@ export default function WalkieTalkieModule({
                           <Ionicons
                             name={muted ? "notifications-off" : "notifications-outline"}
                             size={15}
-                            color={muted ? colors.danger : colors.muted}
+                            color={muted ? c.danger : c.muted}
                           />
-                          <Text style={[styles.muteToggle, muted && { color: colors.danger }]}>
+                          <Text style={[styles.muteToggle, muted && { color: c.danger }]}>
                             {muted ? "Muted" : "On"}
                           </Text>
                         </View>
@@ -442,78 +445,78 @@ export default function WalkieTalkieModule({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   topBar: {
     flexDirection: "row", justifyContent: "space-between",
     paddingHorizontal: 16, paddingVertical: 10,
   },
   topBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
-  topText: { color: colors.teal, fontSize: 12.5, fontFamily: font.semi },
+  topText: { color: c.teal, fontSize: 12.5, fontFamily: font.semi },
   empty: { alignItems: "center", marginTop: 50 },
   emptyIconWrap: {
-    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    width: 84, height: 84, borderRadius: 26, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
-  emptySub: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8 },
+  emptyText: { color: c.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySub: { color: c.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8 },
   clipRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
     borderRadius: radius.md, padding: 12, marginBottom: 8,
-    borderWidth: 1.5, borderColor: colors.line,
+    borderWidth: 1.5, borderColor: c.line,
   },
-  clipPlaying: { borderColor: colors.teal },
+  clipPlaying: { borderColor: c.teal },
   clipAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", marginRight: 11 },
-  clipName: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
-  clipMeta: { color: colors.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
-  clipTap: { color: colors.faint, fontSize: 10.5, fontFamily: font.body },
-  talkWrap: { padding: 16, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface },
+  clipName: { color: c.ink, fontSize: 14, fontFamily: font.bodySemi },
+  clipMeta: { color: c.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
+  clipTap: { color: c.faint, fontSize: 10.5, fontFamily: font.body },
+  talkWrap: { padding: 16, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: c.surface },
   talkBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.xl, paddingVertical: 20,
+    backgroundColor: c.orange, borderRadius: radius.xl, paddingVertical: 20,
     alignItems: "center", justifyContent: "center", ...shadow.orange,
   },
-  talkBtnActive: { backgroundColor: colors.danger },
+  talkBtnActive: { backgroundColor: c.danger },
   talkText: { color: "#fff", fontSize: 16, fontFamily: font.semi },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
   muteAllRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 16, marginBottom: 12,
-    borderWidth: 1.5, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 16, marginBottom: 12,
+    borderWidth: 1.5, borderColor: c.line,
   },
-  muteAllText: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
+  muteAllText: { color: c.ink, fontSize: 15, fontFamily: font.semi },
   muteRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 12, marginBottom: 8,
-    borderWidth: 1.5, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 12, marginBottom: 8,
+    borderWidth: 1.5, borderColor: c.line,
   },
-  muteRowActive: { borderColor: colors.danger },
+  muteRowActive: { borderColor: c.danger },
   muteAvatar: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   muteAvatarText: { color: "#fff", fontFamily: font.semi, fontSize: 12 },
-  muteName: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
+  muteName: { color: c.ink, fontSize: 14, fontFamily: font.bodySemi },
   muteToggleRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  muteToggle: { color: colors.muted, fontSize: 12.5, fontFamily: font.semi },
-  hint: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, textAlign: "center", paddingVertical: 12 },
+  muteToggle: { color: c.muted, fontSize: 12.5, fontFamily: font.semi },
+  hint: { color: c.muted, fontSize: 12.5, fontFamily: font.body, textAlign: "center", paddingVertical: 12 },
   gate: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   gateIconWrap: {
-    width: 96, height: 96, borderRadius: 30, backgroundColor: colors.orangeSoft,
+    width: 96, height: 96, borderRadius: 30, backgroundColor: c.orangeSoft,
     alignItems: "center", justifyContent: "center", marginBottom: 18,
   },
-  gateTitle: { color: colors.ink, fontSize: 21, fontFamily: font.title, marginBottom: 10, letterSpacing: -0.3 },
+  gateTitle: { color: c.ink, fontSize: 21, fontFamily: font.title, marginBottom: 10, letterSpacing: -0.3 },
   gateText: {
-    color: colors.muted, fontSize: 14, fontFamily: font.bodyMedium,
+    color: c.muted, fontSize: 14, fontFamily: font.bodyMedium,
     textAlign: "center", lineHeight: 22, marginBottom: 26,
   },
   gateJoin: {
-    backgroundColor: colors.orange, borderRadius: radius.lg,
+    backgroundColor: c.orange, borderRadius: radius.lg,
     paddingHorizontal: 32, paddingVertical: 16, marginBottom: 12, ...shadow.orange,
   },
-  gateJoinText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  gateJoinText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
   gateDecline: { paddingVertical: 10 },
-  gateDeclineText: { color: colors.muted, fontSize: 14, fontFamily: font.bodySemi },
-  gateHint: { color: colors.faint, fontSize: 12.5, fontFamily: font.body, marginTop: 8 },
-});
+  gateDeclineText: { color: c.muted, fontSize: 14, fontFamily: font.bodySemi },
+  gateHint: { color: c.faint, fontSize: 12.5, fontFamily: font.body, marginTop: 8 },
+}));

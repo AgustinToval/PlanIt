@@ -10,7 +10,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type PlanFile = {
   id: string;
@@ -40,6 +41,8 @@ function sizeLabel(bytes: number): string {
 export default function FilesModule({
   planId, myRole = "member",
 }: { planId: string; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [files, setFiles] = useState<PlanFile[]>([]);
   const [notes, setNotes] = useState("");
@@ -162,12 +165,12 @@ export default function FilesModule({
       style={{ flex: 1, padding: 12 }}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
     >
       {/* Shared notes */}
       <View style={styles.notesHeader}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="create-outline" size={16} color={colors.ink} />
+          <Ionicons name="create-outline" size={16} color={c.ink} />
           <Text style={styles.sectionTitle}>Shared notes</Text>
         </View>
         <Text style={styles.saveState}>
@@ -177,7 +180,7 @@ export default function FilesModule({
       <TextInput
         style={styles.notesInput}
         placeholder="Meeting point, what to bring, reservation numbers..."
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={c.faint}
         value={notes}
         onChangeText={onNotesChange}
         multiline
@@ -187,7 +190,7 @@ export default function FilesModule({
       {/* Files */}
       <View style={styles.filesHeader}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="attach-outline" size={16} color={colors.ink} />
+          <Ionicons name="attach-outline" size={16} color={c.ink} />
           <Text style={styles.sectionTitle}>Files ({files.length})</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={pickAndUpload} disabled={uploading}>
@@ -195,7 +198,7 @@ export default function FilesModule({
             ? <ActivityIndicator color="#ffffff" size="small" />
             : (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-                <Ionicons name="add" size={15} color={colors.onOrange} />
+                <Ionicons name="add" size={15} color={c.onOrange} />
                 <Text style={styles.addBtnText}>Add</Text>
               </View>
             )}
@@ -213,7 +216,7 @@ export default function FilesModule({
             onLongPress={() => deleteFile(f)}
           >
             <View style={styles.fileIconWrap}>
-              <Ionicons name={fileIcon(f.mime)} size={18} color={colors.teal} />
+              <Ionicons name={fileIcon(f.mime)} size={18} color={c.teal} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
@@ -222,8 +225,8 @@ export default function FilesModule({
               </Text>
             </View>
             {opening === f.id
-              ? <ActivityIndicator color={colors.orange} size="small" />
-              : <Ionicons name="chevron-forward" size={17} color={colors.faint} />}
+              ? <ActivityIndicator color={c.orange} size="small" />
+              : <Ionicons name="chevron-forward" size={17} color={c.faint} />}
           </TouchableOpacity>
         ))
       )}
@@ -233,32 +236,32 @@ export default function FilesModule({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  sectionTitle: { color: colors.ink, fontSize: 15, fontFamily: font.semi },
+  sectionTitle: { color: c.ink, fontSize: 15, fontFamily: font.semi },
   notesHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  saveState: { color: colors.faint, fontSize: 11.5, fontFamily: font.bodyMedium },
+  saveState: { color: c.faint, fontSize: 11.5, fontFamily: font.bodyMedium },
   notesInput: {
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, color: colors.ink,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 16, color: c.ink,
     fontSize: 14, fontFamily: font.bodyMedium, minHeight: 140, marginBottom: 24,
-    borderWidth: 1, borderColor: colors.line, lineHeight: 22,
+    borderWidth: 1, borderColor: c.line, lineHeight: 22,
   },
   filesHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   addBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.md, paddingHorizontal: 14,
+    backgroundColor: c.orange, borderRadius: radius.md, paddingHorizontal: 14,
     paddingVertical: 8, minWidth: 64, alignItems: "center", ...shadow.orange,
   },
-  addBtnText: { color: colors.onOrange, fontFamily: font.semi, fontSize: 13 },
-  empty: { color: colors.faint, fontSize: 13.5, fontFamily: font.body, textAlign: "center", marginVertical: 20 },
+  addBtnText: { color: c.onOrange, fontFamily: font.semi, fontSize: 13 },
+  empty: { color: c.faint, fontSize: 13.5, fontFamily: font.body, textAlign: "center", marginVertical: 20 },
   fileRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
   fileIconWrap: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: colors.tealSoft,
+    width: 38, height: 38, borderRadius: 12, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center", marginRight: 12,
   },
-  fileName: { color: colors.ink, fontSize: 14, fontFamily: font.bodySemi },
-  fileMeta: { color: colors.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
-  hint: { color: colors.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 12 },
-});
+  fileName: { color: c.ink, fontSize: 14, fontFamily: font.bodySemi },
+  fileMeta: { color: c.muted, fontSize: 11.5, fontFamily: font.body, marginTop: 2 },
+  hint: { color: c.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 12 },
+}));

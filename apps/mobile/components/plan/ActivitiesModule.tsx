@@ -6,7 +6,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Activity = {
   id: string;
@@ -20,6 +21,8 @@ type Activity = {
 export default function ActivitiesModule({
   planId, myRole = "member",
 }: { planId: string; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newTime, setNewTime] = useState(""); // HH:MM optional
@@ -120,7 +123,7 @@ export default function ActivitiesModule({
         style={{ flex: 1, paddingHorizontal: 12 }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {activities.map((act, i) => (
           <TouchableOpacity
@@ -133,14 +136,14 @@ export default function ActivitiesModule({
             <Ionicons
               name={act.done ? "checkbox" : "square-outline"}
               size={21}
-              color={act.done ? colors.teal : colors.faint}
+              color={act.done ? c.teal : c.faint}
               style={{ marginRight: 10 }}
             />
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, act.done && styles.titleDone]}>{act.title}</Text>
               {act.time && (
                 <View style={styles.timeRow}>
-                  <Ionicons name="time-outline" size={12} color={colors.teal} />
+                  <Ionicons name="time-outline" size={12} color={c.teal} />
                   <Text style={styles.time}>
                     {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </Text>
@@ -151,10 +154,10 @@ export default function ActivitiesModule({
             {canManage && (
               <View style={styles.arrows}>
                 <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} style={{ padding: 3 }}>
-                  <Ionicons name="chevron-up" size={17} color={i === 0 ? colors.line : colors.teal} />
+                  <Ionicons name="chevron-up" size={17} color={i === 0 ? c.line : c.teal} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => move(i, 1)} disabled={i === activities.length - 1} style={{ padding: 3 }}>
-                  <Ionicons name="chevron-down" size={17} color={i === activities.length - 1 ? colors.line : colors.teal} />
+                  <Ionicons name="chevron-down" size={17} color={i === activities.length - 1 ? c.line : c.teal} />
                 </TouchableOpacity>
               </View>
             )}
@@ -170,7 +173,7 @@ export default function ActivitiesModule({
         <TextInput
           style={[styles.input, { flex: 2 }]}
           placeholder="Hike to the lake..."
-          placeholderTextColor={colors.faint}
+          placeholderTextColor={c.faint}
           value={newTitle}
           onChangeText={setNewTitle}
           onSubmitEditing={addActivity}
@@ -179,7 +182,7 @@ export default function ActivitiesModule({
         <TextInput
           style={[styles.input, { flex: 1 }]}
           placeholder="18:00"
-          placeholderTextColor={colors.faint}
+          placeholderTextColor={c.faint}
           value={newTime}
           onChangeText={setNewTime}
           autoCapitalize="none"
@@ -189,43 +192,43 @@ export default function ActivitiesModule({
           onPress={() => { addActivity(); Keyboard.dismiss(); }}
           disabled={!newTitle.trim()}
         >
-          <Ionicons name="add" size={22} color={colors.onOrange} />
+          <Ionicons name="add" size={22} color={c.onOrange} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   progressCard: {
-    margin: 12, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16,
-    borderWidth: 1, borderColor: colors.line, ...shadow.card,
+    margin: 12, backgroundColor: c.surface, borderRadius: radius.lg, padding: 16,
+    borderWidth: 1, borderColor: c.line, ...shadow.card,
   },
-  progressText: { color: colors.ink, fontSize: 14, fontFamily: font.semi, marginBottom: 10 },
-  progressBar: { height: 8, backgroundColor: colors.line, borderRadius: 4, overflow: "hidden" },
-  progressFill: { height: 8, backgroundColor: colors.teal, borderRadius: 4 },
+  progressText: { color: c.ink, fontSize: 14, fontFamily: font.semi, marginBottom: 10 },
+  progressBar: { height: 8, backgroundColor: c.line, borderRadius: 4, overflow: "hidden" },
+  progressFill: { height: 8, backgroundColor: c.teal, borderRadius: 4 },
   row: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
-  orderNum: { color: colors.faint, fontSize: 12.5, fontFamily: font.bodyBold, width: 20 },
-  title: { color: colors.ink, fontSize: 14.5, fontFamily: font.bodySemi },
-  titleDone: { color: colors.faint, textDecorationLine: "line-through" },
+  orderNum: { color: c.faint, fontSize: 12.5, fontFamily: font.bodyBold, width: 20 },
+  title: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi },
+  titleDone: { color: c.faint, textDecorationLine: "line-through" },
   timeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  time: { color: colors.teal, fontSize: 12, fontFamily: font.bodyMedium },
-  notes: { color: colors.muted, fontSize: 12, fontFamily: font.body, marginTop: 2 },
+  time: { color: c.teal, fontSize: 12, fontFamily: font.bodyMedium },
+  notes: { color: c.muted, fontSize: 12, fontFamily: font.body, marginTop: 2 },
   arrows: { marginLeft: 8, alignItems: "center", gap: 2 },
-  empty: { color: colors.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
+  empty: { color: c.faint, textAlign: "center", marginTop: 40, fontSize: 13.5, fontFamily: font.body },
   inputRow: {
-    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.line,
-    backgroundColor: colors.surface,
+    flexDirection: "row", padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.line,
+    backgroundColor: c.surface,
   },
   input: {
-    backgroundColor: colors.surface2, borderRadius: radius.md, padding: 13, color: colors.ink,
-    fontSize: 14, fontFamily: font.bodyMedium, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface2, borderRadius: radius.md, padding: 13, color: c.ink,
+    fontSize: 14, fontFamily: font.bodyMedium, borderWidth: 1, borderColor: c.line,
   },
   addBtn: {
-    backgroundColor: colors.orange, borderRadius: radius.md, width: 48,
+    backgroundColor: c.orange, borderRadius: radius.md, width: 48,
     alignItems: "center", justifyContent: "center", ...shadow.orange,
   },
-});
+}));

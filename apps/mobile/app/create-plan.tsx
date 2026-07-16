@@ -6,7 +6,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import { shareInvite } from "../lib/invite";
-import { colors, font, radius, shadow, userColor } from "../lib/theme";
+import { font, radius, shadow, userColor, Palette, themedStyles } from "../lib/theme";
+import { useTheme, useT } from "../hooks/useSettings";
 
 type Group = {
   id: string;
@@ -24,6 +25,9 @@ type Template = {
 };
 
 export default function CreatePlanScreen() {
+  const c = useTheme();
+  const styles = getStyles(c);
+  const t = useT();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -178,16 +182,16 @@ export default function CreatePlanScreen() {
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Ionicons name="chevron-back" size={18} color={colors.teal} />
-        <Text style={styles.backText}>Back</Text>
+        <Ionicons name="chevron-back" size={18} color={c.teal} />
+        <Text style={styles.backText}>{t("common.back")}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>New Plan</Text>
+      <Text style={styles.title}>{t("scr.newPlan")}</Text>
 
       {templates.length > 0 && (
         <TouchableOpacity style={styles.templateBtn} onPress={() => setShowTemplates(true)}>
           <View style={styles.templateIconWrap}>
-            <Ionicons name="documents-outline" size={18} color={colors.onOrange} />
+            <Ionicons name="documents-outline" size={18} color={c.onOrange} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.templateTitle}>
@@ -201,10 +205,10 @@ export default function CreatePlanScreen() {
           </View>
           {selectedTemplate ? (
             <TouchableOpacity onPress={() => setSelectedTemplate(null)} style={{ padding: 6 }}>
-              <Ionicons name="close" size={18} color={colors.onOrange} />
+              <Ionicons name="close" size={18} color={c.onOrange} />
             </TouchableOpacity>
           ) : (
-            <Ionicons name="chevron-forward" size={17} color={colors.onOrange} />
+            <Ionicons name="chevron-forward" size={17} color={c.onOrange} />
           )}
         </TouchableOpacity>
       )}
@@ -215,7 +219,7 @@ export default function CreatePlanScreen() {
           onPress={() => setType("full")}
         >
           <View style={styles.typeBtnTitleRow}>
-            <Ionicons name="calendar-clear-outline" size={15} color={type === "full" ? colors.teal : colors.muted} />
+            <Ionicons name="calendar-clear-outline" size={15} color={type === "full" ? c.teal : c.muted} />
             <Text style={[styles.typeBtnText, type === "full" && styles.typeBtnTextActive]}>Full Plan</Text>
           </View>
           <Text style={styles.typeBtnSub}>Trips, dinners, events</Text>
@@ -225,7 +229,7 @@ export default function CreatePlanScreen() {
           onPress={() => setType("quick")}
         >
           <View style={styles.typeBtnTitleRow}>
-            <Ionicons name="flash" size={15} color={type === "quick" ? colors.orange : colors.muted} />
+            <Ionicons name="flash" size={15} color={type === "quick" ? c.orange : c.muted} />
             <Text style={[styles.typeBtnText, type === "quick" && styles.typeBtnTextActive]}>Quick Plan</Text>
           </View>
           <Text style={styles.typeBtnSub}>Today — who's in?</Text>
@@ -236,7 +240,7 @@ export default function CreatePlanScreen() {
       <TextInput
         style={styles.input}
         placeholder={type === "quick" ? "Football at 6pm" : "Camping July"}
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={c.faint}
         value={title}
         onChangeText={setTitle}
       />
@@ -244,7 +248,7 @@ export default function CreatePlanScreen() {
       <Text style={styles.label}>Who's invited?</Text>
       <TouchableOpacity style={styles.pickerBtn} onPress={() => { setSearch(""); setPicker("groups"); }}>
         <View style={styles.pickerIconWrap}>
-          <Ionicons name="people-outline" size={18} color={colors.teal} />
+          <Ionicons name="people-outline" size={18} color={c.teal} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.pickerTitle}>Groups</Text>
@@ -255,15 +259,15 @@ export default function CreatePlanScreen() {
           </Text>
         </View>
         <Text style={styles.pickerCount}>{selectedGroups.size > 0 ? `${selectedGroups.size}` : ""}</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.teal} />
+        <Ionicons name="chevron-forward" size={16} color={c.teal} />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.pickerBtn} onPress={() => { setSearch(""); setPicker("friends"); }}>
         <View style={styles.pickerIconWrap}>
-          <Ionicons name="person-add-outline" size={17} color={colors.teal} />
+          <Ionicons name="person-add-outline" size={17} color={c.teal} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.pickerTitle}>Friends</Text>
+          <Text style={styles.pickerTitle}>{t("scr.friends")}</Text>
           <Text style={styles.pickerMeta} numberOfLines={1}>
             {selectedFriends.size === 0
               ? "None selected"
@@ -271,14 +275,14 @@ export default function CreatePlanScreen() {
           </Text>
         </View>
         <Text style={styles.pickerCount}>{selectedFriends.size > 0 ? `${selectedFriends.size}` : ""}</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.teal} />
+        <Ionicons name="chevron-forward" size={16} color={c.teal} />
       </TouchableOpacity>
 
       <Text style={styles.label}>Location (optional)</Text>
       <TextInput
         style={styles.input}
         placeholder="The park"
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={c.faint}
         value={location}
         onChangeText={setLocation}
       />
@@ -289,7 +293,7 @@ export default function CreatePlanScreen() {
           <TextInput
             style={styles.input}
             placeholder="18/07"
-            placeholderTextColor={colors.faint}
+            placeholderTextColor={c.faint}
             value={date}
             onChangeText={setDate}
             autoCapitalize="none"
@@ -302,7 +306,7 @@ export default function CreatePlanScreen() {
       <TextInput
         style={styles.input}
         placeholder="18:00"
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={c.faint}
         value={time}
         onChangeText={setTime}
         autoCapitalize="none"
@@ -312,7 +316,7 @@ export default function CreatePlanScreen() {
       <TextInput
         style={[styles.input, { height: 80 }]}
         placeholder="Bring your boots!"
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={c.faint}
         value={description}
         onChangeText={setDescription}
         multiline
@@ -337,7 +341,7 @@ export default function CreatePlanScreen() {
       <TextInput
         style={styles.input}
         placeholder="Paste plan invite code"
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={c.faint}
         value={joinCode}
         onChangeText={setJoinCode}
         autoCapitalize="none"
@@ -371,7 +375,7 @@ export default function CreatePlanScreen() {
                   onLongPress={() => deleteTemplate(t)}
                 >
                   <View style={styles.pickerIconWrap}>
-                    <Ionicons name="documents-outline" size={18} color={colors.teal} />
+                    <Ionicons name="documents-outline" size={18} color={c.teal} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.groupName}>{t.name}</Text>
@@ -382,7 +386,7 @@ export default function CreatePlanScreen() {
                   <Ionicons
                     name={selectedTemplate?.id === t.id ? "checkmark-circle" : "chevron-forward"}
                     size={20}
-                    color={selectedTemplate?.id === t.id ? colors.teal : colors.faint}
+                    color={selectedTemplate?.id === t.id ? c.teal : c.faint}
                   />
                 </TouchableOpacity>
               ))}
@@ -408,7 +412,7 @@ export default function CreatePlanScreen() {
             <TextInput
               style={styles.input}
               placeholder="Search..."
-              placeholderTextColor={colors.faint}
+              placeholderTextColor={c.faint}
               value={search}
               onChangeText={setSearch}
               autoCapitalize="none"
@@ -441,7 +445,7 @@ export default function CreatePlanScreen() {
                         <Ionicons
                           name={selected ? "checkbox" : "square-outline"}
                           size={20}
-                          color={selected ? colors.orange : colors.faint}
+                          color={selected ? c.orange : c.faint}
                         />
                       </TouchableOpacity>
                     );
@@ -475,7 +479,7 @@ export default function CreatePlanScreen() {
                         <Ionicons
                           name={selected ? "checkbox" : "square-outline"}
                           size={20}
-                          color={selected ? colors.orange : colors.faint}
+                          color={selected ? c.orange : c.faint}
                         />
                       </TouchableOpacity>
                     );
@@ -490,75 +494,75 @@ export default function CreatePlanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 20, paddingTop: 60 },
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg, padding: 20, paddingTop: 60 },
   back: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 16 },
-  backText: { color: colors.teal, fontSize: 15, fontFamily: font.bodySemi },
-  title: { fontSize: 25, fontFamily: font.title, color: colors.ink, letterSpacing: -0.5, marginBottom: 20 },
+  backText: { color: c.teal, fontSize: 15, fontFamily: font.bodySemi },
+  title: { fontSize: 25, fontFamily: font.title, color: c.ink, letterSpacing: -0.5, marginBottom: 20 },
   typeRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
   typeBtn: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 15,
-    borderWidth: 1.5, borderColor: colors.line,
+    flex: 1, backgroundColor: c.surface, borderRadius: radius.lg, padding: 15,
+    borderWidth: 1.5, borderColor: c.line,
   },
-  typeBtnActive: { borderColor: colors.teal, backgroundColor: colors.tealSoft },
-  typeBtnActiveQuick: { borderColor: colors.orange, backgroundColor: colors.orangeSoft },
+  typeBtnActive: { borderColor: c.teal, backgroundColor: c.tealSoft },
+  typeBtnActiveQuick: { borderColor: c.orange, backgroundColor: c.orangeSoft },
   typeBtnTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  typeBtnText: { color: colors.muted, fontSize: 14, fontFamily: font.semi },
-  typeBtnTextActive: { color: colors.ink },
-  typeBtnSub: { color: colors.faint, fontSize: 11.5, fontFamily: font.body, marginTop: 4 },
-  label: { color: colors.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
+  typeBtnText: { color: c.muted, fontSize: 14, fontFamily: font.semi },
+  typeBtnTextActive: { color: c.ink },
+  typeBtnSub: { color: c.faint, fontSize: 11.5, fontFamily: font.body, marginTop: 4 },
+  label: { color: c.ink, fontSize: 13, fontFamily: font.bodySemi, marginBottom: 8 },
   input: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: 15, color: colors.ink,
-    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: c.surface, borderRadius: radius.md, padding: 15, color: c.ink,
+    fontSize: 15, fontFamily: font.bodyMedium, marginBottom: 16, borderWidth: 1, borderColor: c.line,
   },
-  hint: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 16, lineHeight: 18 },
+  hint: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginBottom: 16, lineHeight: 18 },
   groupRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1.5, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1.5, borderColor: c.line,
   },
-  groupRowActive: { borderColor: colors.orange },
+  groupRowActive: { borderColor: c.orange },
   groupAvatar: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: "center", justifyContent: "center", marginRight: 12,
   },
   groupAvatarText: { color: "#fff", fontFamily: font.title, fontSize: 15 },
-  groupName: { color: colors.ink, fontSize: 15, fontFamily: font.bodySemi },
-  groupMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.body },
+  groupName: { color: c.ink, fontSize: 15, fontFamily: font.bodySemi },
+  groupMeta: { color: c.muted, fontSize: 12.5, fontFamily: font.body },
   button: {
-    backgroundColor: colors.orange, borderRadius: radius.lg, padding: 17,
+    backgroundColor: c.orange, borderRadius: radius.lg, padding: 17,
     alignItems: "center", marginTop: 16, ...shadow.orange,
   },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.onOrange, fontSize: 16, fontFamily: font.semi },
+  buttonText: { color: c.onOrange, fontSize: 16, fontFamily: font.semi },
   divider: { flexDirection: "row", alignItems: "center", marginVertical: 28 },
-  line: { flex: 1, height: 1, backgroundColor: colors.line },
-  dividerText: { color: colors.faint, marginHorizontal: 12, fontSize: 13, fontFamily: font.bodyMedium },
+  line: { flex: 1, height: 1, backgroundColor: c.line },
+  dividerText: { color: c.faint, marginHorizontal: 12, fontSize: 13, fontFamily: font.bodyMedium },
   buttonOutline: {
     borderRadius: radius.lg, padding: 16, alignItems: "center",
-    borderWidth: 1.5, borderColor: colors.teal, backgroundColor: colors.surface,
+    borderWidth: 1.5, borderColor: c.teal, backgroundColor: c.surface,
   },
-  buttonOutlineText: { color: colors.teal, fontSize: 16, fontFamily: font.semi },
+  buttonOutlineText: { color: c.teal, fontSize: 16, fontFamily: font.semi },
   pickerBtn: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.surface,
-    borderRadius: radius.md, padding: 13, marginBottom: 10, borderWidth: 1, borderColor: colors.line,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.surface,
+    borderRadius: radius.md, padding: 13, marginBottom: 10, borderWidth: 1, borderColor: c.line,
   },
   pickerIconWrap: {
-    width: 36, height: 36, borderRadius: 11, backgroundColor: colors.tealSoft,
+    width: 36, height: 36, borderRadius: 11, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center", marginRight: 12,
   },
-  pickerTitle: { color: colors.ink, fontSize: 14.5, fontFamily: font.semi },
-  pickerMeta: { color: colors.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
-  pickerCount: { color: colors.orange, fontSize: 14, fontFamily: font.semi, marginRight: 4 },
+  pickerTitle: { color: c.ink, fontSize: 14.5, fontFamily: font.semi },
+  pickerMeta: { color: c.muted, fontSize: 12.5, fontFamily: font.body, marginTop: 2 },
+  pickerCount: { color: c.orange, fontSize: 14, fontFamily: font.semi, marginRight: 4 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(7,32,48,0.55)", justifyContent: "flex-end" },
   modal: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40, maxHeight: "85%",
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  modalTitle: { color: colors.ink, fontSize: 19, fontFamily: font.title },
-  modalDone: { color: colors.teal, fontSize: 15.5, fontFamily: font.semi },
+  modalTitle: { color: c.ink, fontSize: 19, fontFamily: font.title },
+  modalDone: { color: c.teal, fontSize: 15.5, fontFamily: font.semi },
   templateBtn: {
-    flexDirection: "row", alignItems: "center", backgroundColor: colors.petrol,
+    flexDirection: "row", alignItems: "center", backgroundColor: c.petrol,
     borderRadius: radius.md, padding: 13, marginBottom: 16, ...shadow.card,
   },
   templateIconWrap: {
@@ -567,4 +571,4 @@ const styles = StyleSheet.create({
   },
   templateTitle: { color: "#FFFFFF", fontSize: 14.5, fontFamily: font.semi },
   templateMeta: { color: "#8FB0C0", fontSize: 12, fontFamily: font.bodyMedium, marginTop: 2 },
-});
+}));

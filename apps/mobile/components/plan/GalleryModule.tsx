@@ -12,7 +12,8 @@ import { api } from "../../lib/api";
 import { compressToDataUrl } from "../../lib/images";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
-import { colors, font, radius, shadow } from "../../lib/theme";
+import { font, radius, shadow, Palette, themedStyles } from "../../lib/theme";
+import { useTheme } from "../../hooks/useSettings";
 
 type Photo = {
   id: string;
@@ -30,6 +31,8 @@ const TILE = (width - GAP * (COLS + 1)) / COLS;
 export default function GalleryModule({
   planId, myRole = "member",
 }: { planId: string; myRole?: string }) {
+  const c = useTheme();
+  const styles = getStyles(c);
   const { user } = useAuthStore();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -129,12 +132,12 @@ export default function GalleryModule({
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.grid}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.orange} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={c.orange} />}
       >
         {photos.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="images-outline" size={38} color={colors.teal} />
+              <Ionicons name="images-outline" size={38} color={c.teal} />
             </View>
             <Text style={styles.emptyText}>No photos yet</Text>
             <Text style={styles.emptySub}>Share the memories from this plan</Text>
@@ -153,7 +156,7 @@ export default function GalleryModule({
           ? <ActivityIndicator color="#ffffff" />
           : (
             <View style={styles.fabRow}>
-              <Ionicons name="add" size={18} color={colors.onOrange} />
+              <Ionicons name="add" size={18} color={c.onOrange} />
               <Text style={styles.fabText}>Add photo</Text>
             </View>
           )}
@@ -208,23 +211,23 @@ export default function GalleryModule({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", padding: GAP, paddingBottom: 90 },
   tileWrap: { margin: GAP / 2 },
-  tile: { width: TILE, height: TILE, borderRadius: 8, backgroundColor: colors.line },
+  tile: { width: TILE, height: TILE, borderRadius: 8, backgroundColor: c.line },
   empty: { width: "100%", alignItems: "center", marginTop: 80 },
   emptyIconWrap: {
-    width: 84, height: 84, borderRadius: 26, backgroundColor: colors.tealSoft,
+    width: 84, height: 84, borderRadius: 26, backgroundColor: c.tealSoft,
     alignItems: "center", justifyContent: "center",
   },
-  emptyText: { color: colors.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
-  emptySub: { color: colors.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8 },
+  emptyText: { color: c.ink, fontSize: 19, fontFamily: font.title, marginTop: 16 },
+  emptySub: { color: c.muted, fontSize: 13.5, fontFamily: font.bodyMedium, marginTop: 8 },
   fab: {
-    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: colors.orange,
+    position: "absolute", bottom: 20, right: 16, left: 16, backgroundColor: c.orange,
     borderRadius: radius.lg, padding: 16, alignItems: "center", ...shadow.orange,
   },
   fabRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  fabText: { color: colors.onOrange, fontSize: 15, fontFamily: font.semi },
+  fabText: { color: c.onOrange, fontSize: 15, fontFamily: font.semi },
   viewerOverlay: { flex: 1, backgroundColor: "rgba(4,22,33,0.96)", justifyContent: "center", alignItems: "center" },
   viewerClose: { position: "absolute", top: 60, right: 24, zIndex: 2 },
   viewerImage: { width: "100%", height: "70%" },
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
   viewerDate: { color: "#8FB0C0", fontSize: 12.5, fontFamily: font.bodyMedium, marginTop: 2 },
   viewerActions: { position: "absolute", bottom: 48, alignSelf: "center", flexDirection: "row", gap: 12 },
   viewerSave: {
-    backgroundColor: colors.teal, borderRadius: radius.md,
+    backgroundColor: c.teal, borderRadius: radius.md,
     paddingHorizontal: 24, paddingVertical: 12,
   },
   viewerSaveText: { color: "#fff", fontSize: 14, fontFamily: font.semi },
@@ -242,4 +245,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 12,
   },
   viewerDeleteText: { color: "#FCA5A5", fontSize: 14, fontFamily: font.semi },
-});
+}));
