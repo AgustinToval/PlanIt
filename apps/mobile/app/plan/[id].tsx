@@ -1026,8 +1026,8 @@ export default function PlanScreen() {
                       <Ionicons name={m.icon} size={19} color={c.teal} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.moduleName}>{m.name}</Text>
-                      <Text style={styles.moduleDesc}>{m.desc}</Text>
+                      <Text style={styles.moduleName}>{t(m.name as TKey)}</Text>
+                      <Text style={styles.moduleDesc}>{t(m.desc as TKey)}</Text>
                     </View>
                     <Ionicons name="add-circle-outline" size={22} color={c.orange} />
                   </TouchableOpacity>

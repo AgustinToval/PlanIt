@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Image, ImageBackground } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Image, ImageBackground, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +39,8 @@ export default function PlansScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  // Avoid flashing the empty state before the first fetch resolves
+  const [ready, setReady] = useState(false);
 
   const [notifCount, setNotifCount] = useState(0);
 
@@ -48,6 +50,8 @@ export default function PlansScreen() {
       setPlans(res.data.filter((p: Plan) => p.status !== "completed"));
     } catch (e) {
       console.log(e);
+    } finally {
+      setReady(true);
     }
   };
 
@@ -151,7 +155,9 @@ export default function PlansScreen() {
         </View>
       </View>
 
-      {plans.length === 0 ? (
+      {!ready ? (
+        <ActivityIndicator color={c.orange} style={{ marginTop: 60 }} />
+      ) : plans.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconWrap}>
             <Ionicons name="calendar-outline" size={40} color={c.teal} />

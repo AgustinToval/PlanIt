@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,12 +25,15 @@ export default function GroupsScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  // Avoid flashing the empty state before the first fetch resolves
+  const [ready, setReady] = useState(false);
 
   const load = async () => {
     try {
       const res = await api.get("/groups");
       setGroups(res.data);
     } catch (e) { console.log(e); }
+    finally { setReady(true); }
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));
@@ -51,7 +54,9 @@ export default function GroupsScreen() {
         </TouchableOpacity>
       </View>
 
-      {groups.length === 0 ? (
+      {!ready ? (
+        <ActivityIndicator color={c.orange} style={{ marginTop: 60 }} />
+      ) : groups.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconWrap}>
             <Ionicons name="people-outline" size={40} color={c.teal} />
