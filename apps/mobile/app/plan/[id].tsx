@@ -352,6 +352,8 @@ export default function PlanScreen() {
       ["playlist:changed", bump("playlist")],
       ["files:changed", bump("files")],
       ["notes:changed", bump("files")],
+      ["raffle:changed", bump("raffle")],
+      ["raffle:spun", bump("raffle")],
     ];
     listeners.forEach(([ev, fn]) => socket.on(ev, fn));
 
