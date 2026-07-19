@@ -2,11 +2,31 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
 
 const router = Router();
 
+// Verifies Google ID tokens. GOOGLE_CLIENT_IDS = comma-separated list of the
+// web + iOS OAuth client IDs (the audiences the token can have).
+const googleClient = new OAuth2Client();
+const GOOGLE_AUDIENCES = (process.env.GOOGLE_CLIENT_IDS ?? "")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+
 function issueToken(userId: string): string {
   return jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: "30d" });
+}
+
+// Build a unique username#tag from a Google email prefix
+async function uniqueUsernameFrom(email: string): Promise<{ username: string; tag: string }> {
+  let base = email.split("@")[0]!.toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 18);
+  if (base.length < 3) base = `${base}user`;
+  let tag = randomTag();
+  for (let i = 0; i < 25; i++) {
+    const clash = await prisma.user.findFirst({ where: { username: base, tag }, select: { id: true } });
+    if (!clash) break;
+    tag = randomTag();
+  }
+  return { username: base, tag };
 }
 
 function sanitize(user: { password?: string | null } & Record<string, unknown>) {
@@ -89,10 +109,41 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/auth/google — exchange verified Google identity for app JWT.
-// Will be wired to real Google token verification when native builds land.
+// POST /api/auth/google — verify a Google ID token and issue our app JWT.
+// New Google users get an account auto-created with a username#tag they can
+// change later. Existing users (same email) just get logged in.
 router.post("/google", async (req: Request, res: Response) => {
-  res.status(501).json({ error: "Google Sign-In arrives with the native build" });
+  const { idToken } = req.body as { idToken?: string };
+  if (!idToken) return res.status(400).json({ error: "Missing Google token" });
+  if (GOOGLE_AUDIENCES.length === 0) {
+    return res.status(500).json({ error: "Google Sign-In is not configured on the server" });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_AUDIENCES });
+    const payload = ticket.getPayload();
+    const email = payload?.email?.toLowerCase();
+    if (!email || !payload?.email_verified) {
+      return res.status(401).json({ error: "Google account email not verified" });
+    }
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const { username, tag } = await uniqueUsernameFrom(email);
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: payload.name ?? email.split("@")[0]!,
+          username,
+          tag,
+          avatar: payload.picture ?? null,
+        },
+      });
+    }
+    res.json({ token: issueToken(user.id), user: sanitize(user) });
+  } catch (e) {
+    res.status(401).json({ error: "Could not verify Google sign-in" });
+  }
 });
 
 export default router;

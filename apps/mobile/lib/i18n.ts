@@ -136,6 +136,8 @@ const en = {
   "auth.switchToRegister": "New here? Create an account",
   "auth.switchToLogin": "Already have an account? Log in",
   "auth.googleSoon": "Google Sign-In coming with the app store release",
+  "auth.or": "or",
+  "auth.google": "Continue with Google",
 
   // Friends screen
   "fr.addFriend": "Add a friend",
@@ -629,6 +631,8 @@ const es: typeof en = {
   "auth.switchToRegister": "¿Sos nuevo? Creá una cuenta",
   "auth.switchToLogin": "¿Ya tenés cuenta? Iniciá sesión",
   "auth.googleSoon": "Google Sign-In llega con la versión de las tiendas",
+  "auth.or": "o",
+  "auth.google": "Continuar con Google",
 
   "fr.addFriend": "Agregar un amigo",
   "fr.searchPh": "Buscá por username (o email)",

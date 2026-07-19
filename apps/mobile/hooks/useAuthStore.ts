@@ -20,6 +20,7 @@ type AuthStore = {
   loadToken: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, username: string, email: string, password: string) => Promise<void>;
+  signInWithGoogle: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User) => void;
   clearError: () => void;
@@ -67,6 +68,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({
         loading: false,
         error: e?.response?.data?.error ?? "Could not reach the server",
+      });
+    }
+  },
+
+  signInWithGoogle: async (idToken: string) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.post("/auth/google", { idToken });
+      await tokenStorage.set(res.data.token);
+      set({ token: res.data.token, user: res.data.user, loading: false });
+    } catch (e: any) {
+      set({
+        loading: false,
+        error: e?.response?.data?.error ?? "Could not sign in with Google",
       });
     }
   },

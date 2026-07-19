@@ -23,6 +23,13 @@
         "NSFaceIDUsageDescription": "PlanIt uses Face ID to unlock the app when you enable the biometric lock.",
         "UIBackgroundModes": [
           "audio"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.127198789957-u2d5c5j8phkmsp5fiee5cviob7t2pq9b"
+            ]
+          }
         ]
       }
     },

@@ -1,14 +1,21 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   KeyboardAvoidingView, Platform, ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { useTheme, useT } from "../../hooks/useSettings";
+import { GOOGLE } from "../../lib/oauth";
 import { font, radius, shadow, Palette } from "../../lib/theme";
 
+// Finishes the browser-based auth session when the app regains focus
+WebBrowser.maybeCompleteAuthSession();
+
 export default function SignInScreen() {
-  const { signIn, signUp, loading, error, clearError } = useAuthStore();
+  const { signIn, signUp, signInWithGoogle, loading, error, clearError } = useAuthStore();
   const c = useTheme();
   const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -17,6 +24,24 @@ export default function SignInScreen() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Google Sign-In (browser flow — works in Expo Go and in the native build)
+  const [gRequest, gResponse, gPromptAsync] = Google.useIdTokenAuthRequest({
+    iosClientId: GOOGLE.iosClientId,
+    webClientId: GOOGLE.webClientId,
+  });
+
+  useEffect(() => {
+    // Log the redirect URI once so it can be registered in Google Cloud
+    if (gRequest?.redirectUri) console.log("Google redirect URI:", gRequest.redirectUri);
+  }, [gRequest]);
+
+  useEffect(() => {
+    if (gResponse?.type === "success") {
+      const idToken = gResponse.params?.id_token;
+      if (idToken) signInWithGoogle(idToken);
+    }
+  }, [gResponse]);
 
   const emailOk = /\S+@\S+\.\S+/.test(email);
   const usernameOk = /^[a-z0-9_.]{3,20}$/.test(username);
@@ -112,13 +137,26 @@ export default function SignInScreen() {
             </Text>
           </TouchableOpacity>
 
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t("auth.or")}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.googleBtn}
+            onPress={() => { clearError(); gPromptAsync(); }}
+            disabled={!gRequest || loading}
+          >
+            <Ionicons name="logo-google" size={18} color={c.ink} />
+            <Text style={styles.googleText}>{t("auth.google")}</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={switchMode} style={styles.switchBtn}>
             <Text style={styles.switchText}>
               {mode === "login" ? t("auth.switchToRegister") : t("auth.switchToLogin")}
             </Text>
           </TouchableOpacity>
-
-          <Text style={styles.hint}>{t("auth.googleSoon")}</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -153,4 +191,13 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   switchBtn: { marginTop: 18, alignItems: "center" },
   switchText: { color: c.teal, fontSize: 14, fontFamily: font.bodySemi },
   hint: { color: c.faint, fontSize: 12.5, fontFamily: font.body, textAlign: "center", marginTop: 20 },
+  dividerRow: { flexDirection: "row", alignItems: "center", marginTop: 18, marginBottom: 4 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: c.line },
+  dividerText: { color: c.faint, fontSize: 12, fontFamily: font.bodyMedium, marginHorizontal: 12 },
+  googleBtn: {
+    flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9,
+    backgroundColor: c.surface, borderRadius: radius.lg, padding: 15, marginTop: 12,
+    borderWidth: 1, borderColor: c.line,
+  },
+  googleText: { color: c.ink, fontSize: 15, fontFamily: font.semi },
 });
