@@ -396,6 +396,12 @@ const en = {
   "ex.split": "Split between",
   "ex.everyone": "Everyone",
   "ex.deleteQ": "Delete expense?",
+  "ex.guest": "guest",
+  "ex.addGuest": "Add someone without the app",
+  "ex.guestPh": "Name (e.g. Juan)",
+  "ex.guestHint": "Long-press a guest to remove them",
+  "ex.removeGuestQ": "Remove this guest?",
+  "ex.guestFail": "Could not update guests",
 
   // Files module
   "fi.notes": "Shared notes",
@@ -443,6 +449,7 @@ const en = {
   "py.hint": "In Spotify or YouTube Music: tap Share → Copy link, then paste it here.",
   "py.addTo": "Add to playlist",
   "py.removeQ": "Remove song?",
+  "py.openFail": "Could not open the link",
 
   // Votes module
   "vo.empty": "No votes yet — settle a debate!",
@@ -877,6 +884,12 @@ const es: typeof en = {
   "ex.split": "Dividir entre",
   "ex.everyone": "Todos",
   "ex.deleteQ": "¿Eliminar gasto?",
+  "ex.guest": "invitado",
+  "ex.addGuest": "Agregar a alguien sin la app",
+  "ex.guestPh": "Nombre (ej. Juan)",
+  "ex.guestHint": "Mantené apretado un invitado para quitarlo",
+  "ex.removeGuestQ": "¿Quitar este invitado?",
+  "ex.guestFail": "No se pudo actualizar los invitados",
 
   "fi.notes": "Notas compartidas",
   "fi.saved": "guardado ✓",
@@ -920,6 +933,7 @@ const es: typeof en = {
   "py.hint": "En Spotify o YouTube Music: Compartir → Copiar link, y pegalo acá.",
   "py.addTo": "Agregar a la playlist",
   "py.removeQ": "¿Quitar canción?",
+  "py.openFail": "No se pudo abrir el link",
 
   "vo.empty": "Sin votaciones — ¡zanjen una discusión!",
   "vo.closed": "Cerrada",

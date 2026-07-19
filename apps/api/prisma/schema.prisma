@@ -153,6 +153,7 @@ model Plan {
   songs       Song[]
   files       PlanFile[]
   voiceClips  VoiceClip[]
+  guests      PlanGuest[]
 }
 
 model PlanModule {
@@ -244,12 +245,23 @@ model Expense {
 
 model ExpenseSplit {
   id        String  @id @default(cuid())
-  userId    String
+  userId    String  // a User id OR a PlanGuest id (guests have no account)
   amount    Float
   settled   Boolean @default(false)
 
   expenseId String
   expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+}
+
+// A person without the app who still shares expenses in a plan (e.g. "Juan").
+// Plan-scoped: guests exist only inside the plan they were added to.
+model PlanGuest {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
 model Photo {

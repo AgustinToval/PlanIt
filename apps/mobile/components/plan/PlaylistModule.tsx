@@ -5,6 +5,7 @@ import {
   Keyboard, TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 import { api } from "../../lib/api";
 import { getSocket } from "../../lib/socket";
 import { useAuthStore } from "../../hooks/useAuthStore";
@@ -89,8 +90,19 @@ export default function PlaylistModule({
     }
   };
 
-  const openSong = (song: Song) => {
-    Linking.openURL(song.url).catch(() => Alert.alert("Error", "Could not open the link"));
+  const openSong = async (song: Song) => {
+    // Old entries may have share-sheet text around the link — extract the URL
+    const url = song.url.match(/https?:\/\/\S+/i)?.[0] ?? song.url;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      // Linking can fail in Expo Go for app-scheme redirects; in-app browser as fallback
+      try {
+        await WebBrowser.openBrowserAsync(url);
+      } catch {
+        Alert.alert("Error", t("py.openFail"));
+      }
+    }
   };
 
   const deleteSong = (song: Song) => {

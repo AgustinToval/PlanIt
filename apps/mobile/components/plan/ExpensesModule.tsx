@@ -25,11 +25,15 @@ type Summary = {
   mode: string;
   total: number;
   perPerson: number | null;
-  balances: { userId: string; name: string; net: number }[];
+  headcount: number;
+  balances: { userId: string; name: string; isGuest?: boolean; net: number }[];
   transactions: { fromId: string; toId: string; from: string; to: string; amount: number }[];
 };
 
 type Member = { rsvp: string; user: { id: string; name: string | null } };
+
+// A person without the app added to this plan just for splitting expenses
+type Guest = { id: string; name: string };
 
 export default function ExpensesModule({ planId, members, myRole = "member" }: { planId: string; members: Member[]; myRole?: string }) {
   const c = useTheme();
@@ -38,6 +42,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
   const { user } = useAuthStore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [guests, setGuests] = useState<Guest[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -46,15 +51,20 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
   const [refreshing, setRefreshing] = useState(false);
   const [mode, setMode] = useState<"expense" | "equal">("expense");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showGuestInput, setShowGuestInput] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestBusy, setGuestBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [planRes, sumRes] = await Promise.all([
+      const [planRes, sumRes, guestsRes] = await Promise.all([
         api.get(`/plans/${planId}`),
         api.get(`/expenses/plan/${planId}/summary?mode=${mode}`),
+        api.get(`/expenses/plan/${planId}/guests`),
       ]);
       setExpenses(planRes.data.expenses ?? []);
       setSummary(sumRes.data);
+      setGuests(guestsRes.data ?? []);
     } catch { /* noop */ }
   }, [planId, mode]);
 
@@ -129,8 +139,50 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
     }
   };
 
+  const addGuest = async () => {
+    const clean = guestName.trim();
+    if (!clean) return;
+    setGuestBusy(true);
+    try {
+      const res = await api.post(`/expenses/plan/${planId}/guests`, { name: clean });
+      setGuests((prev) => [...prev, res.data]);
+      setSharers((prev) => new Set(prev).add(res.data.id)); // include them right away
+      setGuestName("");
+      setShowGuestInput(false);
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? t("ex.guestFail"));
+    } finally {
+      setGuestBusy(false);
+    }
+  };
+
+  const removeGuest = (guest: Guest) => {
+    Alert.alert(t("ex.removeGuestQ"), guest.name, [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("common.remove"), style: "destructive",
+        onPress: async () => {
+          try {
+            await api.delete(`/expenses/guests/${guest.id}`);
+            setGuests((prev) => prev.filter((g) => g.id !== guest.id));
+            setSharers((prev) => {
+              const next = new Set(prev);
+              next.delete(guest.id);
+              return next;
+            });
+          } catch (e: any) {
+            Alert.alert("Error", e?.response?.data?.error ?? t("ex.guestFail"));
+          }
+        },
+      },
+    ]);
+  };
+
   const memberName = (id: string) =>
-    id === user?.id ? t("common.you") : members.find((m) => m.user.id === id)?.user.name ?? "?";
+    id === user?.id ? t("common.you")
+    : members.find((m) => m.user.id === id)?.user.name
+    ?? guests.find((g) => g.id === id)?.name
+    ?? "?";
 
   const myNet = summary?.balances.find((b) => b.userId === user?.id)?.net ?? 0;
 
@@ -146,7 +198,7 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
           <Text style={styles.balanceTotal}>${(summary?.total ?? 0).toFixed(2)}</Text>
           {mode === "equal" && summary?.perPerson != null && (
             <Text style={styles.perPerson}>
-              ${summary.perPerson.toFixed(2)} {t("ex.each")} ({members.length} {t("ex.people")})
+              ${summary.perPerson.toFixed(2)} {t("ex.each")} ({summary.headcount ?? members.length} {t("ex.people")})
             </Text>
           )}
           <Text style={[styles.balanceNet, { color: myNet >= 0 ? c.teal : c.danger }]}>
@@ -323,17 +375,17 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                 <Text style={styles.label}>{t("ex.split")}</Text>
                 <ScrollView style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled">
                   <TouchableOpacity
-                    style={[styles.sharerRow, styles.everyoneRow, sharers.size === members.length && styles.sharerRowActive]}
-                    onPress={() => setSharers(new Set(members.map((m) => m.user.id)))}
+                    style={[styles.sharerRow, styles.everyoneRow, sharers.size === members.length + guests.length && styles.sharerRowActive]}
+                    onPress={() => setSharers(new Set([...members.map((m) => m.user.id), ...guests.map((g) => g.id)]))}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                       <Ionicons name="people" size={15} color={c.teal} />
                       <Text style={[styles.sharerName, { fontFamily: font.bodyBold }]}>{t("ex.everyone")}</Text>
                     </View>
                     <Ionicons
-                      name={sharers.size === members.length ? "checkbox" : "square-outline"}
+                      name={sharers.size === members.length + guests.length ? "checkbox" : "square-outline"}
                       size={19}
-                      color={sharers.size === members.length ? c.orange : c.faint}
+                      color={sharers.size === members.length + guests.length ? c.orange : c.faint}
                     />
                   </TouchableOpacity>
                   {members.map((m) => {
@@ -355,6 +407,66 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
                       </TouchableOpacity>
                     );
                   })}
+                  {guests.map((g) => {
+                    const selected = sharers.has(g.id);
+                    return (
+                      <TouchableOpacity
+                        key={g.id}
+                        style={[styles.sharerRow, selected && styles.sharerRowActive]}
+                        onPress={() => toggleSharer(g.id)}
+                        onLongPress={() => removeGuest(g)}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flex: 1 }}>
+                          <Ionicons name="person-add-outline" size={14} color={c.muted} />
+                          <Text style={styles.sharerName}>{g.name}</Text>
+                          <Text style={styles.guestTag}>{t("ex.guest")}</Text>
+                        </View>
+                        <Ionicons
+                          name={selected ? "checkbox" : "square-outline"}
+                          size={19}
+                          color={selected ? c.orange : c.faint}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  {/* Add a person without the app (e.g. Juan) */}
+                  {showGuestInput ? (
+                    <View style={styles.guestInputRow}>
+                      <TextInput
+                        style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                        placeholder={t("ex.guestPh")}
+                        placeholderTextColor={c.faint}
+                        value={guestName}
+                        onChangeText={setGuestName}
+                        autoFocus
+                        maxLength={30}
+                        returnKeyType="done"
+                        onSubmitEditing={addGuest}
+                      />
+                      <TouchableOpacity
+                        style={[styles.doneBtn, (guestBusy || !guestName.trim()) && { opacity: 0.5 }]}
+                        onPress={addGuest}
+                        disabled={guestBusy || !guestName.trim()}
+                      >
+                        <Ionicons name="checkmark" size={17} color="#fff" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.guestCancelBtn}
+                        onPress={() => { setShowGuestInput(false); setGuestName(""); }}
+                      >
+                        <Ionicons name="close" size={17} color={c.muted} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.addGuestRow} onPress={() => setShowGuestInput(true)}>
+                      <Ionicons name="person-add-outline" size={15} color={c.teal} />
+                      <Text style={styles.addGuestText}>{t("ex.addGuest")}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {guests.length > 0 && (
+                    <Text style={styles.guestHint}>{t("ex.guestHint")}</Text>
+                  )}
                 </ScrollView>
 
                 <TouchableOpacity
@@ -447,6 +559,23 @@ const getStyles = themedStyles((c: Palette) => StyleSheet.create({
   doneBtn: { backgroundColor: c.teal, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 14 },
   doneBtnText: { color: "#fff", fontFamily: font.semi, fontSize: 14 },
   sharerName: { color: c.ink, fontSize: 14, fontFamily: font.bodyMedium },
+  guestTag: {
+    color: c.muted, fontSize: 10.5, fontFamily: font.bodySemi,
+    backgroundColor: c.surface2, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+    overflow: "hidden",
+  },
+  guestInputRow: { flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 6 },
+  guestCancelBtn: {
+    borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 13,
+    borderWidth: 1, borderColor: c.line, backgroundColor: c.surface,
+  },
+  addGuestRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7,
+    borderRadius: radius.md, padding: 12, marginBottom: 6,
+    borderWidth: 1.5, borderColor: c.line, borderStyle: "dashed",
+  },
+  addGuestText: { color: c.teal, fontSize: 13.5, fontFamily: font.bodySemi },
+  guestHint: { color: c.faint, fontSize: 11, fontFamily: font.body, textAlign: "center", marginTop: 2, marginBottom: 4 },
   button: {
     backgroundColor: c.orange, borderRadius: radius.lg, padding: 16,
     alignItems: "center", marginTop: 12, ...shadow.orange,

@@ -13,6 +13,71 @@ async function assertPlanMember(userId: string, planId: string) {
   return m && m.status === "member" ? m : null;
 }
 
+// GET /api/expenses/plan/:planId/guests — list app-less people in this plan
+router.get("/plan/:planId/guests", authMiddleware, async (req: Request, res: Response) => {
+  const planId = String(req.params["planId"]);
+  try {
+    if (!(await assertPlanMember(req.userId!, planId))) {
+      return res.status(403).json({ error: "Not a member of this plan" });
+    }
+    const guests = await prisma.planGuest.findMany({
+      where: { planId },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json(guests);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch guests" });
+  }
+});
+
+// POST /api/expenses/plan/:planId/guests — add a person without the app
+router.post("/plan/:planId/guests", authMiddleware, async (req: Request, res: Response) => {
+  const planId = String(req.params["planId"]);
+  const { name } = req.body as { name?: string };
+  const clean = name?.trim();
+  if (!clean || clean.length > 30) {
+    return res.status(400).json({ error: "Guest name must be 1-30 characters" });
+  }
+  try {
+    if (!(await assertPlanMember(req.userId!, planId))) {
+      return res.status(403).json({ error: "Not a member of this plan" });
+    }
+    const dupe = await prisma.planGuest.findFirst({
+      where: { planId, name: { equals: clean, mode: "insensitive" } },
+    });
+    if (dupe) return res.status(409).json({ error: "There is already a guest with that name" });
+
+    const guest = await prisma.planGuest.create({ data: { planId, name: clean } });
+    io.to(`plan:${planId}`).emit("expense:added", { refresh: true });
+    res.status(201).json(guest);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to add guest" });
+  }
+});
+
+// DELETE /api/expenses/guests/:id — remove a guest (only if they owe nothing)
+router.delete("/guests/:id", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params["id"]);
+  try {
+    const guest = await prisma.planGuest.findUnique({ where: { id } });
+    if (!guest) return res.status(404).json({ error: "Guest not found" });
+    if (!(await assertPlanMember(req.userId!, guest.planId))) {
+      return res.status(403).json({ error: "Not a member of this plan" });
+    }
+    const inUse = await prisma.expenseSplit.findFirst({
+      where: { userId: id, expense: { planId: guest.planId } },
+    });
+    if (inUse) {
+      return res.status(409).json({ error: "This guest appears in expenses — remove those first" });
+    }
+    await prisma.planGuest.delete({ where: { id } });
+    io.to(`plan:${guest.planId}`).emit("expense:added", { refresh: true });
+    res.json({ message: "Guest removed" });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to remove guest" });
+  }
+});
+
 // POST /api/expenses/plan/:planId — add an expense, split equally
 router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response) => {
   const planId = String(req.params["planId"]);
@@ -31,14 +96,20 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
       return res.status(403).json({ error: "Not a member of this plan" });
     }
 
-    // Determine who shares this expense
+    // Determine who shares this expense — plan members and/or plan guests
     let sharerIds: string[];
     if (splitBetween?.length) {
-      const valid = await prisma.planMember.findMany({
-        where: { planId, userId: { in: splitBetween } },
-        select: { userId: true },
-      });
-      sharerIds = valid.map((m) => m.userId);
+      const [validMembers, validGuests] = await Promise.all([
+        prisma.planMember.findMany({
+          where: { planId, userId: { in: splitBetween } },
+          select: { userId: true },
+        }),
+        prisma.planGuest.findMany({
+          where: { planId, id: { in: splitBetween } },
+          select: { id: true },
+        }),
+      ]);
+      sharerIds = [...validMembers.map((m) => m.userId), ...validGuests.map((g) => g.id)];
     } else {
       const all = await prisma.planMember.findMany({
         where: { planId },
@@ -92,29 +163,33 @@ router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Re
       return res.status(403).json({ error: "Not a member of this plan" });
     }
 
-    const expenses = await prisma.expense.findMany({
-      where: { planId },
-      include: { splits: true },
-    });
-    const members = await prisma.planMember.findMany({
-      where: { planId },
-      include: { user: { select: { id: true, name: true } } },
-    });
+    const [expenses, members, guests] = await Promise.all([
+      prisma.expense.findMany({ where: { planId }, include: { splits: true } }),
+      prisma.planMember.findMany({
+        where: { planId },
+        include: { user: { select: { id: true, name: true } } },
+      }),
+      prisma.planGuest.findMany({ where: { planId } }),
+    ]);
 
-    // net (cents): positive = is owed money, negative = owes money
+    // net (cents): positive = is owed money, negative = owes money.
+    // Guests (people without the app) participate exactly like members —
+    // they just can never be the payer.
     const net = new Map<string, number>();
     members.forEach((m) => net.set(m.userId, 0));
+    guests.forEach((g) => net.set(g.id, 0));
 
     if (mode === "equal") {
-      // Everything split evenly between every plan member, regardless of
-      // per-expense splits. Settled marks are ignored in this view.
+      // Everything split evenly between every member AND guest, regardless
+      // of per-expense splits. Settled marks are ignored in this view.
+      const everyone = [...members.map((m) => m.userId), ...guests.map((g) => g.id)];
       const totalCents = expenses.reduce((sum, e) => sum + Math.round(e.amount * 100), 0);
-      const n = members.length || 1;
+      const n = everyone.length || 1;
       const base = Math.floor(totalCents / n);
       const remainder = totalCents - base * n;
-      members.forEach((m, i) => {
+      everyone.forEach((id, i) => {
         const share = base + (i < remainder ? 1 : 0);
-        net.set(m.userId, (net.get(m.userId) ?? 0) - share);
+        net.set(id, (net.get(id) ?? 0) - share);
       });
       for (const exp of expenses) {
         const cents = Math.round(exp.amount * 100);
@@ -152,15 +227,22 @@ router.get("/plan/:planId/summary", authMiddleware, async (req: Request, res: Re
     }
 
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const names = Object.fromEntries(members.map((m) => [m.userId, m.user.name ?? "?"]));
+    const names = Object.fromEntries([
+      ...members.map((m) => [m.userId, m.user.name ?? "?"]),
+      ...guests.map((g) => [g.id, g.name]),
+    ]);
+    const guestIds = new Set(guests.map((g) => g.id));
+    const headcount = members.length + guests.length;
 
     res.json({
       mode,
       total,
-      perPerson: mode === "equal" && members.length > 0 ? total / members.length : null,
+      perPerson: mode === "equal" && headcount > 0 ? total / headcount : null,
+      headcount,
       balances: [...net.entries()].map(([userId, cents]) => ({
         userId,
         name: names[userId] ?? "?",
+        isGuest: guestIds.has(userId),
         net: cents / 100,
       })),
       transactions: transactions.map((t) => ({

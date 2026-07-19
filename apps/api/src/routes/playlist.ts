@@ -18,6 +18,13 @@ function notify(planId: string) {
   void touchPlan(planId, "playlist");
 }
 
+// Share sheets often paste text around the link ("Check this out! https://…").
+// Keep only the URL itself so opening it later works.
+function extractUrl(text: string): string {
+  const match = text.match(/https?:\/\/\S+/i);
+  return (match ? match[0] : text).replace(/[.,;)\]]+$/, "").trim();
+}
+
 // Detect source and derive a title from a pasted link. Spotify & YouTube Music.
 function parseLink(url: string): { source: string; guessTitle: string } | null {
   const u = url.trim();
@@ -67,9 +74,10 @@ async function fetchMeta(url: string, source: string): Promise<LinkMeta> {
 // POST /api/playlist/plan/:planId — add a song by link (any member)
 router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response) => {
   const planId = String(req.params["planId"]);
-  const { url, title, artist } = req.body as { url?: string; title?: string; artist?: string };
-  if (!url?.trim()) return res.status(400).json({ error: "Song link is required" });
+  const { url: rawUrl, title, artist } = req.body as { url?: string; title?: string; artist?: string };
+  if (!rawUrl?.trim()) return res.status(400).json({ error: "Song link is required" });
 
+  const url = extractUrl(rawUrl);
   const parsed = parseLink(url);
   if (!parsed) {
     return res.status(400).json({ error: "Paste a Spotify or YouTube Music link" });
