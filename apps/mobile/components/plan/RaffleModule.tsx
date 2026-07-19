@@ -323,118 +323,124 @@ export default function RaffleModule({
         </TouchableOpacity>
       )}
 
-      {/* Wheel modal */}
-      <Modal visible={!!open} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle} numberOfLines={1}>{open?.title}</Text>
-              <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
-                {canManage && open && (
-                  <TouchableOpacity onPress={() => startEdit(open)}>
-                    <Ionicons name="create-outline" size={21} color={c.teal} />
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity onPress={() => setOpen(null)}>
-                  <Ionicons name="close" size={22} color={c.muted} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {open && renderWheel(open.participants)}
-
-            <View style={styles.resultBox}>
-              {winner ? (
-                <>
-                  <Text style={styles.winnerLabel}>{t("rf.winner")}</Text>
-                  <Text style={styles.winnerName}>{winner}</Text>
-                </>
-              ) : (
-                <Text style={styles.resultHint}>
-                  {spinning ? t("rf.spinning") : canManage ? t("rf.hint") : t("rf.hintMember")}
-                </Text>
-              )}
-            </View>
-
-            {canManage && (
-              <TouchableOpacity
-                style={[styles.spinBtn, spinning && { opacity: 0.5 }]}
-                onPress={spin}
-                disabled={spinning}
-              >
-                <View style={styles.fabRow}>
-                  <Ionicons name="sync-outline" size={18} color={c.onOrange} />
-                  <Text style={styles.fabText}>{spinning ? t("rf.spinning") : t("rf.spin")}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Create / edit modal */}
-      <Modal visible={!!form} animationType="slide" transparent>
+      {/* Single modal switching between wheel and create/edit form —
+          two sibling <Modal>s can't be open at once on iOS and break
+          modal presentation until remount */}
+      <Modal
+        visible={!!open || !!form}
+        animationType="slide"
+        transparent
+        onRequestClose={() => { setForm(null); setOpen(null); }}
+      >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.modal}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{form === "new" ? t("rf.new") : t("rf.edit")}</Text>
-                  <TouchableOpacity onPress={() => setForm(null)}>
-                    <Ionicons name="close" size={22} color={c.muted} />
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.label}>{t("rf.titleLabel")}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t("rf.titlePh")}
-                  placeholderTextColor={c.faint}
-                  value={formTitle}
-                  onChangeText={setFormTitle}
-                  maxLength={60}
-                  returnKeyType="done"
-                />
-
-                <Text style={styles.label}>{t("rf.participants")}</Text>
-                <ScrollView style={{ maxHeight: 250 }} keyboardShouldPersistTaps="handled">
-                  {pickerOptions.map((o) => {
-                    const selected = formIds.has(o.id);
-                    return (
-                      <TouchableOpacity
-                        key={o.id}
-                        style={[styles.pickRow, selected && styles.pickRowActive]}
-                        onPress={() => toggleFormId(o.id)}
-                      >
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flex: 1 }}>
-                          {o.isGuest && <Ionicons name="person-add-outline" size={14} color={c.muted} />}
-                          <Text style={styles.pickName}>
-                            {o.id === user?.id ? t("common.you") : o.name}
-                          </Text>
-                          {o.isGuest && <Text style={styles.guestTag}>{t("ex.guest")}</Text>}
-                        </View>
-                        <Ionicons
-                          name={selected ? "checkbox" : "square-outline"}
-                          size={19}
-                          color={selected ? c.orange : c.faint}
-                        />
+                {form ? (
+                  <>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>{form === "new" ? t("rf.new") : t("rf.edit")}</Text>
+                      <TouchableOpacity onPress={() => setForm(null)}>
+                        <Ionicons name="close" size={22} color={c.muted} />
                       </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-                <Text style={styles.formHint}>
-                  {form !== "new" ? t("rf.editHint") : t("rf.needTwo")}
-                </Text>
+                    </View>
 
-                <TouchableOpacity
-                  style={[styles.spinBtn, (!formValid || busy) && { opacity: 0.5 }]}
-                  onPress={submitForm}
-                  disabled={!formValid || busy}
-                >
-                  <Text style={styles.fabText}>
-                    {busy ? "..." : form === "new" ? t("rf.create") : t("rf.save")}
-                  </Text>
-                </TouchableOpacity>
+                    <Text style={styles.label}>{t("rf.titleLabel")}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t("rf.titlePh")}
+                      placeholderTextColor={c.faint}
+                      value={formTitle}
+                      onChangeText={setFormTitle}
+                      maxLength={60}
+                      returnKeyType="done"
+                    />
+
+                    <Text style={styles.label}>{t("rf.participants")}</Text>
+                    <ScrollView style={{ maxHeight: 250 }} keyboardShouldPersistTaps="handled">
+                      {pickerOptions.map((o) => {
+                        const selected = formIds.has(o.id);
+                        return (
+                          <TouchableOpacity
+                            key={o.id}
+                            style={[styles.pickRow, selected && styles.pickRowActive]}
+                            onPress={() => toggleFormId(o.id)}
+                          >
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flex: 1 }}>
+                              {o.isGuest && <Ionicons name="person-add-outline" size={14} color={c.muted} />}
+                              <Text style={styles.pickName}>
+                                {o.id === user?.id ? t("common.you") : o.name}
+                              </Text>
+                              {o.isGuest && <Text style={styles.guestTag}>{t("ex.guest")}</Text>}
+                            </View>
+                            <Ionicons
+                              name={selected ? "checkbox" : "square-outline"}
+                              size={19}
+                              color={selected ? c.orange : c.faint}
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                    <Text style={styles.formHint}>
+                      {form !== "new" ? t("rf.editHint") : t("rf.needTwo")}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[styles.spinBtn, (!formValid || busy) && { opacity: 0.5 }]}
+                      onPress={submitForm}
+                      disabled={!formValid || busy}
+                    >
+                      <Text style={styles.fabText}>
+                        {busy ? "..." : form === "new" ? t("rf.create") : t("rf.save")}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle} numberOfLines={1}>{open?.title}</Text>
+                      <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+                        {canManage && open && (
+                          <TouchableOpacity onPress={() => startEdit(open)}>
+                            <Ionicons name="create-outline" size={21} color={c.teal} />
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity onPress={() => setOpen(null)}>
+                          <Ionicons name="close" size={22} color={c.muted} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {open && renderWheel(open.participants)}
+
+                    <View style={styles.resultBox}>
+                      {winner ? (
+                        <>
+                          <Text style={styles.winnerLabel}>{t("rf.winner")}</Text>
+                          <Text style={styles.winnerName}>{winner}</Text>
+                        </>
+                      ) : (
+                        <Text style={styles.resultHint}>
+                          {spinning ? t("rf.spinning") : canManage ? t("rf.hint") : t("rf.hintMember")}
+                        </Text>
+                      )}
+                    </View>
+
+                    {canManage && (
+                      <TouchableOpacity
+                        style={[styles.spinBtn, spinning && { opacity: 0.5 }]}
+                        onPress={spin}
+                        disabled={spinning}
+                      >
+                        <View style={styles.fabRow}>
+                          <Ionicons name="sync-outline" size={18} color={c.onOrange} />
+                          <Text style={styles.fabText}>{spinning ? t("rf.spinning") : t("rf.spin")}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               </View>
             </TouchableWithoutFeedback>
           </View>
