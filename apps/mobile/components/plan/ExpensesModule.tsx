@@ -179,18 +179,18 @@ export default function ExpensesModule({ planId, members, myRole = "member" }: {
               <Ionicons name="swap-horizontal-outline" size={15} color={c.ink} />
               <Text style={styles.sectionTitle}>{t("ex.settleUp")}</Text>
             </View>
-            {summary.transactions.map((t, i) => (
+            {summary.transactions.map((tx, i) => (
               <View key={i} style={styles.txRow}>
                 <Text style={styles.txText}>
-                  <Text style={{ fontFamily: font.bodyBold, color: t.fromId === user?.id ? c.danger : c.ink }}>
-                    {t.fromId === user?.id ? "You" : t.from}
+                  <Text style={{ fontFamily: font.bodyBold, color: tx.fromId === user?.id ? c.danger : c.ink }}>
+                    {tx.fromId === user?.id ? t("common.you") : tx.from}
                   </Text>
                   {"  →  "}
-                  <Text style={{ fontFamily: font.bodyBold, color: t.toId === user?.id ? c.teal : c.ink }}>
-                    {t.toId === user?.id ? "You" : t.to}
+                  <Text style={{ fontFamily: font.bodyBold, color: tx.toId === user?.id ? c.teal : c.ink }}>
+                    {tx.toId === user?.id ? t("common.you") : tx.to}
                   </Text>
                 </Text>
-                <Text style={styles.txAmount}>${t.amount.toFixed(2)}</Text>
+                <Text style={styles.txAmount}>${tx.amount.toFixed(2)}</Text>
               </View>
             ))}
           </View>
