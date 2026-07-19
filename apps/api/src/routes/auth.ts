@@ -54,7 +54,17 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 
   try {
+    // One email = one account. If it already exists (via password OR Google),
+    // registration is refused — this prevents someone from claiming a
+    // Google-only account by setting a password on it.
     const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      const error = existing.password
+        ? "This email is already registered — log in instead"
+        : "This email is already linked to a Google account — use Continue with Google";
+      return res.status(409).json({ error });
+    }
+
     const hash = await bcrypt.hash(password, 10);
 
     // Pick a tag that doesn't collide with this username
@@ -66,18 +76,6 @@ router.post("/register", async (req: Request, res: Response) => {
       });
       if (!clash) break;
       tag = randomTag();
-    }
-
-    if (existing) {
-      if (existing.password) {
-        return res.status(409).json({ error: "This email is already registered — log in instead" });
-      }
-      // Account created before passwords existed (dev login era): claim it.
-      const user = await prisma.user.update({
-        where: { id: existing.id },
-        data: { password: hash, name: existing.name ?? name.trim(), username: cleanUsername, tag },
-      });
-      return res.json({ token: issueToken(user.id), user: sanitize(user) });
     }
 
     const user = await prisma.user.create({
