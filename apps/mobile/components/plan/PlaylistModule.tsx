@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image,
   Alert, RefreshControl, Modal, Linking, KeyboardAvoidingView, Platform,
   Keyboard, TouchableWithoutFeedback,
 } from "react-native";
@@ -17,6 +17,7 @@ type Song = {
   artist: string | null;
   source: string; // spotify | youtube
   url: string;
+  cover: string | null;
   addedBy: string;
   score: number;
   myVote: number;
@@ -126,6 +127,13 @@ export default function PlaylistModule({
         {songs.map((song, i) => (
           <View key={song.id} style={styles.songRow}>
             <Text style={styles.rank}>{i + 1}</Text>
+            {song.cover ? (
+              <Image source={{ uri: song.cover }} style={styles.cover} />
+            ) : (
+              <View style={[styles.cover, styles.coverFallback]}>
+                <Ionicons name="musical-note" size={18} color={c.faint} />
+              </View>
+            )}
             <TouchableOpacity
               style={{ flex: 1 }}
               onPress={() => openSong(song)}
@@ -240,6 +248,8 @@ const getStyles = themedStyles((c: Palette) => StyleSheet.create({
     borderRadius: radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: c.line,
   },
   rank: { color: c.faint, fontSize: 13, fontFamily: font.bodyBold, width: 22 },
+  cover: { width: 44, height: 44, borderRadius: 8, marginRight: 10, backgroundColor: c.tealSoft },
+  coverFallback: { alignItems: "center", justifyContent: "center" },
   songTitleRow: { flexDirection: "row", alignItems: "center" },
   sourceDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
   songTitle: { color: c.ink, fontSize: 14.5, fontFamily: font.bodySemi, flex: 1 },

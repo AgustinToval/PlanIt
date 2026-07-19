@@ -30,6 +30,40 @@ function parseLink(url: string): { source: string; guessTitle: string } | null {
   return null;
 }
 
+type LinkMeta = { title?: string; artist?: string; cover?: string };
+
+// Fetch title/author/cover from the public oEmbed endpoints — no credentials
+// needed. Best-effort: on any failure we just return {} and fall back.
+async function fetchMeta(url: string, source: string): Promise<LinkMeta> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    let endpoint: string;
+    if (source === "spotify") {
+      endpoint = `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`;
+    } else {
+      // YouTube oEmbed doesn't accept music.youtube.com — normalise to www.
+      const normalised = url.replace("music.youtube.com", "www.youtube.com");
+      endpoint = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(normalised)}`;
+    }
+    const res = await fetch(endpoint, { signal: controller.signal });
+    if (!res.ok) return {};
+    const data = (await res.json()) as {
+      title?: string; author_name?: string; thumbnail_url?: string;
+    };
+    return {
+      title: data.title?.trim() || undefined,
+      // Spotify oEmbed has no separate artist; YouTube gives the channel name
+      artist: source === "youtube" ? data.author_name?.trim() || undefined : undefined,
+      cover: data.thumbnail_url?.trim() || undefined,
+    };
+  } catch {
+    return {};
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // POST /api/playlist/plan/:planId — add a song by link (any member)
 router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response) => {
   const planId = String(req.params["planId"]);
@@ -45,10 +79,14 @@ router.post("/plan/:planId", authMiddleware, async (req: Request, res: Response)
     if (!(await getMembership(req.userId!, planId))) {
       return res.status(403).json({ error: "Not a member of this plan" });
     }
+
+    // Enrich from oEmbed; user-typed values always win over the fetched ones.
+    const meta = await fetchMeta(url, parsed.source);
     const song = await prisma.song.create({
       data: {
-        title: title?.trim() || parsed.guessTitle,
-        artist: artist?.trim() || null,
+        title: title?.trim() || meta.title || parsed.guessTitle,
+        artist: artist?.trim() || meta.artist || null,
+        cover: meta.cover ?? null,
         source: parsed.source,
         url: url.trim(),
         addedBy: req.userId!,

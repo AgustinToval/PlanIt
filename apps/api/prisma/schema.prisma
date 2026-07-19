@@ -332,6 +332,7 @@ model Song {
   artist    String?
   source    String   // spotify | youtube
   url       String   // link to the track
+  cover     String?  // thumbnail/cover art from oEmbed
   addedBy   String   // user id
   votes     Json     @default("{}") // { userId: 1 | -1 }
   createdAt DateTime @default(now())
