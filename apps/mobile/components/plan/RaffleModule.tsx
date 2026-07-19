@@ -81,6 +81,9 @@ export default function RaffleModule({
   const [formTitle, setFormTitle] = useState("");
   const [formIds, setFormIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [showGuestInput, setShowGuestInput] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestBusy, setGuestBusy] = useState(false);
 
   useEffect(() => {
     const sub = rotation.addListener(({ value }) => { rotationValue.current = value; });
@@ -190,12 +193,16 @@ export default function RaffleModule({
   const startCreate = () => {
     setFormTitle("");
     setFormIds(new Set(members.map((m) => m.user.id)));
+    setShowGuestInput(false);
+    setGuestName("");
     setForm("new");
   };
 
   const startEdit = (raffle: Raffle) => {
     setFormTitle(raffle.title);
     setFormIds(new Set(raffle.participants.map((p) => p.id)));
+    setShowGuestInput(false);
+    setGuestName("");
     setForm(raffle);
   };
 
@@ -205,6 +212,25 @@ export default function RaffleModule({
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  // Guests are plan-scoped (shared with Expenses), so one created here is
+  // available for splitting bills too — and vice versa.
+  const addGuest = async () => {
+    const clean = guestName.trim();
+    if (!clean) return;
+    setGuestBusy(true);
+    try {
+      const res = await api.post(`/expenses/plan/${planId}/guests`, { name: clean });
+      setGuests((prev) => [...prev, res.data]);
+      setFormIds((prev) => new Set(prev).add(res.data.id)); // select them right away
+      setGuestName("");
+      setShowGuestInput(false);
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? t("ex.guestFail"));
+    } finally {
+      setGuestBusy(false);
+    }
   };
 
   const submitForm = async () => {
@@ -381,6 +407,41 @@ export default function RaffleModule({
                           </TouchableOpacity>
                         );
                       })}
+
+                      {/* Add a person without the app (shared with Expenses) */}
+                      {showGuestInput ? (
+                        <View style={styles.guestInputRow}>
+                          <TextInput
+                            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                            placeholder={t("ex.guestPh")}
+                            placeholderTextColor={c.faint}
+                            value={guestName}
+                            onChangeText={setGuestName}
+                            autoFocus
+                            maxLength={30}
+                            returnKeyType="done"
+                            onSubmitEditing={addGuest}
+                          />
+                          <TouchableOpacity
+                            style={[styles.guestOkBtn, (guestBusy || !guestName.trim()) && { opacity: 0.5 }]}
+                            onPress={addGuest}
+                            disabled={guestBusy || !guestName.trim()}
+                          >
+                            <Ionicons name="checkmark" size={17} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.guestCancelBtn}
+                            onPress={() => { setShowGuestInput(false); setGuestName(""); }}
+                          >
+                            <Ionicons name="close" size={17} color={c.muted} />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity style={styles.addGuestRow} onPress={() => setShowGuestInput(true)}>
+                          <Ionicons name="person-add-outline" size={15} color={c.teal} />
+                          <Text style={styles.addGuestText}>{t("ex.addGuest")}</Text>
+                        </TouchableOpacity>
+                      )}
                     </ScrollView>
                     <Text style={styles.formHint}>
                       {form !== "new" ? t("rf.editHint") : t("rf.needTwo")}
@@ -518,4 +579,16 @@ const getStyles = themedStyles((c: Palette) => StyleSheet.create({
     overflow: "hidden",
   },
   formHint: { color: c.faint, fontSize: 11.5, fontFamily: font.body, textAlign: "center", marginTop: 6 },
+  guestInputRow: { flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 6 },
+  guestOkBtn: { backgroundColor: c.teal, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 13 },
+  guestCancelBtn: {
+    borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 13,
+    borderWidth: 1, borderColor: c.line, backgroundColor: c.surface,
+  },
+  addGuestRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7,
+    borderRadius: radius.md, padding: 12, marginBottom: 6,
+    borderWidth: 1.5, borderColor: c.line, borderStyle: "dashed",
+  },
+  addGuestText: { color: c.teal, fontSize: 13.5, fontFamily: font.bodySemi },
 }));
