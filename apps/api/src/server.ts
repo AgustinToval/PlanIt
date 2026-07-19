@@ -22,6 +22,7 @@ import fileRoutes from "./routes/files";
 import availabilityRoutes from "./routes/availability";
 import aiRoutes from "./routes/ai";
 import voiceRoutes from "./routes/voice";
+import raffleRoutes from "./routes/raffles";
 import { socketHandler } from "./lib/socket";
 
 dotenv.config();
@@ -62,6 +63,7 @@ app.use("/api/files", fileRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/voice", voiceRoutes);
+app.use("/api/raffles", raffleRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

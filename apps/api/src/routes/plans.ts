@@ -8,7 +8,7 @@ const router = Router();
 
 export const MODULE_TYPES = [
   "expenses", "checklist", "activities", "votes",
-  "walkietalkie", "gallery", "playlist", "files", "meetup",
+  "walkietalkie", "gallery", "playlist", "files", "meetup", "raffle",
 ] as const;
 
 // Permission helper: returns the ACTIVE member row (joined, not just invited) or null

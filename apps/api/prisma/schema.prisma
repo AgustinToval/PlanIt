@@ -154,6 +154,7 @@ model Plan {
   files       PlanFile[]
   voiceClips  VoiceClip[]
   guests      PlanGuest[]
+  raffles     Raffle[]
 }
 
 model PlanModule {
@@ -251,6 +252,22 @@ model ExpenseSplit {
 
   expenseId String
   expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+}
+
+// A raffle wheel inside a plan. Participants are a snapshot of names
+// (members and/or guests) so edits to the plan don't rewrite past raffles.
+model Raffle {
+  id           String    @id @default(cuid())
+  title        String
+  participants Json      // [{ id, name }] — id is a User id or PlanGuest id
+  winnerId     String?   // participant id of the last spin result
+  winnerName   String?
+  spunAt       DateTime?
+  createdBy    String    // user id
+  createdAt    DateTime  @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
 // A person without the app who still shares expenses in a plan (e.g. "Juan").

@@ -20,6 +20,7 @@ import MeetupModule from "../../components/plan/MeetupModule";
 import FilesModule from "../../components/plan/FilesModule";
 import AvailabilityHeatmap from "../../components/plan/AvailabilityHeatmap";
 import WalkieTalkieModule from "../../components/plan/WalkieTalkieModule";
+import RaffleModule from "../../components/plan/RaffleModule";
 import { shareInvite } from "../../lib/invite";
 import { useChatUx } from "../../hooks/useChatUx";
 import UserProfileSheet from "../../components/UserProfileSheet";
@@ -68,6 +69,7 @@ const MODULE_CATALOG: { type: string; icon: ModIcon; name: string; desc: string 
   { type: "playlist", icon: "musical-notes-outline", name: "cat.playlist.n", desc: "cat.playlist.d" },
   { type: "files", icon: "document-attach-outline", name: "cat.files.n", desc: "cat.files.d" },
   { type: "meetup", icon: "location-outline", name: "cat.meetup.n", desc: "cat.meetup.d" },
+  { type: "raffle", icon: "disc-outline", name: "cat.raffle.n", desc: "cat.raffle.d" },
 ];
 
 export default function PlanScreen() {
@@ -662,6 +664,8 @@ export default function PlanScreen() {
         <FilesModule planId={plan.id} myRole={myRole} />
       ) : activeTab === "walkietalkie" && plan ? (
         <WalkieTalkieModule planId={plan.id} members={plan.members} />
+      ) : activeTab === "raffle" && plan ? (
+        <RaffleModule planId={plan.id} members={plan.members} myRole={myRole} />
       ) : (
         <View style={styles.modulePlaceholder}>
           <View style={styles.modulePlaceholderIcon}>
