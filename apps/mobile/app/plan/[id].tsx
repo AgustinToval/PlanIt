@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  KeyboardAvoidingView, Platform, ScrollView, Modal, Alert,
+  KeyboardAvoidingView, Platform, ScrollView, Modal, Alert, RefreshControl,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -323,6 +323,13 @@ export default function PlanScreen() {
     } catch { /* noop */ }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
   useFocusEffect(useCallback(() => { load(); }, [id]));
 
   useEffect(() => {
@@ -511,7 +518,11 @@ export default function PlanScreen() {
 
       {/* Content */}
       {activeTab === null ? (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.gridWrap}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.gridWrap}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.orange} />}
+        >
           <Text style={styles.gridLabel}>{t("pl.modules")}</Text>
           <View style={styles.grid}>
             {/* Chat is always first */}

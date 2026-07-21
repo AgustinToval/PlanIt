@@ -460,6 +460,7 @@ const en = {
   "mu.sharingN": "sharing location",
   "mu.who": "Who's where",
   "mu.sharing": "sharing live location",
+  "mu.tapToOpen": "sharing — tap to open in Maps",
   "mm.web": "Live map is available in the phone app",
 
   // Playlist module
@@ -969,6 +970,7 @@ const es: typeof en = {
   "mu.sharingN": "compartiendo ubicación",
   "mu.who": "Quién está dónde",
   "mu.sharing": "compartiendo ubicación en vivo",
+  "mu.tapToOpen": "compartiendo — tocá para abrir en Mapas",
   "mm.web": "El mapa en vivo está en la app del celular",
 
   "py.empty": "Sin canciones todavía",

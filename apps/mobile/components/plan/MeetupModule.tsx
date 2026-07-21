@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl,
-  Platform, Alert,
+  Platform, Alert, Linking,
 } from "react-native";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
@@ -137,6 +137,21 @@ export default function MeetupModule({ planId }: { planId: string }) {
     }
   };
 
+  // Open a member's live position in the phone's Maps app — works everywhere,
+  // even when the embedded map can't render (e.g. Expo Go on iOS).
+  const openInMaps = (m: Member) => {
+    if (m.lat == null || m.lng == null) return;
+    const label = encodeURIComponent(m.user.id === user?.id ? t("common.you") : m.user.name ?? "");
+    const url = Platform.select({
+      ios: `maps:0,0?q=${label}@${m.lat},${m.lng}`,
+      android: `geo:0,0?q=${m.lat},${m.lng}(${label})`,
+      default: `https://maps.google.com/?q=${m.lat},${m.lng}`,
+    })!;
+    Linking.openURL(url).catch(() =>
+      Linking.openURL(`https://maps.google.com/?q=${m.lat},${m.lng}`).catch(() => {})
+    );
+  };
+
   const located = members.filter((m) => m.lat != null && m.lng != null && isFresh(m.locationAt));
   const there = members.filter((m) => m.meetupStatus === "there").length;
   const onway = members.filter((m) => m.meetupStatus === "onway").length;
@@ -214,7 +229,13 @@ export default function MeetupModule({ planId }: { planId: string }) {
         const isMe = m.user.id === user?.id;
         const hasLoc = m.lat != null && isFresh(m.locationAt);
         return (
-          <View key={m.user.id} style={styles.memberRow}>
+          <TouchableOpacity
+            key={m.user.id}
+            style={styles.memberRow}
+            onPress={() => hasLoc && openInMaps(m)}
+            disabled={!hasLoc}
+            activeOpacity={hasLoc ? 0.6 : 1}
+          >
             <View style={[styles.memberAvatar, { backgroundColor: userColor(m.user.id) }]}>
               <Text style={styles.memberAvatarText}>{(m.user.name ?? "?")[0]?.toUpperCase()}</Text>
             </View>
@@ -223,13 +244,13 @@ export default function MeetupModule({ planId }: { planId: string }) {
               {hasLoc && (
                 <View style={styles.memberLocRow}>
                   <Ionicons name="location" size={11} color={c.teal} />
-                  <Text style={styles.memberLoc}>{t("mu.sharing")}</Text>
+                  <Text style={styles.memberLoc}>{t("mu.tapToOpen")}</Text>
                 </View>
               )}
             </View>
             <Ionicons name={info.icon} size={16} color={info.color} style={{ marginRight: 6 }} />
             <Text style={[styles.memberStatus, { color: info.color }]}>{t(info.label as TKey)}</Text>
-          </View>
+          </TouchableOpacity>
         );
       })}
       <View style={{ height: 40 }} />
