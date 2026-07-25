@@ -94,6 +94,27 @@ function extractJson(text: string): any {
   }
 }
 
+// GET /api/ai/selftest — TEMPORARY diagnostic. Reports whether the Gemini key
+// works from this server's environment, without ever exposing the key itself.
+router.get("/selftest", async (_req: Request, res: Response) => {
+  const key = process.env.GEMINI_API_KEY ?? "";
+  const meta = {
+    configured: !!key,
+    keyLength: key.length,
+    // surface accidental wrapping/whitespace without revealing the key
+    startsWith: key.slice(0, 3),
+    hasQuotes: /["']/.test(key),
+    hasWhitespace: /\s/.test(key),
+    model: GEMINI_MODEL,
+  };
+  try {
+    const text = await callGemini({ system: "Reply with OK.", prompt: "ping" });
+    res.json({ ok: true, ...meta, sample: text.slice(0, 40) });
+  } catch (e) {
+    res.json({ ok: false, ...meta, error: e instanceof Error ? e.message.slice(0, 300) : String(e) });
+  }
+});
+
 // POST /api/ai/packing-list/:planId — generate a tailored packing/shopping list
 router.post("/packing-list/:planId", authMiddleware, async (req: Request, res: Response) => {
   const planId = String(req.params["planId"]);
