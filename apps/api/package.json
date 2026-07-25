@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
-    "build": "prisma generate && prisma migrate deploy && tsc",
-    "start": "node dist/server.js",
+    "build": "prisma generate && tsc",
+    "start": "prisma migrate deploy && node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"
@@ -19,6 +19,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "prisma": "^6.0.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
@@ -29,7 +30,6 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.10.1",
     "nodemon": "^3.1.7",
-    "prisma": "^6.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }
