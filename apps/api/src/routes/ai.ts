@@ -36,9 +36,7 @@ async function callGemini({ system, prompt, json }: GeminiOpts): Promise<string>
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 2048,
-      // Keep responses fast: disable the "thinking" step on models that support it
-      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: 4096, // headroom in case the model spends tokens "thinking"
       ...(json ? { responseMimeType: "application/json" } : {}),
     },
   };
