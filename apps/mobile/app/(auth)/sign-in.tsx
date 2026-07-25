@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { useAuthStore } from "../../hooks/useAuthStore";
@@ -13,6 +14,11 @@ import { font, radius, shadow, Palette } from "../../lib/theme";
 
 // Finishes the browser-based auth session when the app regains focus
 WebBrowser.maybeCompleteAuthSession();
+
+// Google Sign-In does NOT work inside Expo Go (SDK 53+ dropped the auth proxy).
+// It only works in the native build. Detect Expo Go so we can explain instead
+// of throwing Google's confusing "authorization error".
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 export default function SignInScreen() {
   const { signIn, signUp, signInWithGoogle, loading, error, clearError } = useAuthStore();
@@ -25,11 +31,21 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Google Sign-In (browser flow — works in Expo Go and in the native build)
+  // Google Sign-In (browser flow — works only in the native build, not Expo Go)
   const [gRequest, gResponse, gPromptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE.iosClientId,
+    androidClientId: GOOGLE.androidClientId,
     webClientId: GOOGLE.webClientId,
   });
+
+  const onGooglePress = () => {
+    if (isExpoGo) {
+      Alert.alert(t("auth.googleExpoGoTitle"), t("auth.googleExpoGoMsg"));
+      return;
+    }
+    clearError();
+    gPromptAsync();
+  };
 
   useEffect(() => {
     // Log the redirect URI once so it can be registered in Google Cloud
@@ -145,8 +161,8 @@ export default function SignInScreen() {
 
           <TouchableOpacity
             style={styles.googleBtn}
-            onPress={() => { clearError(); gPromptAsync(); }}
-            disabled={!gRequest || loading}
+            onPress={onGooglePress}
+            disabled={(!gRequest && !isExpoGo) || loading}
           >
             <Ionicons name="logo-google" size={18} color={c.ink} />
             <Text style={styles.googleText}>{t("auth.google")}</Text>

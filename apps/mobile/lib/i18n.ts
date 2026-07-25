@@ -138,6 +138,8 @@ const en = {
   "auth.googleSoon": "Google Sign-In coming with the app store release",
   "auth.or": "or",
   "auth.google": "Continue with Google",
+  "auth.googleExpoGoTitle": "Available in the app",
+  "auth.googleExpoGoMsg": "Google Sign-In works in the installed app, not in Expo Go. For now, use your email — or try it once the build is on your phone.",
 
   // Friends screen
   "fr.addFriend": "Add a friend",
@@ -666,6 +668,8 @@ const es: typeof en = {
   "auth.googleSoon": "Google Sign-In llega con la versión de las tiendas",
   "auth.or": "o",
   "auth.google": "Continuar con Google",
+  "auth.googleExpoGoTitle": "Disponible en la app",
+  "auth.googleExpoGoMsg": "El login con Google funciona en la app instalada, no en Expo Go. Por ahora entrá con tu email — o probalo cuando tengas el build en el celu.",
 
   "fr.addFriend": "Agregar un amigo",
   "fr.searchPh": "Buscá por username (o email)",
